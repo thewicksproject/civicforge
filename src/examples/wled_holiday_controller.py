@@ -104,6 +104,47 @@ class WLEDController:
             self._build_url("/json/state"), payload, timeout=self.timeout
         )
 
+    def ensure_twinklefox(
+        self,
+        palette_name: str = "C9",
+        brightness: int = 200,
+        segment_id: int = 0,
+        transition_ms: int = 700,
+        fallback_palette: str = "C9",
+    ) -> Dict[str, Any]:
+        """
+        Re-assert TwinkleFox with the desired palette if the device has drifted.
+
+        This is useful when other automations (circadian, presence, lux-based)
+        try to change the effect or palette—keeping the strand locked to the
+        time-based schedule that calls this helper.
+        """
+        effect_id = self._resolve_effect_id("TwinkleFox")
+        palette_id, resolved_palette = self._resolve_palette_id(
+            palette_name, fallback_palette=fallback_palette
+        )
+
+        state = self._read_state()
+        segment = self._find_segment(state, segment_id)
+
+        if (
+            state.get("on")
+            and segment is not None
+            and segment.get("fx") == effect_id
+            and segment.get("pal") == palette_id
+        ):
+            self.last_effect_name = "TwinkleFox"
+            self.last_palette_name = resolved_palette
+            return {"updated": False, "state": state}
+
+        return self.apply_twinklefox(
+            palette_name=palette_name,
+            brightness=brightness,
+            segment_id=segment_id,
+            transition_ms=transition_ms,
+            fallback_palette=fallback_palette,
+        )
+
     def _resolve_effect_id(self, effect_name: str) -> int:
         effects: List[str] = self.transport.get_json(
             self._build_url("/json/effects"), timeout=self.timeout
@@ -145,6 +186,22 @@ class WLEDController:
     @staticmethod
     def _clamp_brightness(brightness: int) -> int:
         return max(1, min(255, brightness))
+
+    def _read_state(self) -> Dict[str, Any]:
+        return self.transport.get_json(
+            self._build_url("/json/state"), timeout=self.timeout
+        )
+
+    @staticmethod
+    def _find_segment(state: Dict[str, Any], segment_id: int) -> Optional[Dict[str, Any]]:
+        segments = state.get("seg", [])
+        if isinstance(segments, dict):
+            # some firmwares return a dict with "seg" -> list
+            segments = segments.get("seg", [])
+        for segment in segments:
+            if segment.get("id", 0) == segment_id:
+                return segment
+        return segments[0] if segments else None
 
     def _build_url(self, path: str) -> str:
         if path.startswith("/"):

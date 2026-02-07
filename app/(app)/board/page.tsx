@@ -42,7 +42,7 @@ export default async function BoardPage() {
     .from("posts")
     .select(
       `
-      id, type, title, description, category, urgency, status, created_at, flag_count, hidden,
+      id, type, title, description, category, urgency, status, created_at, flag_count, hidden, ai_assisted,
       author:profiles!author_id (display_name, reputation_score, trust_tier),
       post_photos (id),
       responses (id)
@@ -114,6 +114,7 @@ export default async function BoardPage() {
                 photoCount={post.post_photos?.length ?? 0}
                 createdAt={post.created_at}
                 urgency={post.urgency as "low" | "medium" | "high" | null}
+                aiAssisted={post.ai_assisted}
               />
             );
           })}

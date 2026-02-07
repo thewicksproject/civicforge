@@ -1,14 +1,19 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { createPost } from "@/app/actions/posts";
 import { POST_CATEGORIES } from "@/lib/types";
 import { PhotoUpload } from "./photo-upload";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 type ActionState = { success: boolean; error: string };
 const initialState: ActionState = { success: false, error: "" };
 
 export function PostForm() {
+  const [aiAssisted, setAiAssisted] = useState(false);
+
   const boundAction = async (_prev: ActionState, formData: FormData) => {
     const result = await createPost(formData);
     return { success: result.success, error: result.error ?? "" };
@@ -25,6 +30,9 @@ export function PostForm() {
           {state.error}
         </div>
       )}
+
+      {/* AI-assisted hidden field */}
+      <input type="hidden" name="ai_assisted" value={aiAssisted ? "true" : "false"} />
 
       {/* Post type */}
       <fieldset>
@@ -65,7 +73,7 @@ export function PostForm() {
         <label htmlFor="title" className="block text-sm font-medium mb-1.5">
           Title
         </label>
-        <input
+        <Input
           id="title"
           name="title"
           type="text"
@@ -73,7 +81,6 @@ export function PostForm() {
           minLength={5}
           maxLength={100}
           placeholder="e.g., Need help moving a couch this Saturday"
-          className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
 
@@ -85,7 +92,7 @@ export function PostForm() {
         >
           Description
         </label>
-        <textarea
+        <Textarea
           id="description"
           name="description"
           required
@@ -93,7 +100,7 @@ export function PostForm() {
           maxLength={2000}
           rows={4}
           placeholder="Tell your neighbors what you need or what you can offer..."
-          className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+          className="resize-y"
         />
       </div>
 
@@ -106,7 +113,7 @@ export function PostForm() {
           id="category"
           name="category"
           required
-          className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         >
           <option value="">Select a category</option>
           {POST_CATEGORIES.map((cat) => (
@@ -125,7 +132,7 @@ export function PostForm() {
         <select
           id="urgency"
           name="urgency"
-          className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         >
           <option value="">Not urgent</option>
           <option value="low">Low — whenever you can</option>
@@ -142,13 +149,12 @@ export function PostForm() {
         >
           When are you available? (optional)
         </label>
-        <input
+        <Input
           id="available_times"
           name="available_times"
           type="text"
           maxLength={200}
           placeholder="e.g., Weekday evenings, Saturday mornings"
-          className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
 
@@ -156,13 +162,9 @@ export function PostForm() {
       <PhotoUpload />
 
       {/* Submit */}
-      <button
-        type="submit"
-        disabled={isPending}
-        className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
-      >
+      <Button type="submit" disabled={isPending} className="w-full">
         {isPending ? "Posting..." : "Post to Board"}
-      </button>
+      </Button>
     </form>
   );
 }

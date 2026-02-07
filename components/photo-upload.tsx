@@ -2,49 +2,91 @@
 
 import { useCallback, useState } from "react";
 import { MAX_PHOTOS_PER_POST, MAX_PHOTO_SIZE_MB } from "@/lib/types";
+import { Button } from "@/components/ui/button";
 
-interface PhotoFile {
-  file: File;
+interface UploadedPhoto {
+  url: string;
+  thumbnailUrl: string;
   preview: string;
 }
 
-export function PhotoUpload() {
-  const [photos, setPhotos] = useState<PhotoFile[]>([]);
+interface PhotoUploadProps {
+  onPhotosChange?: (photos: { url: string; thumbnailUrl: string }[]) => void;
+}
+
+export function PhotoUpload({ onPhotosChange }: PhotoUploadProps) {
+  const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleFiles = useCallback(
-    (files: FileList | null) => {
+    async (files: FileList | null) => {
       if (!files) return;
+      setError("");
+      setUploading(true);
 
-      const newPhotos: PhotoFile[] = [];
+      const newPhotos: UploadedPhoto[] = [];
       for (const file of Array.from(files)) {
         if (photos.length + newPhotos.length >= MAX_PHOTOS_PER_POST) break;
         if (!file.type.startsWith("image/")) continue;
         if (file.size > MAX_PHOTO_SIZE_MB * 1024 * 1024) continue;
 
-        newPhotos.push({
-          file,
-          preview: URL.createObjectURL(file),
-        });
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+          const res = await fetch("/api/photos/upload", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!res.ok) {
+            const data = await res.json();
+            setError(data.error ?? "Upload failed");
+            continue;
+          }
+
+          const { url, thumbnailUrl } = await res.json();
+          newPhotos.push({
+            url,
+            thumbnailUrl,
+            preview: URL.createObjectURL(file),
+          });
+        } catch {
+          setError("Upload failed. Please try again.");
+        }
       }
 
-      setPhotos((prev) => [...prev, ...newPhotos].slice(0, MAX_PHOTOS_PER_POST));
+      const updated = [...photos, ...newPhotos].slice(0, MAX_PHOTOS_PER_POST);
+      setPhotos(updated);
+      onPhotosChange?.(updated.map(({ url, thumbnailUrl }) => ({ url, thumbnailUrl })));
+      setUploading(false);
     },
-    [photos.length]
+    [photos, onPhotosChange]
   );
 
-  const removePhoto = useCallback((index: number) => {
-    setPhotos((prev) => {
-      const removed = prev[index];
-      if (removed) URL.revokeObjectURL(removed.preview);
-      return prev.filter((_, i) => i !== index);
-    });
-  }, []);
+  const removePhoto = useCallback(
+    (index: number) => {
+      setPhotos((prev) => {
+        const removed = prev[index];
+        if (removed) URL.revokeObjectURL(removed.preview);
+        const updated = prev.filter((_, i) => i !== index);
+        onPhotosChange?.(updated.map(({ url, thumbnailUrl }) => ({ url, thumbnailUrl })));
+        return updated;
+      });
+    },
+    [onPhotosChange]
+  );
 
   return (
     <div>
       <label className="block text-sm font-medium mb-1.5">
         Photos (optional, up to {MAX_PHOTOS_PER_POST})
       </label>
+
+      {error && (
+        <p className="text-sm text-destructive mb-2">{error}</p>
+      )}
 
       {/* Preview grid */}
       {photos.length > 0 && (
@@ -64,8 +106,9 @@ export function PhotoUpload() {
               >
                 &times;
               </button>
-              {/* Hidden file input for form submission */}
-              <input type="hidden" name="photo_indexes" value={i} />
+              {/* Store URLs as hidden inputs for form submission */}
+              <input type="hidden" name="photo_urls" value={photo.url} />
+              <input type="hidden" name="photo_thumbnail_urls" value={photo.thumbnailUrl} />
             </div>
           ))}
         </div>
@@ -81,30 +124,36 @@ export function PhotoUpload() {
             handleFiles(e.dataTransfer.files);
           }}
         >
-          <svg
-            className="h-6 w-6 text-muted-foreground mb-1"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7" />
-            <line x1="16" x2="22" y1="5" y2="5" />
-            <line x1="19" x2="19" y1="2" y2="8" />
-            <circle cx="9" cy="9" r="2" />
-            <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-          </svg>
-          <span className="text-xs text-muted-foreground">
-            Tap to add photos or drag & drop
-          </span>
+          {uploading ? (
+            <span className="text-sm text-muted-foreground">Uploading...</span>
+          ) : (
+            <>
+              <svg
+                className="h-6 w-6 text-muted-foreground mb-1"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7" />
+                <line x1="16" x2="22" y1="5" y2="5" />
+                <line x1="19" x2="19" y1="2" y2="8" />
+                <circle cx="9" cy="9" r="2" />
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+              </svg>
+              <span className="text-xs text-muted-foreground">
+                Tap to add photos or drag & drop
+              </span>
+            </>
+          )}
           <input
             type="file"
-            name="photos"
             accept="image/*"
             multiple
+            disabled={uploading}
             className="sr-only"
             onChange={(e) => handleFiles(e.target.files)}
           />

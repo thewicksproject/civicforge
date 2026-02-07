@@ -4,6 +4,8 @@ import { useActionState } from "react";
 import { createResponse } from "@/app/actions/responses";
 import { formatRelativeTime } from "@/lib/utils";
 import { ReputationBadge } from "./reputation-badge";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 
 interface ResponseItem {
   id: string;
@@ -113,22 +115,18 @@ function ResponseForm({ postId }: { postId: string }) {
       {state.error && (
         <p className="text-sm text-destructive">{state.error}</p>
       )}
-      <textarea
+      <Textarea
         name="message"
         required
         minLength={10}
         maxLength={1000}
         rows={3}
         placeholder="I can help! Here's what I'm thinking..."
-        className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+        className="resize-y"
       />
-      <button
-        type="submit"
-        disabled={isPending}
-        className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
-      >
+      <Button type="submit" disabled={isPending}>
         {isPending ? "Sending..." : "I Can Help"}
-      </button>
+      </Button>
     </form>
   );
 }

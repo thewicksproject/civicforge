@@ -4,17 +4,21 @@ import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateProfile } from "@/app/actions/profiles";
 import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { PhoneVerification } from "@/components/phone-verification";
 
 type ActionState = { success: boolean; error: string };
 const initialState: ActionState = { success: false, error: "" };
 
 export default function SettingsPage() {
   const router = useRouter();
-  const supabase = createClient();
   const [profile, setProfile] = useState<{
     display_name: string;
     bio: string;
     skills: string[];
+    phone_verified: boolean;
   } | null>(null);
   const [inviteCode, setInviteCode] = useState("");
   const [exportLoading, setExportLoading] = useState(false);
@@ -31,13 +35,14 @@ export default function SettingsPage() {
 
   useEffect(() => {
     async function load() {
+      const supabase = createClient();
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
       const { data } = await supabase
         .from("profiles")
-        .select("display_name, bio, skills")
+        .select("display_name, bio, skills, phone_verified")
         .eq("id", user.id)
         .single();
       if (data) setProfile(data);
@@ -64,12 +69,14 @@ export default function SettingsPage() {
   async function handleDelete() {
     const res = await fetch("/api/privacy/delete", { method: "POST" });
     if (res.ok) {
+      const supabase = createClient();
       await supabase.auth.signOut();
       router.push("/");
     }
   }
 
   async function handleSignOut() {
+    const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/");
   }
@@ -100,7 +107,7 @@ export default function SettingsPage() {
             <label htmlFor="display_name" className="block text-sm font-medium mb-1">
               Display Name
             </label>
-            <input
+            <Input
               id="display_name"
               name="display_name"
               type="text"
@@ -108,43 +115,46 @@ export default function SettingsPage() {
               required
               minLength={2}
               maxLength={50}
-              className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
           <div>
             <label htmlFor="bio" className="block text-sm font-medium mb-1">
               Bio
             </label>
-            <textarea
+            <Textarea
               id="bio"
               name="bio"
               rows={3}
               defaultValue={profile.bio ?? ""}
               maxLength={500}
-              className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+              className="resize-y"
             />
           </div>
           <div>
             <label htmlFor="skills" className="block text-sm font-medium mb-1">
               Skills (comma-separated)
             </label>
-            <input
+            <Input
               id="skills"
               name="skills"
               type="text"
               defaultValue={profile.skills?.join(", ") ?? ""}
               placeholder="e.g., plumbing, cooking, tutoring"
-              className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
-          <button
-            type="submit"
-            disabled={isPending}
-            className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
+          <Button type="submit" disabled={isPending}>
             {isPending ? "Saving..." : "Save Changes"}
-          </button>
+          </Button>
         </form>
+      </section>
+
+      {/* Phone verification */}
+      <section className="rounded-xl border border-border bg-card p-5 mb-6">
+        <h2 className="text-lg font-semibold mb-2">Phone Verification</h2>
+        <p className="text-sm text-muted-foreground mb-3">
+          Verify your phone number to build trust with your neighbors.
+        </p>
+        <PhoneVerification isVerified={profile.phone_verified} />
       </section>
 
       {/* Invitation code */}
@@ -154,20 +164,17 @@ export default function SettingsPage() {
           Have a code from a neighbor? Enter it to unlock posting.
         </p>
         <div className="flex gap-2">
-          <input
+          <Input
             type="text"
             value={inviteCode}
             onChange={(e) => setInviteCode(e.target.value)}
             placeholder="8-character code"
             maxLength={8}
-            className="flex-1 rounded-lg border border-input bg-background px-4 py-2.5 text-sm uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-ring"
+            className="flex-1 uppercase tracking-widest"
           />
-          <button
-            disabled={inviteCode.length < 8}
-            className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
+          <Button disabled={inviteCode.length < 8}>
             Redeem
-          </button>
+          </Button>
         </div>
       </section>
 
@@ -175,13 +182,14 @@ export default function SettingsPage() {
       <section className="rounded-xl border border-border bg-card p-5 mb-6">
         <h2 className="text-lg font-semibold mb-4">Privacy & Data</h2>
         <div className="space-y-3">
-          <button
+          <Button
+            variant="outline"
             onClick={handleExport}
             disabled={exportLoading}
-            className="w-full text-left rounded-lg border border-border p-3 text-sm hover:bg-muted transition-colors disabled:opacity-50"
+            className="w-full justify-start"
           >
             {exportLoading ? "Preparing export..." : "Export My Data (JSON)"}
-          </button>
+          </Button>
           <a
             href="/privacy"
             className="block rounded-lg border border-border p-3 text-sm hover:bg-muted transition-colors"
@@ -203,12 +211,13 @@ export default function SettingsPage() {
           Danger Zone
         </h2>
         {!deleteConfirm ? (
-          <button
+          <Button
+            variant="outline"
             onClick={() => setDeleteConfirm(true)}
-            className="rounded-lg border border-destructive/30 px-4 py-2.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+            className="border-destructive/30 text-destructive hover:bg-destructive/10"
           >
             Delete My Account
-          </button>
+          </Button>
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-destructive">
@@ -216,30 +225,28 @@ export default function SettingsPage() {
               cannot be undone.
             </p>
             <div className="flex gap-2">
-              <button
-                onClick={handleDelete}
-                className="rounded-lg bg-destructive px-4 py-2.5 text-sm font-medium text-destructive-foreground hover:opacity-90 transition-opacity"
-              >
+              <Button variant="destructive" onClick={handleDelete}>
                 Yes, Delete Everything
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => setDeleteConfirm(false)}
-                className="rounded-lg border border-border px-4 py-2.5 text-sm hover:bg-muted transition-colors"
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           </div>
         )}
       </section>
 
       {/* Sign out */}
-      <button
+      <Button
+        variant="outline"
         onClick={handleSignOut}
-        className="w-full rounded-lg border border-border p-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        className="w-full text-muted-foreground"
       >
         Sign Out
-      </button>
+      </Button>
     </div>
   );
 }

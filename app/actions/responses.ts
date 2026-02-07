@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { moderateContent } from "@/lib/ai/client";
 
 const MessageSchema = z
   .string()
@@ -83,6 +84,19 @@ export async function createResponse(postId: string, message: string) {
       success: false as const,
       error: "You have already responded to this post",
     };
+  }
+
+  // Content moderation — fail open on API errors
+  try {
+    const moderation = await moderateContent(msgParsed.data);
+    if (!moderation.safe) {
+      return {
+        success: false as const,
+        error: `Content flagged: ${moderation.reason ?? "Violates community guidelines"}`,
+      };
+    }
+  } catch {
+    // Fail open — don't block users if moderation API is down
   }
 
   const { data: response, error: insertError } = await supabase

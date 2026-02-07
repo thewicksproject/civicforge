@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cn, formatRelativeTime, truncate } from "@/lib/utils";
 import { TRUST_TIER_LABELS, type TrustTier } from "@/lib/types";
 import { ReputationBadge } from "./reputation-badge";
+import { AiBadge } from "./ai-badge";
 
 interface PostCardProps {
   id: string;
@@ -16,6 +17,7 @@ interface PostCardProps {
   photoCount: number;
   createdAt: string;
   urgency?: "low" | "medium" | "high" | null;
+  aiAssisted?: boolean;
 }
 
 export function PostCard({
@@ -31,6 +33,7 @@ export function PostCard({
   photoCount,
   createdAt,
   urgency,
+  aiAssisted,
 }: PostCardProps) {
   const isNeed = type === "need";
 
@@ -61,6 +64,7 @@ export function PostCard({
                 Urgent
               </span>
             )}
+            {aiAssisted && <AiBadge />}
           </div>
 
           {/* Title */}

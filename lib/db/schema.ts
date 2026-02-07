@@ -51,6 +51,13 @@ export const deletionStatusEnum = pgEnum("deletion_status", [
   "completed",
 ]);
 
+export const reviewStatusEnum = pgEnum("review_status", [
+  "none",
+  "pending_review",
+  "approved",
+  "rejected",
+]);
+
 // ---------------------------------------------------------------------------
 // 1. Neighborhoods (defined before profiles because profiles references it)
 // ---------------------------------------------------------------------------
@@ -138,6 +145,8 @@ export const posts = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     flagCount: integer("flag_count").notNull().default(0),
     hidden: boolean("hidden").notNull().default(false),
+    aiAssisted: boolean("ai_assisted").notNull().default(false),
+    reviewStatus: reviewStatusEnum("review_status").notNull().default("none"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -152,6 +161,32 @@ export const posts = pgTable(
     index("posts_type_status_idx").on(table.type, table.status),
     index("posts_category_idx").on(table.category),
     index("posts_created_at_idx").on(table.createdAt),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// 3b. Post Flags
+// ---------------------------------------------------------------------------
+
+export const postFlags = pgTable(
+  "post_flags",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    postId: uuid("post_id")
+      .notNull()
+      .references(() => posts.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    reason: text("reason"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("post_flags_post_user_uniq").on(table.postId, table.userId),
+    index("post_flags_post_idx").on(table.postId),
+    index("post_flags_user_idx").on(table.userId),
   ],
 );
 
@@ -466,3 +501,6 @@ export type NewAuditLogEntry = typeof auditLog.$inferInsert;
 
 export type DeletionRequest = typeof deletionRequests.$inferSelect;
 export type NewDeletionRequest = typeof deletionRequests.$inferInsert;
+
+export type PostFlag = typeof postFlags.$inferSelect;
+export type NewPostFlag = typeof postFlags.$inferInsert;

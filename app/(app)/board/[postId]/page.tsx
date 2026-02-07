@@ -6,6 +6,8 @@ import { TRUST_TIER_LABELS, type TrustTier } from "@/lib/types";
 import { ReputationBadge } from "@/components/reputation-badge";
 import { ResponseList } from "@/components/response-list";
 import { ThanksButton } from "@/components/thanks-button";
+import { FlagButton } from "@/components/flag-button";
+import { AiBadge } from "@/components/ai-badge";
 
 export async function generateMetadata({
   params,
@@ -117,6 +119,7 @@ export default async function PostDetailPage({
               Urgent
             </span>
           )}
+          {post.ai_assisted && <AiBadge />}
           <span className="text-xs text-muted-foreground ml-auto">
             {formatRelativeTime(new Date(post.created_at))}
           </span>
@@ -203,7 +206,10 @@ export default async function PostDetailPage({
               showLabel
             />
             {!isAuthor && (
-              <ThanksButton toUserId={author?.id ?? ""} postId={post.id} />
+              <>
+                <ThanksButton toUserId={author?.id ?? ""} postId={post.id} />
+                <FlagButton postId={post.id} />
+              </>
             )}
           </div>
         </div>

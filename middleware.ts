@@ -41,7 +41,7 @@ export async function middleware(request: NextRequest) {
     (route) => path === route || path.startsWith(`${route}/`)
   );
 
-  if (!isPublicRoute && !path.startsWith("/api/auth")) {
+  if (!isPublicRoute && !path.startsWith("/api/")) {
     // The session refresh in updateSession already calls getUser()
     // If there's no valid user, redirect to login
     const {

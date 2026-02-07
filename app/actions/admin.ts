@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 async function requireTier3() {
   const supabase = await createClient();
@@ -65,8 +65,9 @@ export async function reviewPost(
     return { success: false as const, error: "Failed to update post" };
   }
 
-  // Audit log
-  await supabase.from("audit_log").insert({
+  // Audit log (service role required by RLS policy)
+  const serviceClient1 = createServiceClient();
+  await serviceClient1.from("audit_log").insert({
     user_id: userId,
     action: `review_post_${decisionParsed.data}`,
     resource_type: "post",
@@ -96,8 +97,9 @@ export async function unhidePost(postId: string) {
     return { success: false as const, error: "Failed to unhide post" };
   }
 
-  // Audit log
-  await supabase.from("audit_log").insert({
+  // Audit log (service role required by RLS policy)
+  const serviceClient2 = createServiceClient();
+  await serviceClient2.from("audit_log").insert({
     user_id: userId,
     action: "unhide_post",
     resource_type: "post",

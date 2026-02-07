@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { findMatches } from "@/lib/ai/client";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
@@ -89,9 +89,10 @@ export async function POST(request: Request) {
       }))
     );
 
-    // Store matches for transparency
+    // Store matches for transparency (service role required by RLS policy)
+    const serviceClient = createServiceClient();
     for (const match of result.matches) {
-      await supabase.from("ai_matches").insert({
+      await serviceClient.from("ai_matches").insert({
         post_id: postId,
         suggested_user_id: match.user_id,
         match_score: match.score,

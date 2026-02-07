@@ -1,7 +1,10 @@
 /**
  * Photo moderation via ModerateContent.com API.
  * Screens images for NSFW content before they reach storage.
- * Fails open if API key is not configured or API is unavailable.
+ *
+ * Environment-aware failure behavior:
+ * - Production: Fails CLOSED (safe: false) when API key is missing or API errors occur.
+ * - Development: Fails open with console warnings to allow local dev without API key.
  */
 
 interface ModerationResult {
@@ -13,9 +16,20 @@ export async function moderatePhoto(
   base64Image: string
 ): Promise<ModerationResult> {
   const apiKey = process.env.MODERATECONTENT_API_KEY;
+  const isProduction = process.env.NODE_ENV === "production";
 
-  // Fail open if API key is not configured
   if (!apiKey) {
+    if (isProduction) {
+      console.error(
+        "[photo-moderation] MODERATECONTENT_API_KEY is not configured in production. " +
+        "Failing closed — all photos will be rejected until the API key is set."
+      );
+      return { safe: false, rating: null };
+    }
+    console.warn(
+      "[photo-moderation] MODERATECONTENT_API_KEY is not configured. " +
+      "Skipping moderation in development. Set the key to enable photo screening."
+    );
     return { safe: true, rating: null };
   }
 

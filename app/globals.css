@@ -205,6 +205,18 @@ h1, h2, h3, h4, h5, h6 {
   background-clip: text;
 }
 
+/* ============================================================================
+   Mobile safe area + touch targets
+   ============================================================================ */
+
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-area-pt {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

@@ -44,7 +44,7 @@ export function PostCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          {/* Type badge + category */}
+          {/* Type badge */}
           <div className="flex items-center gap-2 mb-2">
             <span
               className={cn(
@@ -56,14 +56,6 @@ export function PostCard({
             >
               {isNeed ? "Need" : "Offer"}
             </span>
-            <span className="text-xs text-muted-foreground capitalize">
-              {category.replace(/_/g, " ")}
-            </span>
-            {urgency === "high" && (
-              <span className="text-xs text-destructive font-medium">
-                Urgent
-              </span>
-            )}
             {aiAssisted && <AiBadge />}
           </div>
 
@@ -109,18 +101,8 @@ export function PostCard({
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span className="font-medium text-foreground">{authorName}</span>
           <ReputationBadge score={authorReputation} size="sm" />
-          <span className="text-xs">
-            {TRUST_TIER_LABELS[authorTrustTier]}
-          </span>
         </div>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          {responseCount > 0 && (
-            <span>
-              {responseCount} {responseCount === 1 ? "response" : "responses"}
-            </span>
-          )}
-          <span>{formatRelativeTime(new Date(createdAt))}</span>
-        </div>
+        <span className="text-xs text-muted-foreground">{formatRelativeTime(new Date(createdAt))}</span>
       </div>
     </Link>
   );

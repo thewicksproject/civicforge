@@ -37,7 +37,7 @@ function HeroSection() {
       <div className="mt-10 flex flex-col gap-4 sm:flex-row">
         <Link
           href="/login"
-          className="inline-flex h-12 items-center justify-center rounded-full bg-primary px-8 text-base font-medium text-primary-foreground shadow-sm transition-colors hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="inline-flex h-12 items-center justify-center rounded-full bg-golden-hour px-8 text-base font-medium text-accent-foreground shadow-sm transition-colors hover:bg-golden-hour/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-golden-hour"
         >
           Get Started
         </Link>
@@ -134,16 +134,11 @@ function HowItWorksSection() {
         </p>
 
         <div className="mt-16 grid gap-8 sm:grid-cols-3">
-          {steps.map((step, i) => (
+          {steps.map((step) => (
             <div
               key={step.title}
-              className="card-hover relative rounded-xl border border-border bg-card p-8 text-center"
+              className="card-hover rounded-xl border border-border bg-card p-8 text-center"
             >
-              {/* Step number */}
-              <span className="absolute top-4 left-4 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                {i + 1}
-              </span>
-
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-offer-light text-offer">
                 {step.icon}
               </div>
@@ -265,7 +260,7 @@ function CTASection() {
         </p>
         <Link
           href="/login"
-          className="mt-8 inline-flex h-12 items-center justify-center rounded-full bg-primary px-10 text-base font-medium text-primary-foreground shadow-sm transition-colors hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="mt-8 inline-flex h-12 items-center justify-center rounded-full bg-golden-hour px-10 text-base font-medium text-accent-foreground shadow-sm transition-colors hover:bg-golden-hour/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-golden-hour"
         >
           Sign Up Free
         </Link>

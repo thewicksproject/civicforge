@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useActionState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { NeighborhoodPicker } from "@/components/neighborhood-picker";
 import { createNeighborhood } from "@/app/actions/neighborhoods";
 import { updateProfile } from "@/app/actions/profiles";
 import { redeemInvitation } from "@/app/actions/invitations";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 type Step = "name" | "neighborhood" | "invite" | "done";
 
@@ -136,7 +138,7 @@ export default function OnboardingPage() {
                 What should your neighbors call you?
               </p>
             </div>
-            <input
+            <Input
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
@@ -144,15 +146,12 @@ export default function OnboardingPage() {
               required
               minLength={2}
               maxLength={50}
-              className="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-center text-lg"
+              className="text-center text-lg"
               autoFocus
             />
-            <button
-              type="submit"
-              className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
-            >
+            <Button type="submit" className="w-full" size="lg">
               Continue
-            </button>
+            </Button>
           </form>
         )}
 
@@ -175,69 +174,62 @@ export default function OnboardingPage() {
                   selectedId={neighborhoodId}
                 />
                 <div className="text-center">
-                  <button
+                  <Button
                     type="button"
+                    variant="link"
                     onClick={() => setShowCreateNeighborhood(true)}
-                    className="text-sm text-primary hover:underline"
                   >
                     Or create a new neighborhood
-                  </button>
+                  </Button>
                 </div>
               </>
             ) : (
               <div className="space-y-3">
-                <input
+                <Input
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="Neighborhood name"
                   required
-                  className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
                 <div className="grid grid-cols-2 gap-3">
-                  <input
+                  <Input
                     type="text"
                     value={newCity}
                     onChange={(e) => setNewCity(e.target.value)}
                     placeholder="City"
                     required
-                    className="rounded-lg border border-input bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   />
-                  <input
+                  <Input
                     type="text"
                     value={newState}
                     onChange={(e) => setNewState(e.target.value)}
                     placeholder="State"
                     required
                     maxLength={2}
-                    className="rounded-lg border border-input bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                 </div>
-                <input
+                <Input
                   type="text"
                   value={newZip}
                   onChange={(e) => setNewZip(e.target.value)}
                   placeholder="Zip code(s), comma-separated"
                   required
-                  className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => setShowCreateNeighborhood(false)}
-                  className="text-sm text-muted-foreground hover:text-foreground"
+                  className="text-sm"
                 >
                   Back to search
-                </button>
+                </Button>
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
+            <Button type="submit" disabled={loading} className="w-full" size="lg">
               {loading ? "Setting up..." : "Continue"}
-            </button>
+            </Button>
           </form>
         )}
 
@@ -255,29 +247,31 @@ export default function OnboardingPage() {
             </div>
 
             <form onSubmit={handleInviteSubmit} className="space-y-3">
-              <input
+              <Input
                 type="text"
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value)}
                 placeholder="Enter 8-character code"
                 maxLength={8}
-                className="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-center text-lg tracking-widest uppercase"
+                className="text-center text-lg tracking-widest uppercase"
               />
-              <button
+              <Button
                 type="submit"
                 disabled={loading || inviteCode.length < 8}
-                className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="w-full"
+                size="lg"
               >
                 {loading ? "Verifying..." : "Redeem Code"}
-              </button>
+              </Button>
             </form>
 
-            <button
+            <Button
+              variant="ghost"
               onClick={skipInvite}
-              className="w-full text-sm text-muted-foreground hover:text-foreground text-center"
+              className="w-full text-sm text-muted-foreground"
             >
               Skip for now — I&apos;ll just browse
-            </button>
+            </Button>
           </div>
         )}
       </div>

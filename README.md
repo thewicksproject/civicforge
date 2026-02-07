@@ -1,156 +1,84 @@
 # CivicForge
 
-*Strengthening communities through simple conversations.*
+**Your neighborhood, connected.**
 
-## Supporting Community Connections
+A neighborhood needs board where people post needs, offer help, get AI-matched, and build reputation. No ads, no data selling — just neighbors helping neighbors.
 
-Every community has people who want to help and organizations that need support. CivicForge brings them together through the power of conversation—making civic engagement as natural as talking with a neighbor.
+A [Wicks LLC](https://thewicksproject.org) project.
 
-```
-You: "I have two hours free this weekend and want to help"
+## How It Works
 
-CivicForge: "I found three opportunities nearby:
-- Beach cleanup Saturday morning (1.5 hours)
-- Food bank needs drivers (2 hour shifts)
-- Library seeks reading volunteers (flexible)
+1. **Post** a need or offer to your neighborhood board
+2. **Get matched** with neighbors who can help (AI-suggested, human-decided)
+3. **Help each other** and build reputation through thanks
 
-The beach cleanup matches your environmental interests. Should I connect you with the organizer?"
-```
+## Getting Started
 
-## Why CivicForge?
+### Prerequisites
 
-Finding ways to help in your community shouldn't be complicated. CivicForge makes it simple:
+- Node.js 20+
+- A [Supabase](https://supabase.com) project
+- An [Anthropic](https://anthropic.com) API key (for AI features)
+- An [Upstash](https://upstash.com) Redis instance (for rate limiting)
 
-- **Talk, don't type** - No forms or complex navigation. Share what you care about through natural conversation.
-- **Community-owned** - Run by local organizations, not corporations. Your community keeps control.
-- **Privacy-focused** - Your data stays on your device. You choose what to share and when.
-- **Actually accessible** - Works for everyone, regardless of tech skills or comfort level.
-
-## 🚀 Try the Demo
+### Setup
 
 ```bash
-./demo.sh
+# Install dependencies
+npm install
+
+# Copy environment template and fill in values
+cp .env .env.local
+# Edit .env.local with your Supabase, Anthropic, and Upstash credentials
+
+# Run the initial database migration
+# (Apply supabase/migrations/0001_initial_schema.sql to your Supabase project)
+
+# Start development server
+npm run dev
 ```
 
-**See CivicForge in action** - Experience how natural conversation can connect you with your community in just 30 seconds.
+Open [http://localhost:3000](http://localhost:3000).
 
-## How CivicForge Works
+### Environment Variables
 
-### 💬 Conversational Interface
-Share your interests and availability through simple dialogue. Our system attempts to understand everyday language, though it's still learning and improving.
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anonymous key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role key (server only) |
+| `ANTHROPIC_API_KEY` | Yes | Claude API key for AI features |
+| `UPSTASH_REDIS_REST_URL` | No | Upstash Redis URL for rate limiting |
+| `UPSTASH_REDIS_REST_TOKEN` | No | Upstash Redis token |
+| `NEXT_PUBLIC_APP_URL` | No | App URL (defaults to http://localhost:3000) |
 
-### 🤝 People First  
-CivicForge is designed as a tool to help you find local opportunities. You remain in control of what you share and how you participate.
+## Tech Stack
 
-### 🔒 Privacy Considerations
-We aim to keep your information secure by storing sensitive data locally when possible. You choose what to share and when.
+- **Next.js 16** (App Router, Turbopack)
+- **Supabase** (PostgreSQL, Auth, Storage)
+- **Drizzle ORM** (type-safe database access)
+- **Vercel AI SDK 6** + Claude Sonnet (AI matching & assistance)
+- **Tailwind CSS v4** (OKLCH color space, Wicks-derived design system)
+- **Sharp** (photo processing, EXIF stripping)
 
-### 🌐 Community Focus
-CivicForge is designed to be run by communities, for communities. No single entity controls the network.
+## Security
 
+- Row Level Security on every database table
+- AI isolation model (user text never enters matching context)
+- Microsoft Spotlighting (datamarking) for prompt injection defense
+- CSP headers, EXIF/GPS stripping, rate limiting
+- `getUser()` (not `getSession()`) for all auth checks
+- Zod validation on all inputs and AI outputs
 
-## Example Connections
+## Privacy
 
-Here are some ways community members might use CivicForge:
-
-- A resident interested in environmental work finds a local park cleanup
-- Someone who repairs bikes connects with a community repair café  
-- A programmer discovers a nonprofit needing database help
-- An event organizer learns about festivals seeking coordinators
-- A teacher finds tutoring opportunities at the library
-- A neighbor with a truck helps seniors move furniture
-- A gardening enthusiast discovers available community garden plots
-- An accountant volunteers tax help for small nonprofits
-
-These are just examples—your community's needs and opportunities will be unique.
-
-## Features
-
-- **Interest Matching** - Suggests opportunities based on what you share
-- **Flexible Commitment** - Choose one-time or ongoing involvement  
-- **Discovery Mode** - Find new ways to contribute you hadn't considered
-- **Reputation System** - Build trust through community participation
-- **Simple Design** - Focused on being easy to use
-
-## Get Involved
-
-### 👤 For Community Members
-Want to find ways to help in your area?
-
-**→ [Try the Demo](#-try-the-demo)** - Experience CivicForge in 30 seconds
-
-### 🛠️ For Developers
-Ready to improve how communities connect?
-
-- [Technical Overview](./docs/technical/IMPLEMENTATION.md) - Understand the architecture
-- [Contributing Guide](./CONTRIBUTING.md) - Start contributing today
-- [Development Setup](./docs/getting-started.md) - Get your environment ready
-
-### 🏛️ For Community Leaders  
-Want to empower your community with better tools?
-
-**Benefits for your organization:**
-- **Reduce volunteer coordinator workload** - Automated matching saves hours of manual coordination
-- **Increase volunteer retention** - People find opportunities that truly match their interests
-- **Build community resilience** - Create a network ready to respond when needs arise
-- **Own your data** - No dependency on corporate platforms or their changing policies
-
-Get started:
-- [Community Guide](./docs/community-guide.md) - Implementation best practices
-- [Pilot Program](./docs/pilot-guide.md) - Join our early adopter program
-
-## Technical Approach
-
-CivicForge uses several technologies working together:
-
-- **Natural language processing** to understand conversations
-- **Local data storage** to help protect privacy
-- **Decentralized identity** standards (W3C DIDs)
-- **Federated architecture** allowing community control
-
-*For more details: [Architecture Documentation](./docs/technical/)*
-
-## Contributing
-
-CivicForge is open source and welcomes community involvement.
-
-### Ways to Help
-- **Code** - Fix bugs or add features
-- **Design** - Improve the interface
-- **Documentation** - Clarify instructions
-- **Testing** - Try it in your community
-- **Feedback** - Share what works and what doesn't
-
-### Get in Touch
-- [GitHub Issues](https://github.com/yourusername/civicforge/issues) - Report problems or suggest improvements
-- [Discussions](https://github.com/yourusername/civicforge/discussions) - Ask questions or share ideas
-
-## Project Status
-
-We have a working prototype that demonstrates the core concept. The natural language processing achieves about 83% accuracy in our tests, and we're continuing to improve it.
-
-**Phase 1** ✅ Basic conversation and matching engine  
-**Phase 2** 🚧 Privacy improvements and data storage  
-**Phase 3** 📋 Decentralized identity implementation  
-
-See our [Roadmap](./ROADMAP.md) for more details.
-
-## Our Approach
-
-We believe technology should support, not replace, human connections. CivicForge is one tool among many for strengthening communities.
+- No ads, no data selling, ever
+- EXIF/GPS metadata stripped from all photos
+- Global Privacy Control (GPC) signal honored
+- Data export and account deletion available
+- AI processing disclosed with transparency badges
+- 18+ age requirement
 
 ## License
 
-Open source under [Apache License 2.0](./LICENSE).
-
----
-
-<div align="center">
-
-### Ready to strengthen your community?
-
-## **[▶️ Try CivicForge Now](#-try-the-demo)**
-
-*Just run `./demo.sh` to get started*
-
-</div>
+See [LICENSE](./LICENSE).

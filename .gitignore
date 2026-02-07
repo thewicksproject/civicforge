@@ -12,16 +12,34 @@
 
 # Dependencies
 node_modules/
-venv/
-__pycache__/
 
 # Environment
 .env
 .env.local
+.env.production.local
+.env.development.local
 
 # Logs
 *.log
+npm-debug.log*
+
+# Next.js
+.next/
+out/
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
 
 # Build outputs
 dist/
 build/
+
+# Drizzle
+drizzle/meta/
+
+# Supabase
+supabase/.temp/

@@ -1,0 +1,154 @@
+@import "tailwindcss";
+
+/* ============================================================================
+   CivicForge Design System — Wicks-derived palette with OKLCH colors
+   Inherited from Wicks: Golden Hour, Warm White, Cream, Charter serif
+   CivicForge twist: Meadow green primary, Rose Clay needs, Horizon blue events
+   ============================================================================ */
+
+:root {
+  /* Wicks anchors */
+  --golden-hour: oklch(0.81 0.1 75);
+  --warm-white: oklch(0.99 0.005 90);
+  --cream: oklch(0.96 0.015 85);
+  --charcoal: oklch(0.25 0.01 260);
+
+  /* CivicForge primary */
+  --meadow: oklch(0.78 0.15 140);
+  --meadow-light: oklch(0.92 0.06 140);
+  --meadow-dark: oklch(0.55 0.15 140);
+
+  /* Accent: Horizon blue */
+  --horizon: oklch(0.72 0.12 230);
+  --horizon-light: oklch(0.92 0.04 230);
+
+  /* Post type: Rose Clay (needs) */
+  --rose-clay: oklch(0.72 0.12 40);
+  --rose-clay-light: oklch(0.92 0.04 40);
+
+  /* Semantic colors */
+  --background: var(--warm-white);
+  --foreground: var(--charcoal);
+  --card: var(--cream);
+  --card-foreground: var(--charcoal);
+  --primary: var(--meadow);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: var(--cream);
+  --secondary-foreground: var(--charcoal);
+  --muted: oklch(0.94 0.01 85);
+  --muted-foreground: oklch(0.55 0.01 260);
+  --accent: var(--golden-hour);
+  --accent-foreground: var(--charcoal);
+  --destructive: oklch(0.6 0.2 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.88 0.015 85);
+  --input: oklch(0.88 0.015 85);
+  --ring: var(--meadow);
+  --radius: 0.75rem;
+
+  /* Reputation badge gradient (Golden Hour warmth) */
+  --reputation-from: oklch(0.81 0.1 75);
+  --reputation-to: oklch(0.75 0.12 55);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: oklch(0.15 0.01 260);
+    --foreground: oklch(0.92 0.01 85);
+    --card: oklch(0.2 0.01 260);
+    --card-foreground: oklch(0.92 0.01 85);
+    --primary: var(--meadow);
+    --primary-foreground: oklch(0.15 0 0);
+    --secondary: oklch(0.22 0.01 260);
+    --secondary-foreground: oklch(0.92 0.01 85);
+    --muted: oklch(0.25 0.01 260);
+    --muted-foreground: oklch(0.65 0.01 260);
+    --accent: var(--golden-hour);
+    --accent-foreground: oklch(0.15 0 0);
+    --destructive: oklch(0.55 0.2 25);
+    --destructive-foreground: oklch(0.99 0 0);
+    --border: oklch(0.3 0.01 260);
+    --input: oklch(0.3 0.01 260);
+    --ring: var(--meadow);
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Post type colors */
+  --color-need: var(--rose-clay);
+  --color-need-light: var(--rose-clay-light);
+  --color-offer: var(--meadow);
+  --color-offer-light: var(--meadow-light);
+  --color-event: var(--horizon);
+  --color-event-light: var(--horizon-light);
+  --color-golden-hour: var(--golden-hour);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
+}
+
+/* ============================================================================
+   Typography — Charter serif headings, system-ui body
+   ============================================================================ */
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  font-size: 17px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: Charter, "Bitstream Charter", "Sitka Text", Cambria, serif;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--foreground);
+}
+
+/* ============================================================================
+   Card styles — Wicks-derived: cream bg, 12px radius, subtle lift on hover
+   ============================================================================ */
+
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -5px oklch(0 0 0 / 0.08);
+}
+
+/* ============================================================================
+   Reputation badge gradient
+   ============================================================================ */
+
+.reputation-gradient {
+  background: linear-gradient(135deg, var(--reputation-from), var(--reputation-to));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

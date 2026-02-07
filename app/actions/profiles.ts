@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 const UpdateProfileSchema = z.object({
   display_name: z
@@ -51,7 +51,11 @@ export async function updateProfile(formData: FormData) {
         .filter((s) => s.length > 0)
     : [];
 
-  const { data: existingProfile, error: existingProfileError } = await supabase
+  // Use service client to bypass RLS for profile operations
+  // (user already verified via getUser above)
+  const admin = createServiceClient();
+
+  const { data: existingProfile, error: existingProfileError } = await admin
     .from("profiles")
     .select("id, neighborhood_id")
     .eq("id", user.id)
@@ -76,7 +80,7 @@ export async function updateProfile(formData: FormData) {
   }
 
   if (requestedNeighborhoodId && !currentNeighborhoodId) {
-    const { data: neighborhood, error: neighborhoodError } = await supabase
+    const { data: neighborhood, error: neighborhoodError } = await admin
       .from("neighborhoods")
       .select("id")
       .eq("id", requestedNeighborhoodId)
@@ -98,7 +102,7 @@ export async function updateProfile(formData: FormData) {
     updateData.neighborhood_id = requestedNeighborhoodId;
   }
 
-  const { data: profile, error: updateError } = await supabase
+  const { data: profile, error: updateError } = await admin
     .from("profiles")
     .update(updateData)
     .eq("id", user.id)

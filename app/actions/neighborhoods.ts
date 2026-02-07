@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 const CreateNeighborhoodSchema = z.object({
   name: z
@@ -56,7 +56,9 @@ export async function createNeighborhood(formData: FormData) {
   }
 
   // Check user doesn't already belong to a neighborhood
-  const { data: profile, error: profileError } = await supabase
+  // Use service client to bypass RLS (user already verified via getUser above)
+  const admin = createServiceClient();
+  const { data: profile, error: profileError } = await admin
     .from("profiles")
     .select("neighborhood_id")
     .eq("id", user.id)
@@ -97,8 +99,8 @@ export async function createNeighborhood(formData: FormData) {
     }
   }
 
-  // Create the neighborhood
-  const { data: neighborhood, error: insertError } = await supabase
+  // Create the neighborhood (use admin client to bypass RLS)
+  const { data: neighborhood, error: insertError } = await admin
     .from("neighborhoods")
     .insert({
       name: parsed.data.name,
@@ -116,7 +118,7 @@ export async function createNeighborhood(formData: FormData) {
   }
 
   // Auto-promote user to Tier 2 and assign to the new neighborhood
-  const { error: profileUpdateError } = await supabase
+  const { error: profileUpdateError } = await admin
     .from("profiles")
     .update({
       neighborhood_id: neighborhood.id,

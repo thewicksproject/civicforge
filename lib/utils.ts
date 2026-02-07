@@ -21,9 +21,10 @@ export function formatRelativeTime(date: Date): string {
 
 export function generateInviteCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const randomBytes = crypto.getRandomValues(new Uint8Array(8));
   let code = "";
   for (let i = 0; i < 8; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
+    code += chars[randomBytes[i] % chars.length];
   }
   return code;
 }

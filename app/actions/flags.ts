@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { FLAG_THRESHOLD_HIDE } from "@/lib/types";
 
 export async function flagPost(postId: string, reason?: string) {
@@ -112,8 +112,9 @@ export async function unflagPost(postId: string) {
     .update({ flag_count: 0, hidden: false })
     .eq("id", postId);
 
-  // Audit log
-  await supabase.from("audit_log").insert({
+  // Audit log (service role required by RLS policy)
+  const serviceClient = createServiceClient();
+  await serviceClient.from("audit_log").insert({
     user_id: user.id,
     action: "unflag_post",
     resource_type: "post",

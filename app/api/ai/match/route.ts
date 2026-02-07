@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { findMatches } from "@/lib/ai/client";
 import { Ratelimit } from "@upstash/ratelimit";
@@ -43,8 +44,8 @@ export async function POST(request: Request) {
   const body = await request.json();
   const { postId } = body;
 
-  if (!postId) {
-    return NextResponse.json({ error: "Post ID required" }, { status: 400 });
+  if (!postId || !z.string().uuid().safeParse(postId).success) {
+    return NextResponse.json({ error: "Valid post ID required" }, { status: 400 });
   }
 
   // Fetch the post (only structured fields — NEVER raw user text in matching context)

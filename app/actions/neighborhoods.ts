@@ -200,11 +200,18 @@ export async function searchNeighborhoods(query: string) {
 
   const searchTerm = queryParsed.data.trim();
 
+  // Sanitize search term — strip PostgREST filter special characters
+  // to prevent filter injection via .or() string interpolation
+  const safeTerm = searchTerm.replace(/[%_().,\\]/g, "");
+  if (safeTerm.length === 0) {
+    return { success: true as const, data: [] };
+  }
+
   // Search by name or city using ilike
   const { data: neighborhoods, error } = await supabase
     .from("neighborhoods")
     .select("*")
-    .or(`name.ilike.%${searchTerm}%,city.ilike.%${searchTerm}%`)
+    .or(`name.ilike.%${safeTerm}%,city.ilike.%${safeTerm}%`)
     .order("name", { ascending: true })
     .limit(20);
 

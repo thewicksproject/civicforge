@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateProfile } from "@/app/actions/profiles";
+import { redeemInvitation } from "@/app/actions/invitations";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,8 @@ export default function SettingsPage() {
     phone_verified: boolean;
   } | null>(null);
   const [inviteCode, setInviteCode] = useState("");
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteResult, setInviteResult] = useState("");
   const [exportLoading, setExportLoading] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
@@ -79,6 +82,23 @@ export default function SettingsPage() {
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/");
+  }
+
+  async function handleRedeemInvite() {
+    setInviteLoading(true);
+    setInviteResult("");
+
+    const result = await redeemInvitation(inviteCode.trim().toUpperCase());
+    if (!result.success) {
+      setInviteResult(result.error ?? "Failed to redeem invitation code");
+      setInviteLoading(false);
+      return;
+    }
+
+    setInviteCode("");
+    setInviteResult("Invitation redeemed. Posting is now unlocked.");
+    setInviteLoading(false);
+    router.refresh();
   }
 
   if (!profile) {
@@ -172,10 +192,16 @@ export default function SettingsPage() {
             maxLength={8}
             className="flex-1 uppercase tracking-widest"
           />
-          <Button disabled={inviteCode.length < 8}>
-            Redeem
+          <Button
+            onClick={handleRedeemInvite}
+            disabled={inviteLoading || inviteCode.length < 8}
+          >
+            {inviteLoading ? "Redeeming..." : "Redeem"}
           </Button>
         </div>
+        {inviteResult && (
+          <p className="text-sm text-muted-foreground mt-2">{inviteResult}</p>
+        )}
       </section>
 
       {/* Privacy */}

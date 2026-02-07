@@ -2,7 +2,6 @@
 
 import { useCallback, useState } from "react";
 import { MAX_PHOTOS_PER_POST, MAX_PHOTO_SIZE_MB } from "@/lib/types";
-import { Button } from "@/components/ui/button";
 
 interface UploadedPhoto {
   url: string;

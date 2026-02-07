@@ -2,7 +2,11 @@
 
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { POST_CATEGORIES, NEW_ACCOUNT_REVIEW_POST_COUNT } from "@/lib/types";
+import {
+  POST_CATEGORIES,
+  NEW_ACCOUNT_REVIEW_POST_COUNT,
+  MAX_PHOTOS_PER_POST,
+} from "@/lib/types";
 import { moderateContent } from "@/lib/ai/client";
 
 const validCategories = POST_CATEGORIES.map((c) => c.value);
@@ -91,6 +95,73 @@ export async function createPost(formData: FormData) {
   // Check if AI-assisted
   const aiAssisted = formData.get("ai_assisted") === "true";
 
+  const normalizeStoragePath = (value: string): string | null => {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+
+    if (!trimmed.includes("://")) {
+      return trimmed;
+    }
+
+    try {
+      const parsed = new URL(trimmed);
+      const parts = parsed.pathname.split("/post-photos/");
+      if (parts.length !== 2) return null;
+      const path = parts[1];
+      if (!path) return null;
+      const cleanPath = path.split("?")[0];
+      return cleanPath || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const rawPhotoPaths = formData
+    .getAll("photo_urls")
+    .filter((value): value is string => typeof value === "string");
+  const rawThumbPaths = formData
+    .getAll("photo_thumbnail_urls")
+    .filter((value): value is string => typeof value === "string");
+
+  if (rawPhotoPaths.length !== rawThumbPaths.length) {
+    return {
+      success: false as const,
+      error: "Photo upload data is incomplete. Please re-upload your photos.",
+    };
+  }
+
+  if (rawPhotoPaths.length > MAX_PHOTOS_PER_POST) {
+    return {
+      success: false as const,
+      error: `You can upload up to ${MAX_PHOTOS_PER_POST} photos per post.`,
+    };
+  }
+
+  const photoPaths = rawPhotoPaths.map(normalizeStoragePath);
+  const thumbPaths = rawThumbPaths.map(normalizeStoragePath);
+
+  if (photoPaths.some((path) => !path) || thumbPaths.some((path) => !path)) {
+    return {
+      success: false as const,
+      error: "One or more uploaded photos are invalid. Please upload again.",
+    };
+  }
+
+  const imagePathPattern = new RegExp(`^${user.id}/\\d+\\.jpg$`);
+  const thumbPathPattern = new RegExp(`^${user.id}/\\d+_thumb\\.jpg$`);
+
+  for (let i = 0; i < photoPaths.length; i++) {
+    const imagePath = photoPaths[i]!;
+    const thumbnailPath = thumbPaths[i]!;
+
+    if (!imagePathPattern.test(imagePath) || !thumbPathPattern.test(thumbnailPath)) {
+      return {
+        success: false as const,
+        error: "Uploaded photo paths are invalid for this account.",
+      };
+    }
+  }
+
   // Determine review status for new accounts
   let reviewStatus: "none" | "pending_review" = "none";
   const { count } = await supabase
@@ -122,6 +193,25 @@ export async function createPost(formData: FormData) {
 
   if (insertError) {
     return { success: false as const, error: "Failed to create post" };
+  }
+
+  if (photoPaths.length > 0) {
+    const photoRows = photoPaths.map((path, index) => ({
+      post_id: post.id,
+      url: path,
+      thumbnail_url: thumbPaths[index]!,
+      uploaded_by: user.id,
+    }));
+
+    const { error: photoInsertError } = await supabase
+      .from("post_photos")
+      .insert(photoRows);
+
+    if (photoInsertError) {
+      // Keep data consistent if photo attachment fails.
+      await supabase.from("posts").delete().eq("id", post.id);
+      return { success: false as const, error: "Failed to attach uploaded photos" };
+    }
   }
 
   return { success: true as const, data: post };

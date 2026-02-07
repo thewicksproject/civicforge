@@ -60,6 +60,28 @@ export default async function PostDetailPage({
   const author = Array.isArray(post.author) ? post.author[0] : post.author;
   const isAuthor = user?.id === author?.id;
   const isNeed = post.type === "need";
+  const resolvedPhotos = await Promise.all(
+    (post.post_photos ?? []).map(
+      async (photo: { id: string; url: string; thumbnail_url: string }) => {
+        if (photo.url.startsWith("http")) {
+          return photo;
+        }
+
+        const [imageSigned, thumbSigned] = await Promise.all([
+          supabase.storage.from("post-photos").createSignedUrl(photo.url, 3600),
+          supabase.storage
+            .from("post-photos")
+            .createSignedUrl(photo.thumbnail_url, 3600),
+        ]);
+
+        return {
+          ...photo,
+          url: imageSigned.data?.signedUrl ?? "",
+          thumbnail_url: thumbSigned.data?.signedUrl ?? "",
+        };
+      }
+    )
+  );
 
   // Check if current user has already responded
   const hasResponded = post.responses?.some(
@@ -162,10 +184,11 @@ export default async function PostDetailPage({
       </div>
 
       {/* Photos */}
-      {post.post_photos && post.post_photos.length > 0 && (
+      {resolvedPhotos.length > 0 && (
         <div className="mb-6 grid grid-cols-2 gap-2 rounded-xl overflow-hidden">
-          {post.post_photos.map(
-            (photo: { id: string; url: string; thumbnail_url: string }) => (
+          {resolvedPhotos
+            .filter((photo) => photo.url.length > 0)
+            .map((photo: { id: string; url: string; thumbnail_url: string }) => (
               <div key={photo.id} className="aspect-square bg-muted">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -175,8 +198,7 @@ export default async function PostDetailPage({
                   loading="lazy"
                 />
               </div>
-            )
-          )}
+            ))}
         </div>
       )}
 

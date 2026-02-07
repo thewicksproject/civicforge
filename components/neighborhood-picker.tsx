@@ -26,7 +26,6 @@ export function NeighborhoodPicker({
 
   useEffect(() => {
     if (query.length < 2) {
-      setResults([]);
       return;
     }
 
@@ -59,7 +58,7 @@ export function NeighborhoodPicker({
         <p className="text-sm text-muted-foreground">Searching...</p>
       )}
 
-      {results.length > 0 && (
+      {query.length >= 2 && results.length > 0 && (
         <div className="space-y-1.5">
           {results.map((n) => (
             <button

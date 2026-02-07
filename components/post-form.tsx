@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import { createPost } from "@/app/actions/posts";
 import { POST_CATEGORIES } from "@/lib/types";
 import { PhotoUpload } from "./photo-upload";
@@ -12,7 +12,7 @@ type ActionState = { success: boolean; error: string };
 const initialState: ActionState = { success: false, error: "" };
 
 export function PostForm() {
-  const [aiAssisted, setAiAssisted] = useState(false);
+  const aiAssisted = false;
 
   const boundAction = async (_prev: ActionState, formData: FormData) => {
     const result = await createPost(formData);

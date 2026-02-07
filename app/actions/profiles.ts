@@ -18,6 +18,7 @@ const UpdateProfileSchema = z.object({
     .max(1000, "Skills text is too long")
     .optional()
     .default(""),
+  neighborhood_id: z.string().uuid("Invalid neighborhood ID").optional(),
 });
 
 export async function updateProfile(formData: FormData) {
@@ -34,6 +35,7 @@ export async function updateProfile(formData: FormData) {
     display_name: formData.get("display_name"),
     bio: formData.get("bio") || "",
     skills: formData.get("skills") || "",
+    neighborhood_id: formData.get("neighborhood_id") || undefined,
   };
 
   const parsed = UpdateProfileSchema.safeParse(raw);
@@ -49,14 +51,56 @@ export async function updateProfile(formData: FormData) {
         .filter((s) => s.length > 0)
     : [];
 
+  const { data: existingProfile, error: existingProfileError } = await supabase
+    .from("profiles")
+    .select("id, neighborhood_id")
+    .eq("id", user.id)
+    .single();
+
+  if (existingProfileError || !existingProfile) {
+    return { success: false as const, error: "Profile not found" };
+  }
+
+  const requestedNeighborhoodId = parsed.data.neighborhood_id;
+  const currentNeighborhoodId = existingProfile.neighborhood_id;
+
+  if (
+    requestedNeighborhoodId &&
+    currentNeighborhoodId &&
+    requestedNeighborhoodId !== currentNeighborhoodId
+  ) {
+    return {
+      success: false as const,
+      error: "Neighborhood can only be changed through neighborhood workflows",
+    };
+  }
+
+  if (requestedNeighborhoodId && !currentNeighborhoodId) {
+    const { data: neighborhood, error: neighborhoodError } = await supabase
+      .from("neighborhoods")
+      .select("id")
+      .eq("id", requestedNeighborhoodId)
+      .single();
+
+    if (neighborhoodError || !neighborhood) {
+      return { success: false as const, error: "Neighborhood not found" };
+    }
+  }
+
+  const updateData: Record<string, unknown> = {
+    display_name: parsed.data.display_name,
+    bio: parsed.data.bio || null,
+    skills: skillsArray,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (requestedNeighborhoodId && !currentNeighborhoodId) {
+    updateData.neighborhood_id = requestedNeighborhoodId;
+  }
+
   const { data: profile, error: updateError } = await supabase
     .from("profiles")
-    .update({
-      display_name: parsed.data.display_name,
-      bio: parsed.data.bio || null,
-      skills: skillsArray,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updateData)
     .eq("id", user.id)
     .select()
     .single();

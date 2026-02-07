@@ -49,15 +49,32 @@ export async function processPendingDeletions() {
         .eq("uploaded_by", request.user_id);
 
       if (photos?.length) {
-        const paths = photos.flatMap((p) => {
-          const urlParts = p.url.split("/");
-          const thumbParts = p.thumbnail_url.split("/");
-          return [
-            urlParts.slice(-2).join("/"),
-            thumbParts.slice(-2).join("/"),
-          ];
-        });
-        await supabase.storage.from("post-photos").remove(paths);
+        const normalizePath = (value: string): string | null => {
+          if (!value) return null;
+          if (!value.includes("://")) return value;
+
+          try {
+            const parsed = new URL(value);
+            const parts = parsed.pathname.split("/post-photos/");
+            if (parts.length !== 2) return null;
+            const path = parts[1]?.split("?")[0];
+            return path || null;
+          } catch {
+            return null;
+          }
+        };
+
+        const paths = Array.from(
+          new Set(
+            photos
+              .flatMap((p) => [normalizePath(p.url), normalizePath(p.thumbnail_url)])
+              .filter((path): path is string => !!path)
+          )
+        );
+
+        if (paths.length > 0) {
+          await supabase.storage.from("post-photos").remove(paths);
+        }
       }
 
       // CASCADE DELETE handles most data via foreign keys on profiles table
@@ -78,6 +95,11 @@ export async function processPendingDeletions() {
 
       results.push({ userId: request.user_id, status: "completed" });
     } catch (err) {
+      await supabase
+        .from("deletion_requests")
+        .update({ status: "pending" })
+        .eq("id", request.id)
+        .eq("status", "processing");
       results.push({ userId: request.user_id, status: "error", error: err });
     }
   }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { processPhoto } from "@/lib/photos/process";
 import { moderatePhoto } from "@/lib/photos/moderate";
 import { MAX_PHOTO_SIZE_BYTES } from "@/lib/types";
@@ -50,21 +50,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // Upload to Supabase Storage using service client
-    const serviceClient = createServiceClient();
+    // Store in the canonical private bucket.
+    const bucket = "post-photos";
     const timestamp = Date.now();
-    const imagePath = `posts/${user.id}/${timestamp}.jpg`;
-    const thumbPath = `posts/${user.id}/${timestamp}_thumb.jpg`;
+    const imagePath = `${user.id}/${timestamp}.jpg`;
+    const thumbPath = `${user.id}/${timestamp}_thumb.jpg`;
 
     const [imageUpload, thumbUpload] = await Promise.all([
-      serviceClient.storage
-        .from("photos")
+      supabase.storage
+        .from(bucket)
         .upload(imagePath, processed.image, {
           contentType: "image/jpeg",
           upsert: false,
         }),
-      serviceClient.storage
-        .from("photos")
+      supabase.storage
+        .from(bucket)
         .upload(thumbPath, processed.thumbnail, {
           contentType: "image/jpeg",
           upsert: false,
@@ -78,15 +78,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const {
-      data: { publicUrl: url },
-    } = serviceClient.storage.from("photos").getPublicUrl(imagePath);
-
-    const {
-      data: { publicUrl: thumbnailUrl },
-    } = serviceClient.storage.from("photos").getPublicUrl(thumbPath);
-
-    return NextResponse.json({ url, thumbnailUrl });
+    // Return storage object paths. The post creation flow persists these paths
+    // and signed URLs are generated only for authorized viewers.
+    return NextResponse.json({ url: imagePath, thumbnailUrl: thumbPath });
   } catch {
     return NextResponse.json(
       { error: "Failed to process photo" },

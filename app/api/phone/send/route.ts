@@ -4,10 +4,14 @@ import { sendVerificationCode } from "@/lib/phone/twilio";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
-const redis = process.env.UPSTASH_REDIS_REST_URL
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+const hasRedisConfig = !!redisUrl && !!redisToken;
+
+const redis = hasRedisConfig
   ? new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+      url: redisUrl,
+      token: redisToken,
     })
   : null;
 
@@ -30,6 +34,13 @@ export async function POST(request: Request) {
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!ratelimit && process.env.NODE_ENV === "production") {
+    return NextResponse.json(
+      { error: "Phone verification temporarily unavailable" },
+      { status: 503 }
+    );
   }
 
   // Rate limiting: 3 per hour

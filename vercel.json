@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/privacy/process-deletions",
+      "schedule": "0 4 * * *"
+    }
+  ]
+}

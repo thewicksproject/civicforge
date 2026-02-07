@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useTheme } from "next-themes";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -18,9 +18,11 @@ export function Nav() {
   const pathname = usePathname();
   const [trustTier, setTrustTier] = useState<number>(1);
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   useEffect(() => {
     async function loadTier() {

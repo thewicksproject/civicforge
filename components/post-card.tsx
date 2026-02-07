@@ -68,6 +68,14 @@ export function PostCard({
           <p className="text-sm text-muted-foreground leading-relaxed">
             {truncate(description, 120)}
           </p>
+
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            <span className="capitalize">{category.replace(/_/g, " ")}</span>
+            <span>{responseCount} response{responseCount === 1 ? "" : "s"}</span>
+            {urgency === "high" && (
+              <span className="font-medium text-destructive">Urgent</span>
+            )}
+          </div>
         </div>
 
         {/* Photo indicator */}
@@ -100,6 +108,7 @@ export function PostCard({
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span className="font-medium text-foreground">{authorName}</span>
+          <span className="text-xs">{TRUST_TIER_LABELS[authorTrustTier]}</span>
           <ReputationBadge score={authorReputation} size="sm" />
         </div>
         <span className="text-xs text-muted-foreground">{formatRelativeTime(new Date(createdAt))}</span>

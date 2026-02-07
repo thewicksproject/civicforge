@@ -14,7 +14,8 @@ export default function InvitePage({
   const { id } = use(params);
   const [copied, setCopied] = useState(false);
 
-  const boundAction = async (_prev: ActionState): Promise<ActionState> => {
+  const boundAction = async (prevState: ActionState): Promise<ActionState> => {
+    void prevState;
     const result = await createInvitation(id);
     return {
       success: result.success,

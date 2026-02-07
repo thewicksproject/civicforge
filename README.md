@@ -51,6 +51,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `UPSTASH_REDIS_REST_URL` | No | Upstash Redis URL for rate limiting |
 | `UPSTASH_REDIS_REST_TOKEN` | No | Upstash Redis token |
 | `NEXT_PUBLIC_APP_URL` | No | App URL (defaults to http://localhost:3000) |
+| `CRON_SECRET` | Recommended | Shared secret for scheduled jobs (e.g., deletion processing) |
 
 ## Tech Stack
 
@@ -78,6 +79,11 @@ Open [http://localhost:3000](http://localhost:3000).
 - Data export and account deletion available
 - AI processing disclosed with transparency badges
 - 18+ age requirement
+
+## Scheduled Jobs
+
+- Account deletion processing runs daily via Vercel Cron at `/api/privacy/process-deletions`.
+- In production, set `CRON_SECRET` so the cron route is protected with `Authorization: Bearer <CRON_SECRET>`.
 
 ## License
 

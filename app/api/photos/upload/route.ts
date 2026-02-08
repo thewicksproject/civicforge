@@ -3,6 +3,24 @@ import { createClient } from "@/lib/supabase/server";
 import { processPhoto } from "@/lib/photos/process";
 import { moderatePhoto } from "@/lib/photos/moderate";
 import { MAX_PHOTO_SIZE_BYTES } from "@/lib/types";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+const hasRedisConfig = !!redisUrl && !!redisToken;
+
+const redis = hasRedisConfig
+  ? new Redis({ url: redisUrl, token: redisToken })
+  : null;
+
+const ratelimit = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(10, "5 m"),
+      prefix: "photos:upload",
+    })
+  : null;
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -12,6 +30,23 @@ export async function POST(request: Request) {
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!ratelimit && process.env.NODE_ENV === "production") {
+    return NextResponse.json(
+      { error: "Photo upload temporarily unavailable" },
+      { status: 503 }
+    );
+  }
+
+  if (ratelimit) {
+    const { success } = await ratelimit.limit(user.id);
+    if (!success) {
+      return NextResponse.json(
+        { error: "Too many uploads. Please try again later." },
+        { status: 429 }
+      );
+    }
   }
 
   const formData = await request.formData();

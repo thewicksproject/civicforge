@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { Image as ImageIcon, TriangleAlert } from "lucide-react";
 import { cn, formatRelativeTime, truncate } from "@/lib/utils";
-import { TRUST_TIER_LABELS, type TrustTier } from "@/lib/types";
+import type { TrustTier } from "@/lib/types";
+import { CATEGORY_ICON_MAP } from "./category-icons";
+import { TrustTierBadge } from "./trust-tier-badge";
 import { ReputationBadge } from "./reputation-badge";
 import { AiBadge } from "./ai-badge";
 
@@ -40,7 +43,10 @@ export function PostCard({
   return (
     <Link
       href={`/board/${id}`}
-      className="block rounded-xl bg-card border border-border p-5 card-hover"
+      className={cn(
+        "block rounded-xl bg-card border border-border p-5 card-hover border-l-[3px]",
+        isNeed ? "border-l-need" : "border-l-offer"
+      )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
@@ -70,10 +76,16 @@ export function PostCard({
           </p>
 
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-            <span className="capitalize">{category.replace(/_/g, " ")}</span>
+            <span className="inline-flex items-center gap-1 capitalize">
+              {(() => { const Icon = CATEGORY_ICON_MAP[category]; return Icon ? <Icon className="h-3 w-3" /> : null; })()}
+              {category.replace(/_/g, " ")}
+            </span>
             <span>{responseCount} response{responseCount === 1 ? "" : "s"}</span>
             {urgency === "high" && (
-              <span className="font-medium text-destructive">Urgent</span>
+              <span className="inline-flex items-center gap-1 font-medium text-destructive">
+                <TriangleAlert className="h-3 w-3" />
+                Urgent
+              </span>
             )}
           </div>
         </div>
@@ -81,20 +93,7 @@ export function PostCard({
         {/* Photo indicator */}
         {photoCount > 0 && (
           <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
-            <svg
-              className="h-5 w-5 text-muted-foreground"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-              <circle cx="9" cy="9" r="2" />
-              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-            </svg>
+            <ImageIcon className="h-5 w-5 text-muted-foreground" />
             {photoCount > 1 && (
               <span className="text-[10px] text-muted-foreground ml-0.5">
                 {photoCount}
@@ -108,7 +107,7 @@ export function PostCard({
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span className="font-medium text-foreground">{authorName}</span>
-          <span className="text-xs">{TRUST_TIER_LABELS[authorTrustTier]}</span>
+          <TrustTierBadge tier={authorTrustTier} />
           <ReputationBadge score={authorReputation} size="sm" />
         </div>
         <span className="text-xs text-muted-foreground">{formatRelativeTime(new Date(createdAt))}</span>

@@ -2,9 +2,17 @@ import { NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const url = new URL(request.url);
+  const searchParams = url.searchParams;
   const code = searchParams.get("code");
   const rawNext = searchParams.get("next") ?? "/board";
+
+  // Respect X-Forwarded-Host/Proto for reverse proxies (e.g. Tailscale serve)
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto") ?? "https";
+  const origin = forwardedHost
+    ? `${forwardedProto}://${forwardedHost}`
+    : url.origin;
 
   // Prevent open redirect — only allow relative paths starting with /
   const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/board";

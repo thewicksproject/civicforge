@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Lock, Shield, Users } from "lucide-react";
+import {
+  HeroIllustration,
+  HowItWorksPostIllustration,
+  HowItWorksMatchIllustration,
+  HowItWorksTrustIllustration,
+} from "@/components/illustrations";
 
 export const metadata: Metadata = {
   title: "CivicForge — Your neighborhood, connected",
@@ -25,6 +32,8 @@ function HeroSection() {
           opacity: 0.4,
         }}
       />
+
+      <HeroIllustration className="h-48 w-auto mb-8 sm:h-56" />
 
       <h1 className="max-w-3xl text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
         Your neighborhood, connected.
@@ -55,65 +64,19 @@ function HeroSection() {
 function HowItWorksSection() {
   const steps = [
     {
-      icon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.5}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="h-8 w-8"
-          aria-hidden="true"
-        >
-          <path d="M12 20h9" />
-          <path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.855z" />
-        </svg>
-      ),
+      icon: <HowItWorksPostIllustration className="h-8 w-8" />,
       title: "Post a need or offer",
       description:
         "Tell your neighbors what you need help with, or share what you can offer. It takes less than a minute.",
     },
     {
-      icon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.5}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="h-8 w-8"
-          aria-hidden="true"
-        >
-          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-      ),
+      icon: <HowItWorksMatchIllustration className="h-8 w-8" />,
       title: "Get matched with neighbors",
       description:
         "Our AI compass finds the right connections in your community. You always review and approve before anything is shared.",
     },
     {
-      icon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.5}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="h-8 w-8"
-          aria-hidden="true"
-        >
-          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-        </svg>
-      ),
+      icon: <HowItWorksTrustIllustration className="h-8 w-8" />,
       title: "Help each other, build trust",
       description:
         "Every act of help strengthens the neighborhood. Build a reputation that reflects who you are in your community.",
@@ -155,64 +118,19 @@ function HowItWorksSection() {
 function ValuesSection() {
   const values = [
     {
-      icon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.5}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="h-6 w-6"
-          aria-hidden="true"
-        >
-          <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-        </svg>
-      ),
+      icon: <Lock className="h-6 w-6" aria-hidden="true" />,
       title: "No ads, ever",
       description:
         "Your attention belongs to your community, not advertisers. CivicForge will never show ads.",
     },
     {
-      icon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.5}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="h-6 w-6"
-          aria-hidden="true"
-        >
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
-        </svg>
-      ),
+      icon: <Shield className="h-6 w-6" aria-hidden="true" />,
       title: "Your data stays yours",
       description:
         "We never sell your personal information. AI processes structured data only -- your words are never stored raw.",
     },
     {
-      icon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.5}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="h-6 w-6"
-          aria-hidden="true"
-        >
-          <path d="M18 21a8 8 0 0 0-16 0" />
-          <circle cx="10" cy="8" r="5" />
-          <path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3" />
-        </svg>
-      ),
+      icon: <Users className="h-6 w-6" aria-hidden="true" />,
       title: "Community-owned",
       description:
         "Built to serve neighborhoods, not shareholders. The platform grows with the community it supports.",

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Flag } from "lucide-react";
 import { flagPost } from "@/app/actions/flags";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,19 +41,7 @@ export function FlagButton({ postId }: FlagButtonProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm" className="text-muted-foreground">
-          <svg
-            className="h-4 w-4 mr-1"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-            <line x1="4" x2="4" y1="22" y2="15" />
-          </svg>
+          <Flag className="h-4 w-4 mr-1" />
           Flag
         </Button>
       </DialogTrigger>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { EmailSentIllustration } from "@/components/illustrations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -47,7 +48,7 @@ export default function LoginPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <div className="w-full max-w-sm text-center">
-          <div className="text-4xl mb-4">📬</div>
+          <EmailSentIllustration className="h-28 w-auto mx-auto mb-4" />
           <h1 className="text-2xl font-semibold mb-2">Check your email</h1>
           <p className="text-sm text-muted-foreground mb-6">
             We sent a magic link to <strong>{email}</strong>. Click it to sign

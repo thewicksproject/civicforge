@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { PostForm } from "@/components/post-form";
+import { PostingLockedIllustration } from "@/components/illustrations";
 
 export const metadata = { title: "Create Post" };
 
@@ -26,7 +27,7 @@ export default async function NewPostPage() {
   if ((profile.trust_tier ?? 1) < 2) {
     return (
       <div className="max-w-xl mx-auto text-center py-16">
-        <div className="text-4xl mb-3">🔒</div>
+        <PostingLockedIllustration className="h-28 w-auto mx-auto mb-3" />
         <h2 className="text-xl font-semibold mb-2">
           Posting requires Confirmed status
         </h2>

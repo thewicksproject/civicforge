@@ -6,6 +6,7 @@ import { NeighborhoodPicker } from "@/components/neighborhood-picker";
 import { createNeighborhood } from "@/app/actions/neighborhoods";
 import { updateProfile } from "@/app/actions/profiles";
 import { redeemInvitation } from "@/app/actions/invitations";
+import { OnboardingWelcomeIllustration } from "@/components/illustrations";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -133,6 +134,7 @@ export default function OnboardingPage() {
         {step === "name" && (
           <form onSubmit={handleNameSubmit} className="space-y-6">
             <div className="text-center mb-6">
+              <OnboardingWelcomeIllustration className="h-28 w-auto mx-auto mb-4" />
               <h1 className="text-2xl font-semibold mb-1">Welcome!</h1>
               <p className="text-sm text-muted-foreground">
                 What should your neighbors call you?

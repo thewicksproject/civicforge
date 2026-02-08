@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!file.type.startsWith("image/")) {
+  if (!file.type.startsWith("image/") || file.type === "image/svg+xml") {
     return NextResponse.json(
       { error: "Only image files are accepted" },
       { status: 400 }

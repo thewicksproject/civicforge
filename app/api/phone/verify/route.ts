@@ -2,6 +2,27 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkVerificationCode } from "@/lib/phone/twilio";
 import { recordConsent } from "@/lib/privacy/consent";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+const hasRedisConfig = !!redisUrl && !!redisToken;
+
+const redis = hasRedisConfig
+  ? new Redis({
+      url: redisUrl,
+      token: redisToken,
+    })
+  : null;
+
+const ratelimit = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(5, "15 m"),
+      prefix: "phone:verify",
+    })
+  : null;
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -11,6 +32,23 @@ export async function POST(request: Request) {
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!ratelimit && process.env.NODE_ENV === "production") {
+    return NextResponse.json(
+      { error: "Phone verification temporarily unavailable" },
+      { status: 503 }
+    );
+  }
+
+  if (ratelimit) {
+    const { success } = await ratelimit.limit(user.id);
+    if (!success) {
+      return NextResponse.json(
+        { error: "Too many attempts. Please try again later." },
+        { status: 429 }
+      );
+    }
   }
 
   const body = await request.json();

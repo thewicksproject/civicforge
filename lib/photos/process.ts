@@ -37,6 +37,11 @@ export async function processPhoto(
     throw new Error("Invalid image: could not read dimensions");
   }
 
+  const allowedFormats = ["jpeg", "png", "webp", "gif", "avif"];
+  if (!metadata.format || !allowedFormats.includes(metadata.format)) {
+    throw new Error("Unsupported image format");
+  }
+
   // Process main image: strip metadata, resize, compress
   const image = await sharp(buffer)
     .rotate() // Auto-orient based on EXIF before stripping
@@ -72,23 +77,4 @@ export async function processPhoto(
     height: processedMeta.height!,
     format: "jpeg",
   };
-}
-
-/**
- * Validate that a buffer is a real image by attempting to read it with sharp.
- * Returns true if valid, false otherwise.
- */
-export async function isValidImage(buffer: Buffer): Promise<boolean> {
-  try {
-    const metadata = await sharp(buffer).metadata();
-    const allowedFormats = ["jpeg", "png", "webp", "gif", "avif"];
-    return !!(
-      metadata.format &&
-      allowedFormats.includes(metadata.format) &&
-      metadata.width &&
-      metadata.height
-    );
-  } catch {
-    return false;
-  }
 }

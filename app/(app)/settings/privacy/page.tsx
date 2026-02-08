@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { updateProfile } from "@/app/actions/profiles";
+import { updateProfile, getMyProfile } from "@/app/actions/profiles";
 import { redeemInvitation } from "@/app/actions/invitations";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -38,17 +38,15 @@ export default function SettingsPage() {
 
   useEffect(() => {
     async function load() {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase
-        .from("profiles")
-        .select("display_name, bio, skills, phone_verified")
-        .eq("id", user.id)
-        .single();
-      if (data) setProfile(data);
+      const result = await getMyProfile();
+      if (result.success && result.data) {
+        setProfile({
+          display_name: result.data.display_name,
+          bio: result.data.bio ?? "",
+          skills: result.data.skills ?? [],
+          phone_verified: result.data.phone_verified ?? false,
+        });
+      }
     }
     load();
   }, []);

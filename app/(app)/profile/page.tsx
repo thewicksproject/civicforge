@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { TRUST_TIER_LABELS, type TrustTier } from "@/lib/types";
 import { ReputationBadge } from "@/components/reputation-badge";
 import Link from "next/link";
@@ -11,14 +11,16 @@ export default async function ProfilePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: profile } = await supabase
+  const admin = createServiceClient();
+
+  const { data: profile } = await admin
     .from("profiles")
     .select("*")
     .eq("id", user!.id)
     .single();
 
   // Get thanks received
-  const { data: thanksReceived } = await supabase
+  const { data: thanksReceived } = await admin
     .from("thanks")
     .select("id, message, from_user, post_id, created_at, sender:profiles!from_user(display_name)")
     .eq("to_user", user!.id)
@@ -26,7 +28,7 @@ export default async function ProfilePage() {
     .limit(10);
 
   // Get user's posts
-  const { data: posts } = await supabase
+  const { data: posts } = await admin
     .from("posts")
     .select("id, title, type, status, created_at, responses(id)")
     .eq("author_id", user!.id)

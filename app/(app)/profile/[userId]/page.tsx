@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { TRUST_TIER_LABELS, type TrustTier } from "@/lib/types";
 import { ReputationBadge } from "@/components/reputation-badge";
 import { ThanksButton } from "@/components/thanks-button";
@@ -10,8 +10,8 @@ export async function generateMetadata({
   params: Promise<{ userId: string }>;
 }) {
   const { userId } = await params;
-  const supabase = await createClient();
-  const { data: profile } = await supabase
+  const admin = createServiceClient();
+  const { data: profile } = await admin
     .from("profiles")
     .select("display_name")
     .eq("id", userId)
@@ -32,7 +32,9 @@ export default async function UserProfilePage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: profile } = await supabase
+  const admin = createServiceClient();
+
+  const { data: profile } = await admin
     .from("profiles")
     .select("id, display_name, bio, skills, reputation_score, trust_tier, created_at")
     .eq("id", userId)
@@ -41,7 +43,7 @@ export default async function UserProfilePage({
   if (!profile) notFound();
 
   // Get their recent posts (public)
-  const { data: posts } = await supabase
+  const { data: posts } = await admin
     .from("posts")
     .select("id, title, type, status, created_at")
     .eq("author_id", userId)

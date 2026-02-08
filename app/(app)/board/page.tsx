@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { PostCard } from "@/components/post-card";
 import type { TrustTier } from "@/lib/types";
 
@@ -11,8 +11,11 @@ export default async function BoardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Use service client to bypass self-referencing RLS policy on profiles
+  const admin = createServiceClient();
+
   // Get user's profile to know their neighborhood
-  const { data: profile } = await supabase
+  const { data: profile } = await admin
     .from("profiles")
     .select("neighborhood_id, trust_tier")
     .eq("id", user!.id)
@@ -38,7 +41,7 @@ export default async function BoardPage() {
   }
 
   // Fetch posts for user's neighborhood
-  const { data: posts } = await supabase
+  const { data: posts } = await admin
     .from("posts")
     .select(
       `

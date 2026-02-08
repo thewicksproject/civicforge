@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 const RequestMembershipSchema = z.object({
   neighborhoodId: z.string().uuid("Invalid neighborhood ID"),
@@ -31,8 +31,10 @@ export async function requestMembership(
     return { success: false as const, error: parsed.error.issues[0].message };
   }
 
+  const admin = createServiceClient();
+
   // Check that the neighborhood exists
-  const { data: neighborhood, error: neighborhoodError } = await supabase
+  const { data: neighborhood, error: neighborhoodError } = await admin
     .from("neighborhoods")
     .select("id")
     .eq("id", parsed.data.neighborhoodId)
@@ -43,7 +45,7 @@ export async function requestMembership(
   }
 
   // Check user doesn't already belong to a neighborhood
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile, error: profileError } = await admin
     .from("profiles")
     .select("neighborhood_id")
     .eq("id", user.id)
@@ -61,7 +63,7 @@ export async function requestMembership(
   }
 
   // Check for existing pending request to this neighborhood
-  const { data: existingRequest } = await supabase
+  const { data: existingRequest } = await admin
     .from("membership_requests")
     .select("id, status")
     .eq("user_id", user.id)
@@ -76,7 +78,7 @@ export async function requestMembership(
     };
   }
 
-  const { data: request, error: insertError } = await supabase
+  const { data: request, error: insertError } = await admin
     .from("membership_requests")
     .insert({
       user_id: user.id,
@@ -119,8 +121,10 @@ export async function reviewMembership(
     return { success: false as const, error: "Invalid status" };
   }
 
+  const admin = createServiceClient();
+
   // Fetch the membership request
-  const { data: request, error: requestError } = await supabase
+  const { data: request, error: requestError } = await admin
     .from("membership_requests")
     .select("*")
     .eq("id", requestId)
@@ -138,7 +142,7 @@ export async function reviewMembership(
   }
 
   // Verify reviewer is Tier 2+ in the same neighborhood
-  const { data: reviewerProfile, error: reviewerError } = await supabase
+  const { data: reviewerProfile, error: reviewerError } = await admin
     .from("profiles")
     .select("trust_tier, neighborhood_id")
     .eq("id", user.id)
@@ -163,7 +167,7 @@ export async function reviewMembership(
   }
 
   // Update the membership request
-  const { data: updatedRequest, error: updateError } = await supabase
+  const { data: updatedRequest, error: updateError } = await admin
     .from("membership_requests")
     .update({
       status: statusParsed.data,
@@ -183,7 +187,7 @@ export async function reviewMembership(
 
   // If approved, update the requesting user's profile
   if (statusParsed.data === "approved") {
-    const { error: profileUpdateError } = await supabase
+    const { error: profileUpdateError } = await admin
       .from("profiles")
       .update({
         neighborhood_id: request.neighborhood_id,

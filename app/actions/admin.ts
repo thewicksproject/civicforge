@@ -10,28 +10,29 @@ async function requireTier3() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { supabase: null, userId: null, error: "You must be logged in" };
+    return { admin: null, userId: null, error: "You must be logged in" };
   }
 
-  const { data: profile } = await supabase
+  const admin = createServiceClient();
+  const { data: profile } = await admin
     .from("profiles")
     .select("trust_tier")
     .eq("id", user.id)
     .single();
 
   if (!profile || profile.trust_tier < 3) {
-    return { supabase: null, userId: null, error: "Admin access required" };
+    return { admin: null, userId: null, error: "Admin access required" };
   }
 
-  return { supabase, userId: user.id, error: null };
+  return { admin, userId: user.id, error: null };
 }
 
 export async function reviewPost(
   postId: string,
   decision: "approved" | "rejected"
 ) {
-  const { supabase, userId, error } = await requireTier3();
-  if (error || !supabase || !userId) {
+  const { admin, userId, error } = await requireTier3();
+  if (error || !admin || !userId) {
     return { success: false as const, error: error ?? "Unauthorized" };
   }
 
@@ -56,7 +57,7 @@ export async function reviewPost(
     updateData.hidden = true;
   }
 
-  const { error: updateError } = await supabase
+  const { error: updateError } = await admin
     .from("posts")
     .update(updateData)
     .eq("id", postId);
@@ -65,9 +66,8 @@ export async function reviewPost(
     return { success: false as const, error: "Failed to update post" };
   }
 
-  // Audit log (service role required by RLS policy)
-  const serviceClient1 = createServiceClient();
-  await serviceClient1.from("audit_log").insert({
+  // Audit log
+  await admin.from("audit_log").insert({
     user_id: userId,
     action: `review_post_${decisionParsed.data}`,
     resource_type: "post",
@@ -78,8 +78,8 @@ export async function reviewPost(
 }
 
 export async function unhidePost(postId: string) {
-  const { supabase, userId, error } = await requireTier3();
-  if (error || !supabase || !userId) {
+  const { admin, userId, error } = await requireTier3();
+  if (error || !admin || !userId) {
     return { success: false as const, error: error ?? "Unauthorized" };
   }
 
@@ -88,7 +88,7 @@ export async function unhidePost(postId: string) {
     return { success: false as const, error: "Invalid post ID" };
   }
 
-  const { error: updateError } = await supabase
+  const { error: updateError } = await admin
     .from("posts")
     .update({ hidden: false, flag_count: 0 })
     .eq("id", postId);
@@ -97,9 +97,8 @@ export async function unhidePost(postId: string) {
     return { success: false as const, error: "Failed to unhide post" };
   }
 
-  // Audit log (service role required by RLS policy)
-  const serviceClient2 = createServiceClient();
-  await serviceClient2.from("audit_log").insert({
+  // Audit log
+  await admin.from("audit_log").insert({
     user_id: userId,
     action: "unhide_post",
     resource_type: "post",

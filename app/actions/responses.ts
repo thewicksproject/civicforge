@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { moderateContent } from "@/lib/ai/client";
 
 const MessageSchema = z
@@ -31,8 +31,10 @@ export async function createResponse(postId: string, message: string) {
     return { success: false as const, error: msgParsed.error.issues[0].message };
   }
 
+  const admin = createServiceClient();
+
   // Check trust tier
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile, error: profileError } = await admin
     .from("profiles")
     .select("trust_tier")
     .eq("id", user.id)
@@ -50,7 +52,7 @@ export async function createResponse(postId: string, message: string) {
   }
 
   // Verify the post exists and is active
-  const { data: post, error: postError } = await supabase
+  const { data: post, error: postError } = await admin
     .from("posts")
     .select("id, author_id, status")
     .eq("id", postId)
@@ -72,7 +74,7 @@ export async function createResponse(postId: string, message: string) {
   }
 
   // Check for duplicate response
-  const { data: existingResponse } = await supabase
+  const { data: existingResponse } = await admin
     .from("responses")
     .select("id")
     .eq("post_id", postId)
@@ -99,7 +101,7 @@ export async function createResponse(postId: string, message: string) {
     // Fail open — don't block users if moderation API is down
   }
 
-  const { data: response, error: insertError } = await supabase
+  const { data: response, error: insertError } = await admin
     .from("responses")
     .insert({
       post_id: postId,
@@ -139,8 +141,10 @@ export async function updateResponseStatus(
     return { success: false as const, error: "Invalid status" };
   }
 
+  const admin = createServiceClient();
+
   // Fetch the response and its associated post
-  const { data: response, error: responseError } = await supabase
+  const { data: response, error: responseError } = await admin
     .from("responses")
     .select("id, post_id, status")
     .eq("id", responseId)
@@ -158,7 +162,7 @@ export async function updateResponseStatus(
   }
 
   // Verify the current user is the post author
-  const { data: post, error: postError } = await supabase
+  const { data: post, error: postError } = await admin
     .from("posts")
     .select("author_id")
     .eq("id", response.post_id)
@@ -175,7 +179,7 @@ export async function updateResponseStatus(
     };
   }
 
-  const { data: updated, error: updateError } = await supabase
+  const { data: updated, error: updateError } = await admin
     .from("responses")
     .update({
       status: statusParsed.data,
@@ -191,7 +195,7 @@ export async function updateResponseStatus(
 
   // If accepted, update the post status to in_progress
   if (statusParsed.data === "accepted") {
-    await supabase
+    await admin
       .from("posts")
       .update({
         status: "in_progress",

@@ -24,8 +24,10 @@ export async function flagPost(postId: string, reason?: string) {
     return { success: false as const, error: "Reason too long" };
   }
 
+  const admin = createServiceClient();
+
   // Verify the post exists and user is not the author
-  const { data: post, error: postError } = await supabase
+  const { data: post, error: postError } = await admin
     .from("posts")
     .select("id, author_id, flag_count")
     .eq("id", postId)
@@ -40,7 +42,7 @@ export async function flagPost(postId: string, reason?: string) {
   }
 
   // Check for duplicate flag
-  const { data: existingFlag } = await supabase
+  const { data: existingFlag } = await admin
     .from("post_flags")
     .select("id")
     .eq("post_id", postId)
@@ -52,7 +54,7 @@ export async function flagPost(postId: string, reason?: string) {
   }
 
   // Insert flag
-  const { error: flagError } = await supabase.from("post_flags").insert({
+  const { error: flagError } = await admin.from("post_flags").insert({
     post_id: postId,
     user_id: user.id,
     reason: reason ?? null,
@@ -66,7 +68,7 @@ export async function flagPost(postId: string, reason?: string) {
   const newFlagCount = post.flag_count + 1;
   const shouldHide = newFlagCount >= FLAG_THRESHOLD_HIDE;
 
-  await supabase
+  await admin
     .from("posts")
     .update({
       flag_count: newFlagCount,
@@ -92,8 +94,10 @@ export async function unflagPost(postId: string) {
     return { success: false as const, error: "Invalid post ID" };
   }
 
+  const admin = createServiceClient();
+
   // Verify Tier 3
-  const { data: profile } = await supabase
+  const { data: profile } = await admin
     .from("profiles")
     .select("trust_tier")
     .eq("id", user.id)
@@ -104,17 +108,16 @@ export async function unflagPost(postId: string) {
   }
 
   // Delete all flags for this post
-  await supabase.from("post_flags").delete().eq("post_id", postId);
+  await admin.from("post_flags").delete().eq("post_id", postId);
 
   // Reset flag count and unhide
-  await supabase
+  await admin
     .from("posts")
     .update({ flag_count: 0, hidden: false })
     .eq("id", postId);
 
-  // Audit log (service role required by RLS policy)
-  const serviceClient = createServiceClient();
-  await serviceClient.from("audit_log").insert({
+  // Audit log
+  await admin.from("audit_log").insert({
     user_id: user.id,
     action: "unflag_post",
     resource_type: "post",

@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 const ThanksSchema = z.object({
   toUserId: z.string().uuid("Invalid recipient user ID"),
@@ -36,8 +36,10 @@ export async function createThanks(
     return { success: false as const, error: "You cannot thank yourself" };
   }
 
+  const admin = createServiceClient();
+
   // Verify recipient exists
-  const { data: recipient, error: recipientError } = await supabase
+  const { data: recipient, error: recipientError } = await admin
     .from("profiles")
     .select("id, reputation_score")
     .eq("id", parsed.data.toUserId)
@@ -49,7 +51,7 @@ export async function createThanks(
 
   // If postId is provided, verify the post exists
   if (parsed.data.postId) {
-    const { data: post, error: postError } = await supabase
+    const { data: post, error: postError } = await admin
       .from("posts")
       .select("id")
       .eq("id", parsed.data.postId)
@@ -61,7 +63,7 @@ export async function createThanks(
   }
 
   // Insert thanks
-  const { data: thanksRecord, error: insertError } = await supabase
+  const { data: thanksRecord, error: insertError } = await admin
     .from("thanks")
     .insert({
       from_user: user.id,
@@ -77,7 +79,7 @@ export async function createThanks(
   }
 
   // Increment recipient's reputation_score by 1
-  const { error: updateError } = await supabase
+  const { error: updateError } = await admin
     .from("profiles")
     .update({
       reputation_score: recipient.reputation_score + 1,

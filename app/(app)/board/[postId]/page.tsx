@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { cn, formatRelativeTime } from "@/lib/utils";
 import { TRUST_TIER_LABELS, type TrustTier } from "@/lib/types";
 import { ReputationBadge } from "@/components/reputation-badge";
@@ -15,8 +15,8 @@ export async function generateMetadata({
   params: Promise<{ postId: string }>;
 }) {
   const { postId } = await params;
-  const supabase = await createClient();
-  const { data: post } = await supabase
+  const adminMeta = createServiceClient();
+  const { data: post } = await adminMeta
     .from("posts")
     .select("title, type")
     .eq("id", postId)
@@ -38,8 +38,11 @@ export default async function PostDetailPage({
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Use service client to bypass self-referencing RLS policy on profiles
+  const admin = createServiceClient();
+
   // Fetch post with author, photos, and responses
-  const { data: post } = await supabase
+  const { data: post } = await admin
     .from("posts")
     .select(
       `
@@ -90,7 +93,7 @@ export default async function PostDetailPage({
   );
 
   // Get user's trust tier for permission checks
-  const { data: profile } = await supabase
+  const { data: profile } = await admin
     .from("profiles")
     .select("trust_tier")
     .eq("id", user!.id)

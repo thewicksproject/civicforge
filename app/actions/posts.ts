@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import {
   POST_CATEGORIES,
   NEW_ACCOUNT_REVIEW_POST_COUNT,
@@ -52,8 +52,12 @@ export async function createPost(formData: FormData) {
     return { success: false as const, error: parsed.error.issues[0].message };
   }
 
+  // Use service client to bypass RLS for profile queries
+  // (user already verified via getUser above)
+  const admin = createServiceClient();
+
   // Check trust tier
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile, error: profileError } = await admin
     .from("profiles")
     .select("trust_tier, neighborhood_id")
     .eq("id", user.id)
@@ -164,7 +168,7 @@ export async function createPost(formData: FormData) {
 
   // Determine review status for new accounts
   let reviewStatus: "none" | "pending_review" = "none";
-  const { count } = await supabase
+  const { count } = await admin
     .from("posts")
     .select("id", { count: "exact", head: true })
     .eq("author_id", user.id);
@@ -173,7 +177,7 @@ export async function createPost(formData: FormData) {
     reviewStatus = "pending_review";
   }
 
-  const { data: post, error: insertError } = await supabase
+  const { data: post, error: insertError } = await admin
     .from("posts")
     .insert({
       author_id: user.id,
@@ -203,13 +207,13 @@ export async function createPost(formData: FormData) {
       uploaded_by: user.id,
     }));
 
-    const { error: photoInsertError } = await supabase
+    const { error: photoInsertError } = await admin
       .from("post_photos")
       .insert(photoRows);
 
     if (photoInsertError) {
       // Keep data consistent if photo attachment fails.
-      await supabase.from("posts").delete().eq("id", post.id);
+      await admin.from("posts").delete().eq("id", post.id);
       return { success: false as const, error: "Failed to attach uploaded photos" };
     }
   }
@@ -247,8 +251,10 @@ export async function updatePost(postId: string, formData: FormData) {
     return { success: false as const, error: parsed.error.issues[0].message };
   }
 
+  const admin = createServiceClient();
+
   // Verify ownership
-  const { data: existing, error: fetchError } = await supabase
+  const { data: existing, error: fetchError } = await admin
     .from("posts")
     .select("author_id")
     .eq("id", postId)
@@ -277,7 +283,7 @@ export async function updatePost(postId: string, formData: FormData) {
     // Fail open — don't block users if moderation API is down
   }
 
-  const { data: post, error: updateError } = await supabase
+  const { data: post, error: updateError } = await admin
     .from("posts")
     .update({
       title: parsed.data.title,
@@ -315,8 +321,10 @@ export async function deletePost(postId: string) {
     return { success: false as const, error: "Invalid post ID" };
   }
 
+  const admin = createServiceClient();
+
   // Verify ownership
-  const { data: existing, error: fetchError } = await supabase
+  const { data: existing, error: fetchError } = await admin
     .from("posts")
     .select("author_id")
     .eq("id", postId)
@@ -333,7 +341,7 @@ export async function deletePost(postId: string) {
     };
   }
 
-  const { error: deleteError } = await supabase
+  const { error: deleteError } = await admin
     .from("posts")
     .delete()
     .eq("id", postId);
@@ -360,7 +368,8 @@ export async function getNeighborhoodPosts(neighborhoodId: string) {
     return { success: false as const, error: "Invalid neighborhood ID" };
   }
 
-  const { data: posts, error } = await supabase
+  const admin = createServiceClient();
+  const { data: posts, error } = await admin
     .from("posts")
     .select(
       `

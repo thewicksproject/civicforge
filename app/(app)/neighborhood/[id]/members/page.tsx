@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { TRUST_TIER_LABELS, type TrustTier } from "@/lib/types";
 import { ReputationBadge } from "@/components/reputation-badge";
 
@@ -18,7 +18,9 @@ export default async function MembersPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: neighborhood } = await supabase
+  const admin = createServiceClient();
+
+  const { data: neighborhood } = await admin
     .from("neighborhoods")
     .select("*")
     .eq("id", id)
@@ -27,7 +29,7 @@ export default async function MembersPage({
   if (!neighborhood) notFound();
 
   // Check if current user is an admin (Tier 2+ in this neighborhood)
-  const { data: profile } = await supabase
+  const { data: profile } = await admin
     .from("profiles")
     .select("trust_tier, neighborhood_id")
     .eq("id", user!.id)
@@ -37,7 +39,7 @@ export default async function MembersPage({
     profile?.neighborhood_id === id && (profile?.trust_tier ?? 1) >= 2;
 
   // Get members
-  const { data: members } = await supabase
+  const { data: members } = await admin
     .from("profiles")
     .select("id, display_name, reputation_score, trust_tier, created_at")
     .eq("neighborhood_id", id)
@@ -47,7 +49,7 @@ export default async function MembersPage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let pendingRequests: any[] = [];
   if (isAdmin) {
-    const { data } = await supabase
+    const { data } = await admin
       .from("membership_requests")
       .select("id, user_id, message, created_at, user:profiles!user_id(display_name)")
       .eq("neighborhood_id", id)

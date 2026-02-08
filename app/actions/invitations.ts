@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { generateInviteCode } from "@/lib/utils";
 
 export async function createInvitation(neighborhoodId: string) {
@@ -19,8 +19,10 @@ export async function createInvitation(neighborhoodId: string) {
     return { success: false as const, error: "Invalid neighborhood ID" };
   }
 
+  const admin = createServiceClient();
+
   // Verify user is Tier 2+ and belongs to this neighborhood
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile, error: profileError } = await admin
     .from("profiles")
     .select("trust_tier, neighborhood_id")
     .eq("id", user.id)
@@ -49,7 +51,7 @@ export async function createInvitation(neighborhoodId: string) {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
 
-  const { data: invitation, error: insertError } = await supabase
+  const { data: invitation, error: insertError } = await admin
     .from("invitations")
     .insert({
       code,
@@ -64,7 +66,7 @@ export async function createInvitation(neighborhoodId: string) {
     // If code collision, retry once with a new code
     if (insertError.code === "23505") {
       const retryCode = generateInviteCode();
-      const { data: retryInvitation, error: retryError } = await supabase
+      const { data: retryInvitation, error: retryError } = await admin
         .from("invitations")
         .insert({
           code: retryCode,
@@ -108,8 +110,10 @@ export async function redeemInvitation(code: string) {
     return { success: false as const, error: codeParsed.error.issues[0].message };
   }
 
+  const admin = createServiceClient();
+
   // Find the invitation
-  const { data: invitation, error: fetchError } = await supabase
+  const { data: invitation, error: fetchError } = await admin
     .from("invitations")
     .select("*")
     .eq("code", codeParsed.data.toUpperCase())
@@ -133,7 +137,7 @@ export async function redeemInvitation(code: string) {
   }
 
   // Check if user already belongs to a neighborhood
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile, error: profileError } = await admin
     .from("profiles")
     .select("neighborhood_id, trust_tier")
     .eq("id", user.id)
@@ -151,7 +155,7 @@ export async function redeemInvitation(code: string) {
   }
 
   // Mark invitation as used
-  const { error: updateInvError } = await supabase
+  const { error: updateInvError } = await admin
     .from("invitations")
     .update({ used_by: user.id })
     .eq("id", invitation.id);
@@ -162,7 +166,7 @@ export async function redeemInvitation(code: string) {
 
   // Update user's profile: set neighborhood and upgrade trust tier to 2
   const newTrustTier = Math.max(profile.trust_tier, 2);
-  const { data: updatedProfile, error: updateProfileError } = await supabase
+  const { data: updatedProfile, error: updateProfileError } = await admin
     .from("profiles")
     .update({
       neighborhood_id: invitation.neighborhood_id,

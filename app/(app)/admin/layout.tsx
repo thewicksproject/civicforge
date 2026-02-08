@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 export default async function AdminLayout({
   children,
@@ -13,7 +13,8 @@ export default async function AdminLayout({
 
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
+  const admin = createServiceClient();
+  const { data: profile } = await admin
     .from("profiles")
     .select("trust_tier")
     .eq("id", user.id)

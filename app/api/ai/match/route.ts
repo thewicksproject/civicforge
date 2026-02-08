@@ -59,8 +59,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Valid post ID required" }, { status: 400 });
   }
 
+  const admin = createServiceClient();
+
   // Fetch the post (only structured fields — NEVER raw user text in matching context)
-  const { data: post } = await supabase
+  const { data: post } = await admin
     .from("posts")
     .select("id, title, category, skills_relevant, urgency, available_times, neighborhood_id, author_id")
     .eq("id", postId)
@@ -71,7 +73,7 @@ export async function POST(request: Request) {
   }
 
   // Fetch candidate profiles from the same neighborhood (excluding post author)
-  const { data: profiles } = await supabase
+  const { data: profiles } = await admin
     .from("profiles")
     .select("id, display_name, skills, reputation_score")
     .eq("neighborhood_id", post.neighborhood_id)
@@ -102,9 +104,8 @@ export async function POST(request: Request) {
     );
 
     // Store matches for transparency (service role required by RLS policy)
-    const serviceClient = createServiceClient();
     for (const match of result.matches) {
-      await serviceClient.from("ai_matches").insert({
+      await admin.from("ai_matches").insert({
         post_id: postId,
         suggested_user_id: match.user_id,
         match_score: match.score,

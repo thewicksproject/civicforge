@@ -131,7 +131,8 @@ export async function getProfile(userId: string) {
     return { success: false as const, error: "Invalid user ID" };
   }
 
-  const { data: profile, error } = await supabase
+  const admin = createServiceClient();
+  const { data: profile, error } = await admin
     .from("profiles")
     .select(
       `
@@ -166,7 +167,8 @@ export async function getMyProfile() {
     return { success: false as const, error: "You must be logged in" };
   }
 
-  const { data: profile, error } = await supabase
+  const admin = createServiceClient();
+  const { data: profile, error } = await admin
     .from("profiles")
     .select(
       `

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { PostForm } from "@/components/post-form";
 
 export const metadata = { title: "Create Post" };
@@ -10,8 +10,10 @@ export default async function NewPostPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const admin = createServiceClient();
+
   // Check trust tier — only Tier 2+ can post
-  const { data: profile } = await supabase
+  const { data: profile } = await admin
     .from("profiles")
     .select("trust_tier, neighborhood_id")
     .eq("id", user!.id)

@@ -18,6 +18,7 @@ export async function middleware(request: NextRequest) {
     "img-src 'self' blob: data: *.supabase.co",
     "font-src 'self'",
     "connect-src 'self' *.supabase.co",
+    "object-src 'none'",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -34,7 +35,7 @@ export async function middleware(request: NextRequest) {
   );
   response.headers.set(
     "Strict-Transport-Security",
-    "max-age=63072000; includeSubDomains"
+    "max-age=63072000; includeSubDomains; preload"
   );
 
   // Detect Global Privacy Control signal

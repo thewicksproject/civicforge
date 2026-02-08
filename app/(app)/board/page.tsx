@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { PostCard } from "@/components/post-card";
-import type { TrustTier } from "@/lib/types";
+import { BoardContent } from "@/components/board-content";
+import { EmptyBoardIllustration } from "@/components/illustrations";
 
 export const metadata = { title: "Needs Board" };
 
@@ -79,52 +79,12 @@ export default async function BoardPage() {
         )}
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
-        {[
-          { label: "All", value: "all" },
-          { label: "Needs", value: "need" },
-          { label: "Offers", value: "offer" },
-        ].map((filter) => (
-          <button
-            key={filter.value}
-            className="rounded-full px-4 py-1.5 text-sm font-medium border border-border bg-card hover:bg-muted transition-colors whitespace-nowrap"
-          >
-            {filter.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Posts grid */}
+      {/* Filter tabs + Posts grid */}
       {posts && posts.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2">
-          {posts.map((post) => {
-            const author = Array.isArray(post.author)
-              ? post.author[0]
-              : post.author;
-            return (
-              <PostCard
-                key={post.id}
-                id={post.id}
-                type={post.type as "need" | "offer"}
-                title={post.title}
-                description={post.description}
-                category={post.category}
-                authorName={author?.display_name ?? "Anonymous"}
-                authorReputation={author?.reputation_score ?? 0}
-                authorTrustTier={(author?.trust_tier ?? 1) as TrustTier}
-                responseCount={post.responses?.length ?? 0}
-                photoCount={post.post_photos?.length ?? 0}
-                createdAt={post.created_at}
-                urgency={post.urgency as "low" | "medium" | "high" | null}
-                aiAssisted={post.ai_assisted}
-              />
-            );
-          })}
-        </div>
+        <BoardContent posts={posts} />
       ) : (
         <div className="text-center py-16 rounded-xl border border-dashed border-border">
-          <div className="text-4xl mb-3">🏘️</div>
+          <EmptyBoardIllustration className="h-32 w-auto mx-auto mb-3" />
           <h3 className="text-lg font-semibold mb-1">
             Your board is quiet — for now
           </h3>

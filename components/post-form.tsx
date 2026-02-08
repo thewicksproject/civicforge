@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { HandHelping, Handshake } from "lucide-react";
 import { createPost } from "@/app/actions/posts";
 import { POST_CATEGORIES } from "@/lib/types";
 import { PhotoUpload } from "./photo-upload";
@@ -49,7 +50,7 @@ export function PostForm() {
               className="peer sr-only"
             />
             <div className="rounded-lg border-2 border-border p-4 text-center transition-colors peer-checked:border-need peer-checked:bg-need-light">
-              <span className="text-2xl block mb-1">🙋</span>
+              <HandHelping className="h-6 w-6 mx-auto mb-1 text-need" />
               <span className="text-sm font-medium">I need help</span>
             </div>
           </label>
@@ -61,7 +62,7 @@ export function PostForm() {
               className="peer sr-only"
             />
             <div className="rounded-lg border-2 border-border p-4 text-center transition-colors peer-checked:border-offer peer-checked:bg-offer-light">
-              <span className="text-2xl block mb-1">🤝</span>
+              <Handshake className="h-6 w-6 mx-auto mb-1 text-offer" />
               <span className="text-sm font-medium">I can help</span>
             </div>
           </label>

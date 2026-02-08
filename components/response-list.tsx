@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { createResponse } from "@/app/actions/responses";
 import { formatRelativeTime } from "@/lib/utils";
+import { NoResponsesIllustration } from "./illustrations";
 import { ReputationBadge } from "./reputation-badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,9 +45,12 @@ export function ResponseList({
       </h3>
 
       {responses.length === 0 && (
-        <p className="text-sm text-muted-foreground py-4 text-center">
-          No responses yet. Be the first to help!
-        </p>
+        <div className="py-4 text-center">
+          <NoResponsesIllustration className="h-16 w-auto mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">
+            No responses yet. Be the first to help!
+          </p>
+        </div>
       )}
 
       {responses.map((response) => (

@@ -1,8 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { ChevronLeft, Clock, MapPin, TriangleAlert } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { cn, formatRelativeTime } from "@/lib/utils";
-import { TRUST_TIER_LABELS, type TrustTier } from "@/lib/types";
+import type { TrustTier } from "@/lib/types";
+import { CATEGORY_ICON_MAP } from "@/components/category-icons";
+import { TrustTierBadge } from "@/components/trust-tier-badge";
 import { ReputationBadge } from "@/components/reputation-badge";
 import { ResponseList } from "@/components/response-list";
 import { ThanksButton } from "@/components/thanks-button";
@@ -108,18 +111,7 @@ export default async function PostDetailPage({
         href="/board"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"
       >
-        <svg
-          className="h-4 w-4"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="m15 18-6-6 6-6" />
-        </svg>
+        <ChevronLeft className="h-4 w-4" />
         Back to Board
       </Link>
 
@@ -136,11 +128,13 @@ export default async function PostDetailPage({
           >
             {isNeed ? "Need" : "Offer"}
           </span>
-          <span className="text-xs text-muted-foreground capitalize">
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground capitalize">
+            {(() => { const Icon = CATEGORY_ICON_MAP[post.category]; return Icon ? <Icon className="h-3 w-3" /> : null; })()}
             {post.category.replace(/_/g, " ")}
           </span>
           {post.urgency === "high" && (
-            <span className="text-xs text-destructive font-medium">
+            <span className="inline-flex items-center gap-1 text-xs text-destructive font-medium">
+              <TriangleAlert className="h-3 w-3" />
               Urgent
             </span>
           )}
@@ -160,12 +154,12 @@ export default async function PostDetailPage({
           <div className="mt-4 flex flex-wrap gap-3 text-sm text-muted-foreground">
             {post.available_times && (
               <span className="inline-flex items-center gap-1.5 bg-muted rounded-lg px-3 py-1.5">
-                🕐 {post.available_times}
+                <Clock className="h-3.5 w-3.5" /> {post.available_times}
               </span>
             )}
             {post.location_hint && (
               <span className="inline-flex items-center gap-1.5 bg-muted rounded-lg px-3 py-1.5">
-                📍 {post.location_hint}
+                <MapPin className="h-3.5 w-3.5" /> {post.location_hint}
               </span>
             )}
           </div>
@@ -219,9 +213,7 @@ export default async function PostDetailPage({
               <span className="font-medium text-sm block">
                 {author?.display_name}
               </span>
-              <span className="text-xs text-muted-foreground">
-                {TRUST_TIER_LABELS[(author?.trust_tier ?? 1) as TrustTier]}
-              </span>
+              <TrustTierBadge tier={(author?.trust_tier ?? 1) as TrustTier} />
             </div>
           </Link>
           <div className="flex items-center gap-3">

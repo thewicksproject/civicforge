@@ -8,6 +8,9 @@ on:
       - v2/ship-it
       - "codex/**"
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -19,10 +22,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af  # v4.1.0
         with:
           node-version: 20
           cache: npm
@@ -35,3 +38,23 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  codeql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@33119e582d3ab4ed79c2610af108cb08ff983917  # v3
+        with:
+          languages: javascript-typescript
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@33119e582d3ab4ed79c2610af108cb08ff983917  # v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@33119e582d3ab4ed79c2610af108cb08ff983917  # v3

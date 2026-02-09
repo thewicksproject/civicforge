@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { GuildCard } from "@/components/guild-card";
 
@@ -10,12 +11,14 @@ export default async function GuildsPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) redirect("/login");
+
   const admin = createServiceClient();
 
   const { data: profile } = await admin
     .from("profiles")
     .select("neighborhood_id, renown_tier")
-    .eq("id", user!.id)
+    .eq("id", user.id)
     .single();
 
   if (!profile?.neighborhood_id) {
@@ -41,7 +44,7 @@ export default async function GuildsPage() {
   const { data: memberships } = await admin
     .from("guild_members")
     .select("guild_id")
-    .eq("user_id", user!.id);
+    .eq("user_id", user.id);
 
   const memberGuildIds = new Set((memberships ?? []).map((m) => m.guild_id));
   const canCreateGuild = (profile.renown_tier ?? 1) >= 3;

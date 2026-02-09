@@ -10,12 +10,14 @@ export default async function NewProposalPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) redirect("/login");
+
   const admin = createServiceClient();
 
   const { data: profile } = await admin
     .from("profiles")
     .select("neighborhood_id, renown_tier")
-    .eq("id", user!.id)
+    .eq("id", user.id)
     .single();
 
   if (!profile?.neighborhood_id) {

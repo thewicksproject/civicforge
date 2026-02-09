@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { BoardContent } from "@/components/board-content";
 import { QuestBoard } from "@/components/quest-board";
@@ -20,14 +21,16 @@ export default async function BoardPage({
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) redirect("/login");
+
   // Use service client to bypass self-referencing RLS policy on profiles
   const admin = createServiceClient();
 
   // Get user's profile to know their neighborhood
   const { data: profile } = await admin
     .from("profiles")
-    .select("neighborhood_id, trust_tier, renown_tier")
-    .eq("id", user!.id)
+    .select("neighborhood_id, renown_tier")
+    .eq("id", user.id)
     .single();
 
   if (!profile?.neighborhood_id) {
@@ -79,8 +82,8 @@ export default async function BoardPage({
     .order("created_at", { ascending: false })
     .limit(50);
 
-  const canPost = profile.trust_tier >= 2;
-  const canCreateQuest = profile.trust_tier >= 2;
+  const canPost = (profile.renown_tier ?? 1) >= 2;
+  const canCreateQuest = (profile.renown_tier ?? 1) >= 2;
 
   return (
     <div>

@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Users, Clock } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
@@ -36,7 +36,16 @@ export default async function GuildDetailPage({
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) redirect("/login");
+
   const admin = createServiceClient();
+
+  // C2: Neighborhood scoping
+  const { data: userProfile } = await admin
+    .from("profiles")
+    .select("neighborhood_id")
+    .eq("id", user.id)
+    .single();
 
   const { data: guild } = await admin
     .from("guilds")
@@ -52,6 +61,7 @@ export default async function GuildDetailPage({
     .single();
 
   if (!guild || !guild.active) notFound();
+  if (userProfile?.neighborhood_id !== guild.neighborhood_id) notFound();
 
   const members = (guild.guild_members ?? []) as Array<{
     id: string;
@@ -61,7 +71,7 @@ export default async function GuildDetailPage({
     member: { display_name: string; renown_tier: number } | null;
   }>;
 
-  const userMembership = members.find((m) => m.user_id === user?.id);
+  const userMembership = members.find((m) => m.user_id === user.id);
   const isMember = !!userMembership;
   const isSteward = userMembership?.role === "steward";
 

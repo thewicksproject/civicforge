@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { ProposalCard } from "@/components/proposal-card";
 
@@ -10,12 +11,14 @@ export default async function GovernancePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) redirect("/login");
+
   const admin = createServiceClient();
 
   const { data: profile } = await admin
     .from("profiles")
     .select("neighborhood_id, renown_tier")
-    .eq("id", user!.id)
+    .eq("id", user.id)
     .single();
 
   if (!profile?.neighborhood_id) {

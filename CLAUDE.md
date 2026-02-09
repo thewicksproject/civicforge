@@ -1,10 +1,12 @@
-# CLAUDE.md - CivicForge V2 Development Guide
+# CLAUDE.md - CivicForge Ascendant Development Guide
 
 Essential context for AI agents working on CivicForge.
 
 ## What is CivicForge?
 
-A neighborhood needs board where people post needs, offer help, get AI-matched, and build reputation. Think "HOA killer" — community coordination without the bureaucracy. A Wicks LLC project at `civicforge.org`.
+A neighborhood civic coordination system where people post needs, offer help, complete quests, develop skills, form guilds, and govern their community together. Inspired by LitRPG game mechanics translated to real civic coordination — but designed to distribute power, not concentrate it. A Wicks LLC project at `civicforge.org`.
+
+**Core Philosophy:** "People do not need to be managed into purpose; they need systems that make purposeful action legible, composable, and rewarding in ways that respect their autonomy."
 
 ## Tech Stack
 
@@ -13,7 +15,7 @@ A neighborhood needs board where people post needs, offer help, get AI-matched, 
 | Framework | Next.js 16 (App Router, Turbopack) |
 | Database + Auth | Supabase (PostgreSQL + Auth + Storage) |
 | ORM | Drizzle ORM |
-| AI | Vercel AI SDK 6 + Claude Sonnet |
+| AI | Vercel AI SDK 6 + Claude Sonnet (personal AI advocate architecture) |
 | Styling | Tailwind CSS v4 + shadcn/ui (OKLCH colors) |
 | Rate Limiting | Upstash Redis |
 | Images | Sharp (EXIF strip, resize, compress) |
@@ -47,17 +49,37 @@ app/
     neighborhood/[id]/members/     # Member list + admin controls
     neighborhood/[id]/invite/      # Generate invite codes
   actions/                         # Server Actions (all CRUD)
+    posts.ts, responses.ts, thanks.ts, profiles.ts, neighborhoods.ts
+    invitations.ts, membership.ts, flags.ts, admin.ts
+    quests.ts                      # Quest CRUD, XP awards, validation
+    skills.ts                      # Skill progress queries
+    guilds.ts                      # Guild CRUD, membership, steward mgmt
+    endorsements.ts                # Peer endorsements, renown
+    governance.ts                  # Proposals, quadratic voting, delegation
   api/ai/                          # AI route handlers (rate-limited)
+    extract/                       # Post extraction from text
+    match/                         # Profile matching for posts
+    quest-extract/                 # Natural language -> quest parameters
+    quest-match/                   # Match quests to user skills/availability
+    advocate/                      # Personal AI advocate chat
   api/auth/callback/               # OAuth callback
   api/privacy/                     # Data export + deletion
 components/                        # React components
 lib/
   supabase/ (client, server, middleware)
-  ai/ (client, schemas, sanitize, prompts)
-  db/schema.ts                     # Drizzle schema (14 tables)
+  ai/
+    client.ts                      # LLM calls: extractPost, findMatches, moderateContent,
+                                   #   extractQuest, matchQuests, advocateChat, analyzeProposal
+    schemas.ts                     # Zod schemas: post, match, moderation, quest, advocate, governance
+    sanitize.ts                    # Datamarking + XSS output sanitization
+    prompts.ts                     # System prompts with sandwich defense:
+                                   #   POST_EXTRACTION, MATCHING, MODERATION,
+                                   #   QUEST_EXTRACTION, QUEST_MATCHING, ADVOCATE, GOVERNANCE_ANALYSIS
+  db/schema.ts                     # Drizzle schema (25 tables)
   photos/process.ts                # Sharp image pipeline
   privacy/ (consent, deletion, export)
-  types.ts, utils.ts
+  types.ts                         # Constants, enums, Ascendant types
+  utils.ts                         # Helpers
 middleware.ts                      # Auth + CSP + GPC detection
 supabase/migrations/               # SQL migrations with RLS
 ```
@@ -65,7 +87,14 @@ supabase/migrations/               # SQL migrations with RLS
 ## Security Architecture (Non-Negotiable)
 
 ### AI Isolation Model
-User text and matching logic NEVER share an LLM context. Post creation uses datamarked input. Matching receives only structured output. Both use Zod-validated schemas.
+User text and matching logic NEVER share an LLM context. Post creation uses datamarked input. Matching receives only structured output. Both use Zod-validated schemas. Quest extraction and advocate chat also use datamarking.
+
+### Personal AI Advocate (Layer 3)
+The advocate serves the USER, not the system. It is architecturally separated from system AI.
+- NEVER shares user's private information without explicit permission
+- NEVER pressures participation or gaming
+- Detects coercion, power concentration, and exploitation
+- Frames contributions as human stories, not point accumulation
 
 ### Auth
 - Always `getUser()`, never `getSession()` for auth checks
@@ -90,29 +119,104 @@ User text and matching logic NEVER share an LLM context. Post creation uses data
 ## Design System
 
 Inherits Wicks DNA with CivicForge twist:
-- **Golden Hour** `#DEBA85` — warm accent, reputation badge
-- **Meadow** green — primary, offers
-- **Rose Clay** — needs
-- **Horizon** blue — events, civic features
+- **Golden Hour** `#DEBA85` — warm accent, reputation/Pillar badges
+- **Meadow** green — primary, offers, Green domain
+- **Rose Clay** — needs, Craft/Hearth domains
+- **Horizon** blue — events, Care/Signal domains, Keeper badges
 - Charter serif headings, system-ui body (17px, line-height 1.7)
 - Warm White / Cream backgrounds, OKLCH color space
 - Cards: cream bg, 12px radius, subtle lift on hover
 
-## Trust Tiers
+## Ascendant System Architecture
 
-| Tier | Name | Requirement | Can |
-|------|------|-------------|-----|
-| 1 | Neighbor | Email + signup | Browse, react, message |
-| 2 | Confirmed | Invite code OR admin approval | Post, respond, earn reputation |
-| 3 | Verified | Vouched by 2+ Tier 3 (future) | Moderate, approve members |
+### The Hearthboard (Quest Board)
+Community needs surfaced as structured quests with clear completion criteria.
+
+| Difficulty | Name | Validation | Base XP | Example |
+|------------|------|-----------|---------|---------|
+| 1 | Spark | Self-report | 5 | Pick up litter |
+| 2 | Ember | 1 peer confirms | 15 | Help move a couch |
+| 3 | Flame | Photo + peer | 35 | Repair a fence |
+| 4 | Blaze | Community vote (3+) | 75 | Organize block cleanup |
+| 5 | Inferno | Vote + evidence | 150 | Multi-week project |
+
+### The Forge (Skill Domains)
+Seven non-hierarchical domains — no single path is superior.
+
+| Domain | Color | Examples |
+|--------|-------|----------|
+| Craft | rose-clay | Home repair, woodworking, electrical |
+| Green | meadow | Gardening, composting, urban farming |
+| Care | horizon | Childcare, eldercare, tutoring |
+| Bridge | golden-hour | Transportation, moving, delivery |
+| Signal | horizon | Tech help, translation, teaching |
+| Hearth | rose-clay | Cooking, event hosting, gathering |
+| Weave | golden-hour | Coordination, governance, conflict resolution |
+
+XP progression is logarithmic (fast early momentum, mastery takes effort).
+Skill levels are **private by default** — the most important anti-Nosedive safeguard.
+
+### Renown Tiers (5-tier reputation)
+Reputation unlocks ACCESS, not PUNISHMENT. Never decremented by others.
+
+| Tier | Name | Requirement | Unlocks |
+|------|------|-------------|---------|
+| 1 | Newcomer | Sign up | Browse, post needs, respond |
+| 2 | Neighbor | Invitation + 1 quest | Post offers, create quests, join parties |
+| 3 | Pillar | 50+ Renown + vouched by 2 Pillars | Create guilds, moderate |
+| 4 | Keeper | 200+ Renown + 6 months + steward exp | Governance, propose rules |
+| 5 | Founder | 500+ Renown + cross-domain + mentoring | Cross-neighborhood coordination |
+
+### Guilds
+Persistent groups organized around skill domains:
+- Mandatory charters with sunset clauses (default 1 year)
+- Elected stewards (6-month terms, max 2 consecutive)
+- Liquid delegation for guild decisions
+- Domain-scoped only — no super-guilds
+
+### Governance
+- Quadratic voting for charter amendments
+- Liquid democracy for guild decisions
+- Approval voting for steward elections
+- All rules subject to sunset clauses
+
+### Privacy Tiers
+- Ghost: badge only
+- Quiet: tier + domain summary (DEFAULT)
+- Open: full profile
+- Mentor: full + availability
+
+## Anti-Dystopia Principles (Non-Negotiable)
+
+1. **No Coercion Test:** Every feature must pass: "Could someone who never joins live a full, comfortable life?"
+2. **Multidimensional reputation:** One score per domain, NOT a single public number
+3. **Access not punishment:** Renown unlocks capabilities; it is never decremented by others
+4. **No economic gatekeeping:** Never controls housing, employment, government services
+5. **No leaderboards:** No public rankings, no streaks, no loss aversion mechanics
+6. **Sunset clauses:** No permanent rules — everything expires and must be re-ratified
+7. **Federated:** Each neighborhood is sovereign; no central override
+8. **AI proposes, never decides:** System AI suggests; humans approve
+
+## Schneier's Design Axiom
+AI should DECENTRALIZE rather than concentrate power. The personal AI advocate (Layer 3) serves the user and is architecturally adversarial to the system AI (Layer 2) when needed.
+
+## Implementation Versions
+
+- **V2 (current):** Needs board + AI matching + trust tiers 1-3 + thanks + privacy
+- **V2.5 (in progress):** Quest layer + skill domains + AI advocate MVP + endorsements
+- **V3 (next):** Guilds + parties + full skill progression + AI advocate v2
+- **V4 (future):** Governance + quadratic voting + sunset clauses + Collective Constitutional AI
+- **V5 (future):** Federation + ZK proofs + multi-provider AI advocates
 
 ## Key Principles
 
-1. **Humans navigate, AI guides** — AI is invisible plumbing
-2. **Privacy by design** — EXIF stripped, no precise addresses, GPC honored
+1. **Humans navigate, AI advocates** — AI serves the user, not the platform
+2. **Privacy by design** — EXIF stripped, no precise addresses, GPC honored, skills private by default
 3. **Community ownership** — no ads, no data selling, ever
-4. **Progressive trust** — earn capabilities through action
+4. **Progressive trust** — earn capabilities through meaningful action
 5. **Ship minimal, iterate from real use** — avoid vision bloat
+6. **Narrative over numbers** — frame contributions as human stories, not scores
+7. **Distribute power** — every design choice must pass Schneier's test
 
 ## Environment Variables
 
@@ -126,13 +230,15 @@ UPSTASH_REDIS_REST_TOKEN=         # Rate limiting
 NEXT_PUBLIC_APP_URL=              # App URL (http://localhost:3000 for dev)
 ```
 
-## Not V2
+## Not Yet (Deferred)
 
-These are explicitly deferred. Build none of these until V2 ships:
-- Federated architecture / P2P / Community Hubs
-- W3C DIDs / self-sovereign identity
-- Local Controller / Remote Thinker split
-- Chat-first interface
+These are explicitly deferred:
+- Federated architecture / P2P / ActivityPub (V5)
+- ZK proofs / Semaphore (V5)
+- W3C DIDs / self-sovereign identity (V5)
+- Local/cloud hybrid AI inference split (V5)
+- Chat-first interface (V2.5 advocate is API-first)
 - Docker / self-hosting
 - Native mobile app
-- Tier 3 verification UI
+- Pol.is deliberation widget (V4)
+- Community currencies / time banking

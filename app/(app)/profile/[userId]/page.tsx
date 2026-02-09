@@ -1,8 +1,11 @@
 import { notFound } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { TRUST_TIER_LABELS, type TrustTier } from "@/lib/types";
+import { TRUST_TIER_LABELS, type TrustTier, type RenownTier } from "@/lib/types";
 import { ReputationBadge } from "@/components/reputation-badge";
+import { RenownTierBadge } from "@/components/trust-tier-badge";
 import { ThanksButton } from "@/components/thanks-button";
+import { SkillProgressCard } from "@/components/skill-progress-card";
+import { EndorsementSection } from "@/components/endorsement-section";
 
 export async function generateMetadata({
   params,
@@ -36,7 +39,7 @@ export default async function UserProfilePage({
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("id, display_name, bio, skills, reputation_score, trust_tier, created_at")
+    .select("id, display_name, bio, skills, reputation_score, trust_tier, renown_tier, privacy_tier, created_at")
     .eq("id", userId)
     .single();
 
@@ -52,6 +55,7 @@ export default async function UserProfilePage({
     .limit(5);
 
   const isOwnProfile = user?.id === userId;
+  const showSkills = isOwnProfile || profile.privacy_tier === "open" || profile.privacy_tier === "mentor";
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -65,7 +69,8 @@ export default async function UserProfilePage({
               <h1 className="text-xl font-semibold">
                 {profile.display_name}
               </h1>
-              <div className="flex items-center gap-3 mt-1">
+              <div className="flex items-center gap-3 mt-1 flex-wrap">
+                <RenownTierBadge tier={(profile.renown_tier ?? 1) as RenownTier} />
                 <span className="text-sm text-muted-foreground">
                   {
                     TRUST_TIER_LABELS[
@@ -102,6 +107,18 @@ export default async function UserProfilePage({
             <ThanksButton toUserId={profile.id} postId={null} />
           )}
         </div>
+      </div>
+
+      {/* Skill progress (respects privacy tier) */}
+      {showSkills && (
+        <div className="mb-6">
+          <SkillProgressCard userId={userId} />
+        </div>
+      )}
+
+      {/* Endorsements */}
+      <div className="mb-6">
+        <EndorsementSection userId={userId} isOwnProfile={isOwnProfile} />
       </div>
 
       {/* Recent posts */}

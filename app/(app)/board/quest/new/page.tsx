@@ -10,19 +10,21 @@ export default async function NewQuestPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) redirect("/login");
+
   const admin = createServiceClient();
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("trust_tier, neighborhood_id")
-    .eq("id", user!.id)
+    .select("renown_tier, neighborhood_id")
+    .eq("id", user.id)
     .single();
 
   if (!profile?.neighborhood_id) {
     redirect("/onboarding");
   }
 
-  if ((profile.trust_tier ?? 1) < 2) {
+  if ((profile.renown_tier ?? 1) < 2) {
     return (
       <div className="max-w-xl mx-auto text-center py-16">
         <h2 className="text-xl font-semibold mb-2">

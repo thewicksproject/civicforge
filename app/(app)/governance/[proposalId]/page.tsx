@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Clock } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
@@ -36,7 +36,16 @@ export default async function ProposalDetailPage({
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) redirect("/login");
+
   const admin = createServiceClient();
+
+  // C2: Neighborhood scoping
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("neighborhood_id, renown_tier")
+    .eq("id", user.id)
+    .single();
 
   const { data: proposal } = await admin
     .from("governance_proposals")
@@ -48,6 +57,7 @@ export default async function ProposalDetailPage({
     .single();
 
   if (!proposal) notFound();
+  if (profile?.neighborhood_id !== proposal.neighborhood_id) notFound();
 
   const author = Array.isArray(proposal.author) ? proposal.author[0] : proposal.author;
 
@@ -56,21 +66,14 @@ export default async function ProposalDetailPage({
     .from("governance_votes")
     .select("id")
     .eq("proposal_id", proposalId)
-    .eq("voter_id", user!.id)
+    .eq("voter_id", user.id)
     .single();
 
   const hasVoted = !!existingVote;
 
-  // Check user's renown tier
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("renown_tier")
-    .eq("id", user!.id)
-    .single();
-
   const canVote = (profile?.renown_tier ?? 1) >= 2;
   const totalVotes = proposal.votes_for + proposal.votes_against;
-  const forPercent = totalVotes > 0 ? (proposal.votes_for / totalVotes) * 100 : 50;
+  const forPercent = totalVotes > 0 ? (proposal.votes_for / totalVotes) * 100 : 0;
 
   const STATUS_STYLES: Record<string, string> = {
     draft: "bg-muted text-muted-foreground",

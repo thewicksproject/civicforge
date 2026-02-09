@@ -8,6 +8,22 @@ export function cn(...inputs: ClassValue[]) {
 export function formatRelativeTime(date: Date): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
+
+  // Future dates
+  if (diffMs < 0) {
+    const absDiffMs = Math.abs(diffMs);
+    const futureMins = Math.floor(absDiffMs / 60_000);
+    const futureHours = Math.floor(absDiffMs / 3_600_000);
+    const futureDays = Math.floor(absDiffMs / 86_400_000);
+
+    if (futureMins < 1) return "soon";
+    if (futureMins < 60) return `in ${futureMins}m`;
+    if (futureHours < 24) return `in ${futureHours}h`;
+    if (futureDays < 7) return `in ${futureDays}d`;
+    return date.toLocaleDateString();
+  }
+
+  // Past dates
   const diffMins = Math.floor(diffMs / 60_000);
   const diffHours = Math.floor(diffMs / 3_600_000);
   const diffDays = Math.floor(diffMs / 86_400_000);

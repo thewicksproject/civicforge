@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { TRUST_TIER_LABELS, type TrustTier, type RenownTier } from "@/lib/types";
 import { ReputationBadge } from "@/components/reputation-badge";
@@ -13,19 +14,21 @@ export default async function ProfilePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) redirect("/login");
+
   const admin = createServiceClient();
 
   const { data: profile } = await admin
     .from("profiles")
     .select("*")
-    .eq("id", user!.id)
+    .eq("id", user.id)
     .single();
 
   // Get thanks received
   const { data: thanksReceived } = await admin
     .from("thanks")
     .select("id, message, from_user, post_id, created_at, sender:profiles!from_user(display_name)")
-    .eq("to_user", user!.id)
+    .eq("to_user", user.id)
     .order("created_at", { ascending: false })
     .limit(10);
 
@@ -33,7 +36,7 @@ export default async function ProfilePage() {
   const { data: posts } = await admin
     .from("posts")
     .select("id, title, type, status, created_at, responses(id)")
-    .eq("author_id", user!.id)
+    .eq("author_id", user.id)
     .order("created_at", { ascending: false })
     .limit(10);
 
@@ -41,7 +44,7 @@ export default async function ProfilePage() {
   const { count: endorsementCount } = await admin
     .from("endorsements")
     .select("id", { count: "exact", head: true })
-    .eq("to_user", user!.id);
+    .eq("to_user", user.id);
 
   if (!profile) {
     return (

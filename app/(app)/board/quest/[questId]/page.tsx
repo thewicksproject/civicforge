@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Zap, Users, Clock, CheckCircle } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
@@ -36,7 +36,16 @@ export default async function QuestDetailPage({
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) redirect("/login");
+
   const admin = createServiceClient();
+
+  // C2: Neighborhood scoping — verify user belongs to quest's neighborhood
+  const { data: userProfile } = await admin
+    .from("profiles")
+    .select("neighborhood_id")
+    .eq("id", user.id)
+    .single();
 
   const { data: quest } = await admin
     .from("quests")
@@ -51,8 +60,10 @@ export default async function QuestDetailPage({
 
   if (!quest) notFound();
 
+  if (userProfile?.neighborhood_id !== quest.neighborhood_id) notFound();
+
   const author = Array.isArray(quest.author) ? quest.author[0] : quest.author;
-  const isAuthor = user?.id === author?.id;
+  const isAuthor = user.id === author?.id;
   const diffConfig = QUEST_DIFFICULTY_TIERS[quest.difficulty as QuestDifficulty];
 
   // Check if user has already validated
@@ -64,7 +75,30 @@ export default async function QuestDetailPage({
     created_at: string;
     validator: { display_name: string } | null;
   }>;
-  const hasValidated = validations.some((v) => v.validator_id === user?.id);
+  const hasValidated = validations.some((v) => v.validator_id === user.id);
+
+  // Determine if user is a claimer (party member or solo claimer)
+  let isClaimer = false;
+  if (quest.max_party_size > 1) {
+    const { data: party } = await admin
+      .from("parties")
+      .select("id")
+      .eq("quest_id", questId)
+      .limit(1)
+      .single();
+    if (party) {
+      const { data: membership } = await admin
+        .from("party_members")
+        .select("id")
+        .eq("party_id", party.id)
+        .eq("user_id", user.id)
+        .single();
+      isClaimer = !!membership;
+    }
+  } else {
+    // Solo quest: claimer is whoever moved it to in_progress (not the author)
+    isClaimer = !isAuthor && (quest.status === "in_progress" || quest.status === "claimed" || quest.status === "pending_validation" || quest.status === "completed");
+  }
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -160,6 +194,7 @@ export default async function QuestDetailPage({
         questId={quest.id}
         questStatus={quest.status}
         isAuthor={isAuthor}
+        isClaimer={isClaimer}
         hasValidated={hasValidated}
         validationMethod={quest.validation_method}
         validationCount={quest.validation_count}

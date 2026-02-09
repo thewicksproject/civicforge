@@ -46,6 +46,41 @@ export async function createEndorsement(data: {
 
   const admin = createServiceClient();
 
+  // W1: Neighborhood scoping — both users must be in same neighborhood
+  const { data: fromProfile } = await admin
+    .from("profiles")
+    .select("neighborhood_id")
+    .eq("id", user.id)
+    .single();
+
+  const { data: toProfile } = await admin
+    .from("profiles")
+    .select("neighborhood_id")
+    .eq("id", parsed.data.to_user)
+    .single();
+
+  if (!fromProfile?.neighborhood_id || !toProfile?.neighborhood_id) {
+    return { success: false as const, error: "Profile not found" };
+  }
+
+  if (fromProfile.neighborhood_id !== toProfile.neighborhood_id) {
+    return { success: false as const, error: "Cannot endorse someone in a different neighborhood" };
+  }
+
+  // W7: Check for duplicate endorsement before insert
+  const { data: existingEndorsement } = await admin
+    .from("endorsements")
+    .select("id")
+    .eq("from_user", user.id)
+    .eq("to_user", parsed.data.to_user)
+    .eq("domain", parsed.data.domain)
+    .limit(1)
+    .single();
+
+  if (existingEndorsement) {
+    return { success: false as const, error: "You already endorsed this person in this domain" };
+  }
+
   const { error } = await admin.from("endorsements").insert({
     from_user: user.id,
     to_user: parsed.data.to_user,
@@ -56,6 +91,10 @@ export async function createEndorsement(data: {
   });
 
   if (error) {
+    // W7: Handle unique constraint from DB as fallback
+    if (error.code === "23505") {
+      return { success: false as const, error: "You already endorsed this person in this domain" };
+    }
     return { success: false as const, error: "Failed to create endorsement" };
   }
 

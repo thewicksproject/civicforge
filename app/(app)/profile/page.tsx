@@ -1,6 +1,9 @@
+import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { TRUST_TIER_LABELS, type TrustTier } from "@/lib/types";
+import { TRUST_TIER_LABELS, type TrustTier, type RenownTier } from "@/lib/types";
 import { ReputationBadge } from "@/components/reputation-badge";
+import { RenownTierBadge } from "@/components/trust-tier-badge";
+import { SkillProgressCard } from "@/components/skill-progress-card";
 import Link from "next/link";
 
 export const metadata = { title: "My Profile" };
@@ -11,19 +14,21 @@ export default async function ProfilePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) redirect("/login");
+
   const admin = createServiceClient();
 
   const { data: profile } = await admin
     .from("profiles")
     .select("*")
-    .eq("id", user!.id)
+    .eq("id", user.id)
     .single();
 
   // Get thanks received
   const { data: thanksReceived } = await admin
     .from("thanks")
     .select("id, message, from_user, post_id, created_at, sender:profiles!from_user(display_name)")
-    .eq("to_user", user!.id)
+    .eq("to_user", user.id)
     .order("created_at", { ascending: false })
     .limit(10);
 
@@ -31,9 +36,15 @@ export default async function ProfilePage() {
   const { data: posts } = await admin
     .from("posts")
     .select("id, title, type, status, created_at, responses(id)")
-    .eq("author_id", user!.id)
+    .eq("author_id", user.id)
     .order("created_at", { ascending: false })
     .limit(10);
+
+  // Get endorsements received count
+  const { count: endorsementCount } = await admin
+    .from("endorsements")
+    .select("id", { count: "exact", head: true })
+    .eq("to_user", user.id);
 
   if (!profile) {
     return (
@@ -61,8 +72,9 @@ export default async function ProfilePage() {
           </div>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-semibold">{profile.display_name}</h1>
-            <div className="flex items-center gap-3 mt-1">
-              <span className="text-sm text-muted-foreground">
+            <div className="flex items-center gap-3 mt-1 flex-wrap">
+              <RenownTierBadge tier={(profile.renown_tier ?? 1) as RenownTier} />
+              <span className="text-xs text-muted-foreground">
                 {TRUST_TIER_LABELS[(profile.trust_tier ?? 1) as TrustTier]}
               </span>
               <ReputationBadge
@@ -70,6 +82,11 @@ export default async function ProfilePage() {
                 size="md"
                 showLabel
               />
+              {(endorsementCount ?? 0) > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  {endorsementCount} endorsement{endorsementCount === 1 ? "" : "s"}
+                </span>
+              )}
             </div>
             {profile.bio && (
               <p className="text-sm text-muted-foreground mt-2">
@@ -100,6 +117,11 @@ export default async function ProfilePage() {
         >
           Edit Profile & Settings
         </Link>
+      </div>
+
+      {/* Skill Progress */}
+      <div className="mb-6">
+        <SkillProgressCard />
       </div>
 
       {/* Posts */}

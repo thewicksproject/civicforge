@@ -4,12 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useTheme } from "next-themes";
-import { LayoutGrid, CirclePlus, CircleUser, Settings, ShieldCheck, Sun, Moon } from "lucide-react";
+import { LayoutGrid, CirclePlus, CircleUser, Settings, ShieldCheck, Sun, Moon, Shield, Vote } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/board", label: "Board", icon: LayoutGrid },
+  { href: "/guilds", label: "Guilds", icon: Shield },
   { href: "/post/new", label: "Post", icon: CirclePlus },
   { href: "/profile", label: "Profile", icon: CircleUser },
   { href: "/settings/privacy", label: "Settings", icon: Settings },
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
 export function Nav() {
   const pathname = usePathname();
   const [trustTier, setTrustTier] = useState<number>(1);
+  const [renownTier, setRenownTier] = useState<number>(1);
   const { theme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(
     () => () => {},
@@ -34,17 +36,24 @@ export function Nav() {
       if (!user) return;
       const { data } = await supabase
         .from("profiles")
-        .select("trust_tier")
+        .select("trust_tier, renown_tier")
         .eq("id", user.id)
         .single();
-      if (data) setTrustTier(data.trust_tier);
+      if (data) {
+        setTrustTier(data.trust_tier);
+        setRenownTier(data.renown_tier ?? 1);
+      }
     }
     loadTier();
   }, []);
 
-  const items = trustTier >= 3
-    ? [...NAV_ITEMS, { href: "/admin/review", label: "Admin", icon: ShieldCheck }]
-    : NAV_ITEMS;
+  let items = [...NAV_ITEMS];
+  if (renownTier >= 4) {
+    items = [...items, { href: "/governance", label: "Govern", icon: Vote }];
+  }
+  if (trustTier >= 3) {
+    items = [...items, { href: "/admin/review", label: "Admin", icon: ShieldCheck }];
+  }
 
   return (
     <>

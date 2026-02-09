@@ -1,8 +1,12 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { TRUST_TIER_LABELS, type TrustTier } from "@/lib/types";
+import { TRUST_TIER_LABELS, type TrustTier, type RenownTier } from "@/lib/types";
 import { ReputationBadge } from "@/components/reputation-badge";
+import { RenownTierBadge } from "@/components/trust-tier-badge";
 import { ThanksButton } from "@/components/thanks-button";
+import { SkillProgressCard } from "@/components/skill-progress-card";
+import { EndorsementSection } from "@/components/endorsement-section";
+import { getSkillSummary } from "@/app/actions/skills";
 
 export async function generateMetadata({
   params,
@@ -32,15 +36,33 @@ export default async function UserProfilePage({
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) redirect("/login");
+
   const admin = createServiceClient();
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("id, display_name, bio, skills, reputation_score, trust_tier, created_at")
+    .select("id, display_name, bio, skills, reputation_score, trust_tier, renown_tier, privacy_tier, created_at")
     .eq("id", userId)
     .single();
 
   if (!profile) notFound();
+
+  const isOwnProfile = user.id === userId;
+  const privacyTier = profile.privacy_tier ?? "quiet";
+
+  // C3: Privacy tier enforcement
+  const showBio = isOwnProfile || privacyTier === "open" || privacyTier === "mentor";
+  const showSkills = isOwnProfile || privacyTier === "open" || privacyTier === "mentor";
+  const showDomainSummary = isOwnProfile || privacyTier !== "ghost";
+  const showEndorsements = isOwnProfile || privacyTier === "open" || privacyTier === "mentor";
+
+  // Get domain summary for quiet tier (no detailed skills, just domains)
+  let domainSummary: { domain: string; level: number }[] = [];
+  if (showDomainSummary && !showSkills && !isOwnProfile) {
+    const summary = await getSkillSummary(userId);
+    domainSummary = summary.domains;
+  }
 
   // Get their recent posts (public)
   const { data: posts } = await admin
@@ -50,8 +72,6 @@ export default async function UserProfilePage({
     .eq("hidden", false)
     .order("created_at", { ascending: false })
     .limit(5);
-
-  const isOwnProfile = user?.id === userId;
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -65,26 +85,39 @@ export default async function UserProfilePage({
               <h1 className="text-xl font-semibold">
                 {profile.display_name}
               </h1>
-              <div className="flex items-center gap-3 mt-1">
-                <span className="text-sm text-muted-foreground">
-                  {
-                    TRUST_TIER_LABELS[
-                      (profile.trust_tier ?? 1) as TrustTier
-                    ]
-                  }
-                </span>
-                <ReputationBadge
-                  score={profile.reputation_score ?? 0}
-                  size="md"
-                  showLabel
-                />
+              <div className="flex items-center gap-3 mt-1 flex-wrap">
+                <RenownTierBadge tier={(profile.renown_tier ?? 1) as RenownTier} />
+                {showBio && (
+                  <span className="text-sm text-muted-foreground">
+                    {TRUST_TIER_LABELS[(profile.trust_tier ?? 1) as TrustTier]}
+                  </span>
+                )}
+                {showBio && (
+                  <ReputationBadge
+                    score={profile.reputation_score ?? 0}
+                    size="md"
+                    showLabel
+                  />
+                )}
               </div>
-              {profile.bio && (
+              {/* Ghost tier: privacy message */}
+              {!isOwnProfile && privacyTier === "ghost" && (
+                <p className="text-sm text-muted-foreground mt-2 italic">
+                  This member prefers privacy
+                </p>
+              )}
+              {/* Quiet tier: domain summary only */}
+              {!isOwnProfile && privacyTier === "quiet" && domainSummary.length > 0 && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Active in {domainSummary.map((d) => d.domain).join(", ")} domains
+                </p>
+              )}
+              {showBio && profile.bio && (
                 <p className="text-sm text-muted-foreground mt-2">
                   {profile.bio}
                 </p>
               )}
-              {profile.skills && profile.skills.length > 0 && (
+              {showBio && profile.skills && profile.skills.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-3">
                   {profile.skills.map((skill: string) => (
                     <span
@@ -103,6 +136,20 @@ export default async function UserProfilePage({
           )}
         </div>
       </div>
+
+      {/* Skill progress (respects privacy tier) */}
+      {showSkills && (
+        <div className="mb-6">
+          <SkillProgressCard userId={userId} />
+        </div>
+      )}
+
+      {/* Endorsements (respects privacy tier) */}
+      {showEndorsements && (
+        <div className="mb-6">
+          <EndorsementSection userId={userId} isOwnProfile={isOwnProfile} />
+        </div>
+      )}
 
       {/* Recent posts */}
       {posts && posts.length > 0 && (

@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { TRUST_TIER_LABELS, type TrustTier, type RenownTier, type SkillDomain } from "@/lib/types";
+import { TRUST_TIER_LABELS, type TrustTier, type RenownTier } from "@/lib/types";
 import { ReputationBadge } from "@/components/reputation-badge";
 import { RenownTierBadge } from "@/components/trust-tier-badge";
 import { ThanksButton } from "@/components/thanks-button";

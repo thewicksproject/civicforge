@@ -3,9 +3,9 @@ import Link from "next/link";
 import { ChevronLeft, Clock, MapPin, TriangleAlert } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { cn, formatRelativeTime } from "@/lib/utils";
-import type { TrustTier } from "@/lib/types";
+import type { RenownLegacyTier } from "@/lib/types";
 import { CATEGORY_ICON_MAP } from "@/components/category-icons";
-import { TrustTierBadge } from "@/components/trust-tier-badge";
+import { RenownLegacyTierBadge } from "@/components/trust-tier-badge";
 import { ReputationBadge } from "@/components/reputation-badge";
 import { ResponseList } from "@/components/response-list";
 import { ThanksButton } from "@/components/thanks-button";
@@ -50,7 +50,7 @@ export default async function PostDetailPage({
     .select(
       `
       *,
-      author:profiles!author_id (id, display_name, reputation_score, trust_tier, bio, skills),
+      author:profiles!author_id (id, display_name, reputation_score, renown_tier, bio, skills),
       post_photos (id, url, thumbnail_url),
       responses (
         id, message, status, created_at,
@@ -95,14 +95,14 @@ export default async function PostDetailPage({
       r.responder && r.responder.id === user?.id
   );
 
-  // Get user's trust tier for permission checks
+  // Get user's renown tier for permission checks
   const { data: profile } = await admin
     .from("profiles")
-    .select("trust_tier")
+    .select("renown_tier")
     .eq("id", user!.id)
     .single();
 
-  const canRespond = (profile?.trust_tier ?? 1) >= 2;
+  const canRespond = (profile?.renown_tier ?? 1) >= 2;
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -213,7 +213,7 @@ export default async function PostDetailPage({
               <span className="font-medium text-sm block">
                 {author?.display_name}
               </span>
-              <TrustTierBadge tier={(author?.trust_tier ?? 1) as TrustTier} />
+              <RenownLegacyTierBadge tier={(author?.renown_tier ?? 1) as RenownLegacyTier} />
             </div>
           </Link>
           <div className="flex items-center gap-3">

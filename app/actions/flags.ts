@@ -99,11 +99,11 @@ export async function unflagPost(postId: string) {
   // Verify Tier 3
   const { data: profile } = await admin
     .from("profiles")
-    .select("trust_tier")
+    .select("renown_tier")
     .eq("id", user.id)
     .single();
 
-  if (!profile || profile.trust_tier < 3) {
+  if (!profile || profile.renown_tier < 3) {
     return { success: false as const, error: "Only verified members can unflag posts" };
   }
 

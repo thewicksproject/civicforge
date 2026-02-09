@@ -13,10 +13,10 @@ export default async function NewPostPage() {
 
   const admin = createServiceClient();
 
-  // Check trust tier — only Tier 2+ can post
+  // Check renown tier — only Tier 2+ can post
   const { data: profile } = await admin
     .from("profiles")
-    .select("trust_tier, neighborhood_id")
+    .select("renown_tier, neighborhood_id")
     .eq("id", user!.id)
     .single();
 
@@ -24,7 +24,7 @@ export default async function NewPostPage() {
     redirect("/onboarding");
   }
 
-  if ((profile.trust_tier ?? 1) < 2) {
+  if ((profile.renown_tier ?? 1) < 2) {
     return (
       <div className="max-w-xl mx-auto text-center py-16">
         <PostingLockedIllustration className="h-28 w-auto mx-auto mb-3" />

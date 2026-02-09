@@ -144,7 +144,7 @@ export async function reviewMembership(
   // Verify reviewer is Tier 2+ in the same neighborhood
   const { data: reviewerProfile, error: reviewerError } = await admin
     .from("profiles")
-    .select("trust_tier, neighborhood_id")
+    .select("renown_tier, neighborhood_id")
     .eq("id", user.id)
     .single();
 
@@ -152,7 +152,7 @@ export async function reviewMembership(
     return { success: false as const, error: "Reviewer profile not found" };
   }
 
-  if (reviewerProfile.trust_tier < 2) {
+  if (reviewerProfile.renown_tier < 2) {
     return {
       success: false as const,
       error: "You must be Tier 2 or higher to review membership requests",
@@ -191,7 +191,7 @@ export async function reviewMembership(
       .from("profiles")
       .update({
         neighborhood_id: request.neighborhood_id,
-        trust_tier: 2,
+        renown_tier: 2,
         updated_at: new Date().toISOString(),
       })
       .eq("id", request.user_id);

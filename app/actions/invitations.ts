@@ -24,7 +24,7 @@ export async function createInvitation(neighborhoodId: string) {
   // Verify user is Tier 2+ and belongs to this neighborhood
   const { data: profile, error: profileError } = await admin
     .from("profiles")
-    .select("trust_tier, neighborhood_id")
+    .select("renown_tier, neighborhood_id")
     .eq("id", user.id)
     .single();
 
@@ -32,7 +32,7 @@ export async function createInvitation(neighborhoodId: string) {
     return { success: false as const, error: "Profile not found" };
   }
 
-  if (profile.trust_tier < 2) {
+  if (profile.renown_tier < 2) {
     return {
       success: false as const,
       error: "You must be Tier 2 or higher to create invitations",
@@ -139,7 +139,7 @@ export async function redeemInvitation(code: string) {
   // Check if user already belongs to a neighborhood
   const { data: profile, error: profileError } = await admin
     .from("profiles")
-    .select("neighborhood_id, trust_tier")
+    .select("neighborhood_id, renown_tier")
     .eq("id", user.id)
     .single();
 
@@ -164,13 +164,13 @@ export async function redeemInvitation(code: string) {
     return { success: false as const, error: "Failed to redeem invitation" };
   }
 
-  // Update user's profile: set neighborhood and upgrade trust tier to 2
-  const newTrustTier = Math.max(profile.trust_tier, 2);
+  // Update user's profile: set neighborhood and upgrade renown tier to 2
+  const newRenownTier = Math.max(profile.renown_tier, 2);
   const { data: updatedProfile, error: updateProfileError } = await admin
     .from("profiles")
     .update({
       neighborhood_id: invitation.neighborhood_id,
-      trust_tier: newTrustTier,
+      renown_tier: newRenownTier,
       updated_at: new Date().toISOString(),
     })
     .eq("id", user.id)

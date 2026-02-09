@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { PostCard } from "@/components/post-card";
-import type { TrustTier } from "@/lib/types";
+import type { RenownLegacyTier } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type PostType = "need" | "offer";
@@ -17,7 +17,7 @@ interface BoardPost {
   urgency: string | null;
   created_at: string;
   ai_assisted: boolean;
-  author: { display_name: string; reputation_score: number; trust_tier: number }[] | { display_name: string; reputation_score: number; trust_tier: number } | null;
+  author: { display_name: string; reputation_score: number; renown_tier: number }[] | { display_name: string; reputation_score: number; renown_tier: number } | null;
   post_photos: { id: string }[];
   responses: { id: string }[];
 }
@@ -72,7 +72,7 @@ export function BoardContent({ posts }: { posts: BoardPost[] }) {
                 category={post.category}
                 authorName={author?.display_name ?? "Anonymous"}
                 authorReputation={author?.reputation_score ?? 0}
-                authorTrustTier={(author?.trust_tier ?? 1) as TrustTier}
+                authorRenownTier={(author?.renown_tier ?? 1) as RenownLegacyTier}
                 responseCount={post.responses?.length ?? 0}
                 photoCount={post.post_photos?.length ?? 0}
                 createdAt={post.created_at}

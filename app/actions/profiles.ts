@@ -141,7 +141,7 @@ export async function getProfile(userId: string) {
       bio,
       skills,
       reputation_score,
-      trust_tier,
+      renown_tier,
       avatar_url,
       neighborhood_id,
       created_at

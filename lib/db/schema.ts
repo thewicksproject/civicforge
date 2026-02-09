@@ -169,11 +169,10 @@ export const profiles = pgTable(
     bio: text("bio"),
     skills: text("skills").array().notNull().default([]),
     reputationScore: integer("reputation_score").notNull().default(0),
-    trustTier: integer("trust_tier").notNull().default(1),
+    renownTier: integer("renown_tier").notNull().default(1),
     phoneVerified: boolean("phone_verified").notNull().default(false),
     avatarUrl: text("avatar_url"),
     // Ascendant fields
-    renownTier: integer("renown_tier").notNull().default(1),
     renownScore: integer("renown_score").notNull().default(0),
     privacyTier: privacyTierEnum("privacy_tier").notNull().default("quiet"),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -186,7 +185,6 @@ export const profiles = pgTable(
   },
   (table) => [
     index("profiles_neighborhood_idx").on(table.neighborhoodId),
-    index("profiles_trust_tier_idx").on(table.trustTier),
     index("profiles_renown_tier_idx").on(table.renownTier),
   ],
 );

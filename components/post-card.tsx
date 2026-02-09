@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { Image as ImageIcon, TriangleAlert } from "lucide-react";
 import { cn, formatRelativeTime, truncate } from "@/lib/utils";
-import type { TrustTier } from "@/lib/types";
+import type { RenownLegacyTier } from "@/lib/types";
 import { CATEGORY_ICON_MAP } from "./category-icons";
-import { TrustTierBadge } from "./trust-tier-badge";
+import { RenownLegacyTierBadge } from "./trust-tier-badge";
 import { ReputationBadge } from "./reputation-badge";
 import { AiBadge } from "./ai-badge";
 
@@ -15,7 +15,7 @@ interface PostCardProps {
   category: string;
   authorName: string;
   authorReputation: number;
-  authorTrustTier: TrustTier;
+  authorRenownTier: RenownLegacyTier;
   responseCount: number;
   photoCount: number;
   createdAt: string;
@@ -31,7 +31,7 @@ export function PostCard({
   category,
   authorName,
   authorReputation,
-  authorTrustTier,
+  authorRenownTier,
   responseCount,
   photoCount,
   createdAt,
@@ -107,7 +107,7 @@ export function PostCard({
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span className="font-medium text-foreground">{authorName}</span>
-          <TrustTierBadge tier={authorTrustTier} />
+          <RenownLegacyTierBadge tier={authorRenownTier} />
           <ReputationBadge score={authorReputation} size="sm" />
         </div>
         <span className="text-xs text-muted-foreground">{formatRelativeTime(new Date(createdAt))}</span>

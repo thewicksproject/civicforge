@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { TRUST_TIER_LABELS, type TrustTier, type RenownTier } from "@/lib/types";
+import { RENOWN_TIER_LABELS, type RenownLegacyTier, type RenownTier } from "@/lib/types";
 import { ReputationBadge } from "@/components/reputation-badge";
 import { RenownTierBadge } from "@/components/trust-tier-badge";
 import { ThanksButton } from "@/components/thanks-button";
@@ -42,7 +42,7 @@ export default async function UserProfilePage({
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("id, display_name, bio, skills, reputation_score, trust_tier, renown_tier, privacy_tier, created_at")
+    .select("id, display_name, bio, skills, reputation_score, renown_tier, privacy_tier, created_at")
     .eq("id", userId)
     .single();
 
@@ -89,7 +89,7 @@ export default async function UserProfilePage({
                 <RenownTierBadge tier={(profile.renown_tier ?? 1) as RenownTier} />
                 {showBio && (
                   <span className="text-sm text-muted-foreground">
-                    {TRUST_TIER_LABELS[(profile.trust_tier ?? 1) as TrustTier]}
+                    {RENOWN_TIER_LABELS[(profile.renown_tier ?? 1) as RenownLegacyTier]}
                   </span>
                 )}
                 {showBio && (

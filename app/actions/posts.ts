@@ -56,10 +56,10 @@ export async function createPost(formData: FormData) {
   // (user already verified via getUser above)
   const admin = createServiceClient();
 
-  // Check trust tier
+  // Check renown tier
   const { data: profile, error: profileError } = await admin
     .from("profiles")
-    .select("trust_tier, neighborhood_id")
+    .select("renown_tier, neighborhood_id")
     .eq("id", user.id)
     .single();
 
@@ -67,7 +67,7 @@ export async function createPost(formData: FormData) {
     return { success: false as const, error: "Profile not found" };
   }
 
-  if (profile.trust_tier < 2) {
+  if (profile.renown_tier < 2) {
     return {
       success: false as const,
       error: "You must be Tier 2 or higher to create posts",
@@ -378,7 +378,7 @@ export async function getNeighborhoodPosts(neighborhoodId: string) {
         id,
         display_name,
         avatar_url,
-        trust_tier,
+        renown_tier,
         reputation_score
       )
     `

@@ -16,11 +16,11 @@ async function requireTier3() {
   const admin = createServiceClient();
   const { data: profile } = await admin
     .from("profiles")
-    .select("trust_tier")
+    .select("renown_tier")
     .eq("id", user.id)
     .single();
 
-  if (!profile || profile.trust_tier < 3) {
+  if (!profile || profile.renown_tier < 3) {
     return { admin: null, userId: null, error: "Admin access required" };
   }
 

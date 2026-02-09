@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { TRUST_TIER_LABELS, type TrustTier, type RenownTier } from "@/lib/types";
+import { RENOWN_TIER_LABELS, type RenownLegacyTier, type RenownTier } from "@/lib/types";
 import { ReputationBadge } from "@/components/reputation-badge";
 import { RenownTierBadge } from "@/components/trust-tier-badge";
 import { SkillProgressCard } from "@/components/skill-progress-card";
@@ -75,7 +75,7 @@ export default async function ProfilePage() {
             <div className="flex items-center gap-3 mt-1 flex-wrap">
               <RenownTierBadge tier={(profile.renown_tier ?? 1) as RenownTier} />
               <span className="text-xs text-muted-foreground">
-                {TRUST_TIER_LABELS[(profile.trust_tier ?? 1) as TrustTier]}
+                {RENOWN_TIER_LABELS[(profile.renown_tier ?? 1) as RenownLegacyTier]}
               </span>
               <ReputationBadge
                 score={profile.reputation_score ?? 0}

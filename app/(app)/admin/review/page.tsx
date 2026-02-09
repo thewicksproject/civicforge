@@ -13,7 +13,7 @@ export default async function AdminReviewPage() {
     .select(
       `
       id, type, title, description, category, review_status, created_at,
-      author:profiles!author_id (id, display_name, trust_tier, reputation_score)
+      author:profiles!author_id (id, display_name, renown_tier, reputation_score)
     `
     )
     .eq("review_status", "pending_review")
@@ -25,7 +25,7 @@ export default async function AdminReviewPage() {
     .select(
       `
       id, type, title, description, flag_count, hidden, created_at,
-      author:profiles!author_id (id, display_name, trust_tier)
+      author:profiles!author_id (id, display_name, renown_tier)
     `
     )
     .gt("flag_count", 0)
@@ -71,7 +71,7 @@ export default async function AdminReviewPage() {
                       </p>
                       <p className="text-xs text-muted-foreground mt-2">
                         By {author?.display_name ?? "Unknown"} (Tier{" "}
-                        {author?.trust_tier ?? 1})
+                        {author?.renown_tier ?? 1})
                       </p>
                     </div>
                     <ReviewActions postId={post.id} type="review" />

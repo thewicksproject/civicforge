@@ -16,9 +16,9 @@ VALUES (
   '00000000-0000-0000-0000-000000000010'
 ) ON CONFLICT (id) DO NOTHING;
 
--- Users (5 test users at various trust tiers)
+-- Users (5 test users at various renown tiers)
 -- User 1: Maria Santos — Tier 3 admin (neighborhood creator)
-INSERT INTO profiles (id, display_name, neighborhood_id, bio, skills, reputation_score, trust_tier, phone_verified)
+INSERT INTO profiles (id, display_name, neighborhood_id, bio, skills, reputation_score, renown_tier, phone_verified)
 VALUES (
   '00000000-0000-0000-0000-000000000010',
   'Maria Santos',
@@ -31,7 +31,7 @@ VALUES (
 ) ON CONFLICT (id) DO NOTHING;
 
 -- User 2: James Chen — Tier 2 confirmed
-INSERT INTO profiles (id, display_name, neighborhood_id, bio, skills, reputation_score, trust_tier, phone_verified)
+INSERT INTO profiles (id, display_name, neighborhood_id, bio, skills, reputation_score, renown_tier, phone_verified)
 VALUES (
   '00000000-0000-0000-0000-000000000020',
   'James Chen',
@@ -44,7 +44,7 @@ VALUES (
 ) ON CONFLICT (id) DO NOTHING;
 
 -- User 3: Priya Patel — Tier 2 confirmed
-INSERT INTO profiles (id, display_name, neighborhood_id, bio, skills, reputation_score, trust_tier, phone_verified)
+INSERT INTO profiles (id, display_name, neighborhood_id, bio, skills, reputation_score, renown_tier, phone_verified)
 VALUES (
   '00000000-0000-0000-0000-000000000030',
   'Priya Patel',
@@ -57,7 +57,7 @@ VALUES (
 ) ON CONFLICT (id) DO NOTHING;
 
 -- User 4: Tom Rodriguez — Tier 1 neighbor (new, no invite yet)
-INSERT INTO profiles (id, display_name, neighborhood_id, bio, skills, reputation_score, trust_tier, phone_verified)
+INSERT INTO profiles (id, display_name, neighborhood_id, bio, skills, reputation_score, renown_tier, phone_verified)
 VALUES (
   '00000000-0000-0000-0000-000000000040',
   'Tom Rodriguez',
@@ -70,7 +70,7 @@ VALUES (
 ) ON CONFLICT (id) DO NOTHING;
 
 -- User 5: Sarah Kim — Tier 1 neighbor
-INSERT INTO profiles (id, display_name, neighborhood_id, bio, skills, reputation_score, trust_tier, phone_verified)
+INSERT INTO profiles (id, display_name, neighborhood_id, bio, skills, reputation_score, renown_tier, phone_verified)
 VALUES (
   '00000000-0000-0000-0000-000000000050',
   'Sarah Kim',

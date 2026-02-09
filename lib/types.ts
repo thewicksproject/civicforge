@@ -13,12 +13,12 @@ export type ConsentType =
   | "phone_verification";
 
 // ---------------------------------------------------------------------------
-// V2 Legacy Trust Tiers (backward-compatible)
+// V2 Legacy Renown Tiers (backward-compatible)
 // ---------------------------------------------------------------------------
 
-export type TrustTier = 1 | 2 | 3;
+export type RenownLegacyTier = 1 | 2 | 3;
 
-export const TRUST_TIER_LABELS: Record<TrustTier, string> = {
+export const RENOWN_TIER_LABELS: Record<RenownLegacyTier, string> = {
   1: "Neighbor",
   2: "Confirmed",
   3: "Verified",

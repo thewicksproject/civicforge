@@ -6,24 +6,24 @@ import {
   Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { TrustTier, RenownTier } from "@/lib/types";
+import type { RenownLegacyTier, RenownTier } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
-// V2 Trust Tier Badge (backward-compatible)
+// V2 Renown Tier Badge (backward-compatible, legacy 3-tier)
 // ---------------------------------------------------------------------------
 
-const TIER_CONFIG: Record<TrustTier, { icon: typeof Sprout; label: string; className: string }> = {
+const TIER_CONFIG: Record<RenownLegacyTier, { icon: typeof Sprout; label: string; className: string }> = {
   1: { icon: Sprout, label: "Neighbor", className: "text-muted-foreground" },
   2: { icon: ShieldCheck, label: "Confirmed", className: "text-offer" },
   3: { icon: BadgeCheck, label: "Verified", className: "text-golden-hour" },
 };
 
-interface TrustTierBadgeProps {
-  tier: TrustTier;
+interface RenownLegacyTierBadgeProps {
+  tier: RenownLegacyTier;
   className?: string;
 }
 
-export function TrustTierBadge({ tier, className }: TrustTierBadgeProps) {
+export function RenownLegacyTierBadge({ tier, className }: RenownLegacyTierBadgeProps) {
   const config = TIER_CONFIG[tier];
   const Icon = config.icon;
 

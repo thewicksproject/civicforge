@@ -18,7 +18,6 @@ const NAV_ITEMS = [
 
 export function Nav() {
   const pathname = usePathname();
-  const [trustTier, setTrustTier] = useState<number>(1);
   const [renownTier, setRenownTier] = useState<number>(1);
   const { theme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(
@@ -36,11 +35,10 @@ export function Nav() {
       if (!user) return;
       const { data } = await supabase
         .from("profiles")
-        .select("trust_tier, renown_tier")
+        .select("renown_tier")
         .eq("id", user.id)
         .single();
       if (data) {
-        setTrustTier(data.trust_tier);
         setRenownTier(data.renown_tier ?? 1);
       }
     }
@@ -51,7 +49,7 @@ export function Nav() {
   if (renownTier >= 4) {
     items = [...items, { href: "/governance", label: "Govern", icon: Vote }];
   }
-  if (trustTier >= 3) {
+  if (renownTier >= 3) {
     items = [...items, { href: "/admin/review", label: "Admin", icon: ShieldCheck }];
   }
 

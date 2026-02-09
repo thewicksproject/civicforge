@@ -122,7 +122,7 @@ export async function createNeighborhood(formData: FormData) {
     .from("profiles")
     .update({
       neighborhood_id: neighborhood.id,
-      trust_tier: 2,
+      renown_tier: 2,
       updated_at: new Date().toISOString(),
     })
     .eq("id", user.id);

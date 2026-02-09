@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { TRUST_TIER_LABELS, type TrustTier } from "@/lib/types";
+import { RENOWN_TIER_LABELS, type RenownLegacyTier } from "@/lib/types";
 import { ReputationBadge } from "@/components/reputation-badge";
 
 export const metadata = { title: "Neighborhood Members" };
@@ -31,17 +31,17 @@ export default async function MembersPage({
   // Check if current user is an admin (Tier 2+ in this neighborhood)
   const { data: profile } = await admin
     .from("profiles")
-    .select("trust_tier, neighborhood_id")
+    .select("renown_tier, neighborhood_id")
     .eq("id", user!.id)
     .single();
 
   const isAdmin =
-    profile?.neighborhood_id === id && (profile?.trust_tier ?? 1) >= 2;
+    profile?.neighborhood_id === id && (profile?.renown_tier ?? 1) >= 2;
 
   // Get members
   const { data: members } = await admin
     .from("profiles")
-    .select("id, display_name, reputation_score, trust_tier, created_at")
+    .select("id, display_name, reputation_score, renown_tier, created_at")
     .eq("neighborhood_id", id)
     .order("reputation_score", { ascending: false });
 
@@ -145,8 +145,8 @@ export default async function MembersPage({
                   </span>
                   <span className="text-xs text-muted-foreground ml-2">
                     {
-                      TRUST_TIER_LABELS[
-                        (member.trust_tier ?? 1) as TrustTier
+                      RENOWN_TIER_LABELS[
+                        (member.renown_tier ?? 1) as RenownLegacyTier
                       ]
                     }
                   </span>

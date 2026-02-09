@@ -58,7 +58,7 @@ export default async function BoardPage({
     .select(
       `
       id, type, title, description, category, urgency, status, created_at, flag_count, hidden, ai_assisted,
-      author:profiles!author_id (display_name, reputation_score, trust_tier),
+      author:profiles!author_id (display_name, reputation_score, renown_tier),
       post_photos (id),
       responses (id)
     `

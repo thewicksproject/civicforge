@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     .select("id, display_name, skills, reputation_score")
     .eq("neighborhood_id", post.neighborhood_id)
     .neq("id", post.author_id)
-    .gte("trust_tier", 2)
+    .gte("renown_tier", 2)
     .limit(20);
 
   if (!profiles || profiles.length === 0) {

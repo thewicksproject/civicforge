@@ -33,12 +33,13 @@ ALTER INDEX posts_neighborhood_idx RENAME TO posts_community_idx;
 ALTER INDEX invitations_neighborhood_idx RENAME TO invitations_community_idx;
 ALTER INDEX membership_requests_neighborhood_idx RENAME TO membership_requests_community_idx;
 ALTER INDEX quests_neighborhood_idx RENAME TO quests_community_idx;
-ALTER INDEX guilds_neighborhood_idx RENAME TO guilds_community_idx;
-ALTER INDEX governance_proposals_neighborhood_idx RENAME TO governance_proposals_community_idx;
-ALTER INDEX sunset_rules_neighborhood_idx RENAME TO sunset_rules_community_idx;
-ALTER INDEX federation_agreements_local_idx RENAME TO federation_agreements_local_community_idx;
 -- 0008 added a compound index
 ALTER INDEX quests_neighborhood_status_idx RENAME TO quests_community_status_idx;
+-- These indexes may not exist on all environments (created by Drizzle push, not migrations)
+DO $$ BEGIN ALTER INDEX guilds_neighborhood_idx RENAME TO guilds_community_idx; EXCEPTION WHEN undefined_table THEN NULL; END $$;
+DO $$ BEGIN ALTER INDEX governance_proposals_neighborhood_idx RENAME TO governance_proposals_community_idx; EXCEPTION WHEN undefined_table THEN NULL; END $$;
+DO $$ BEGIN ALTER INDEX sunset_rules_neighborhood_idx RENAME TO sunset_rules_community_idx; EXCEPTION WHEN undefined_table THEN NULL; END $$;
+DO $$ BEGIN ALTER INDEX federation_agreements_local_idx RENAME TO federation_agreements_local_community_idx; EXCEPTION WHEN undefined_table THEN NULL; END $$;
 
 -- =========================================================================
 -- 1d. Rename + update function
@@ -59,25 +60,13 @@ ALTER TYPE sunset_rule_type RENAME VALUE 'neighborhood_charter' TO 'community_ch
 -- 1f. Rename RLS policies (cosmetic — the expressions still work via OIDs)
 -- =========================================================================
 
--- profiles
-ALTER POLICY profiles_select_same_neighborhood ON profiles
-  RENAME TO profiles_select_same_community;
-
--- communities (formerly neighborhoods) — table was already renamed above
-ALTER POLICY neighborhoods_select_authenticated ON communities
-  RENAME TO communities_select_authenticated;
-ALTER POLICY neighborhoods_update_creator ON communities
-  RENAME TO communities_update_creator;
-ALTER POLICY neighborhoods_insert_owner_no_existing ON communities
-  RENAME TO communities_insert_owner_no_existing;
-
--- posts
-ALTER POLICY posts_select_neighborhood ON posts
-  RENAME TO posts_select_community;
-
--- invitations
-ALTER POLICY invitations_select_neighborhood ON invitations
-  RENAME TO invitations_select_community;
+-- Policy names vary between environments; wrap in safe exception handlers
+DO $$ BEGIN ALTER POLICY profiles_select_same_neighborhood ON profiles RENAME TO profiles_select_same_community; EXCEPTION WHEN undefined_object THEN NULL; END $$;
+DO $$ BEGIN ALTER POLICY neighborhoods_select_authenticated ON communities RENAME TO communities_select_authenticated; EXCEPTION WHEN undefined_object THEN NULL; END $$;
+DO $$ BEGIN ALTER POLICY neighborhoods_update_creator ON communities RENAME TO communities_update_creator; EXCEPTION WHEN undefined_object THEN NULL; END $$;
+DO $$ BEGIN ALTER POLICY neighborhoods_insert_owner_no_existing ON communities RENAME TO communities_insert_owner_no_existing; EXCEPTION WHEN undefined_object THEN NULL; END $$;
+DO $$ BEGIN ALTER POLICY posts_select_neighborhood ON posts RENAME TO posts_select_community; EXCEPTION WHEN undefined_object THEN NULL; END $$;
+DO $$ BEGIN ALTER POLICY invitations_select_neighborhood ON invitations RENAME TO invitations_select_community; EXCEPTION WHEN undefined_object THEN NULL; END $$;
 
 -- =========================================================================
 -- 1g. PostgREST schema cache reload

@@ -52,14 +52,48 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const message = body.message;
 
-  if (!message || typeof message !== "string" || message.length > 1000) {
+  // W12: Accept both single message (backward compat) and messages array (history)
+  const message = body.message;
+  const messages: Array<{ role: string; content: string }> = body.messages ?? [];
+
+  // Validate: need either a message string or a non-empty messages array
+  if (messages.length > 0) {
+    // Validate messages array
+    const valid = messages.every(
+      (m: unknown) =>
+        typeof m === "object" &&
+        m !== null &&
+        typeof (m as Record<string, unknown>).role === "string" &&
+        typeof (m as Record<string, unknown>).content === "string" &&
+        ((m as Record<string, unknown>).content as string).length <= 1000
+    );
+    if (!valid || messages.length > 50) {
+      return NextResponse.json(
+        { error: "Invalid messages" },
+        { status: 400 }
+      );
+    }
+  } else if (!message || typeof message !== "string" || message.length > 1000) {
     return NextResponse.json(
       { error: "Invalid message" },
       { status: 400 }
     );
   }
+
+  // Build the current user message (last message in history, or single message)
+  const currentMessage =
+    messages.length > 0
+      ? messages[messages.length - 1].content
+      : message;
+
+  // Build conversation history for context (excluding the current message)
+  const history = messages.length > 1
+    ? messages.slice(0, -1).map((m) => ({
+        role: m.role === "advocate" ? ("assistant" as const) : ("user" as const),
+        content: m.content,
+      }))
+    : undefined;
 
   const admin = createServiceClient();
 
@@ -112,24 +146,35 @@ export async function POST(request: Request) {
     .join("; ") || "No active quests";
 
   try {
-    const response = await advocateChat(message, {
-      profile: {
-        display_name: profile.display_name,
-        renown_tier: profile.renown_tier,
-        skill_domains: (skillData ?? []).map((s) => ({
-          domain: s.domain,
-          level: s.level,
-        })),
-        guild_memberships: (guildData ?? []).map(
-          (g) => {
-            const guilds = g.guilds as unknown as { name: string } | null;
-            return guilds?.name ?? "Unknown guild";
-          }
-        ),
-      },
-      recentActivity: recentActivitySummary,
-      activeQuests: activeQuestsSummary,
-    });
+    // W12: Build conversation context string from history
+    const historyContext = history && history.length > 0
+      ? "\n\nCONVERSATION HISTORY:\n" +
+        history
+          .map((m) => `${m.role === "assistant" ? "Advocate" : "User"}: ${m.content}`)
+          .join("\n")
+      : "";
+
+    const response = await advocateChat(
+      historyContext ? `${historyContext}\n\nUser: ${currentMessage}` : currentMessage,
+      {
+        profile: {
+          display_name: profile.display_name,
+          renown_tier: profile.renown_tier,
+          skill_domains: (skillData ?? []).map((s) => ({
+            domain: s.domain,
+            level: s.level,
+          })),
+          guild_memberships: (guildData ?? []).map(
+            (g) => {
+              const guilds = g.guilds as unknown as { name: string } | null;
+              return guilds?.name ?? "Unknown guild";
+            }
+          ),
+        },
+        recentActivity: recentActivitySummary,
+        activeQuests: activeQuestsSummary,
+      }
+    );
 
     // Log AI usage
     const today = new Date().toISOString().split("T")[0];

@@ -63,7 +63,7 @@ export async function createQuest(data: {
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("trust_tier, neighborhood_id, renown_tier")
+    .select("neighborhood_id, renown_tier")
     .eq("id", user.id)
     .single();
 
@@ -71,10 +71,10 @@ export async function createQuest(data: {
     return { success: false as const, error: "Profile not found" };
   }
 
-  if (profile.trust_tier < 2) {
+  if (profile.renown_tier < 2) {
     return {
       success: false as const,
-      error: "You must be Tier 2 or higher to create quests",
+      error: "You must be a Neighbor (Renown Tier 2) or higher to create quests",
     };
   }
 
@@ -176,14 +176,29 @@ export async function claimQuest(questId: string) {
 
   const admin = createServiceClient();
 
+  // W1: Neighborhood scoping
+  const { data: userProfile } = await admin
+    .from("profiles")
+    .select("neighborhood_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!userProfile?.neighborhood_id) {
+    return { success: false as const, error: "Profile not found" };
+  }
+
   const { data: quest } = await admin
     .from("quests")
-    .select("id, status, max_party_size, created_by")
+    .select("id, status, max_party_size, created_by, neighborhood_id")
     .eq("id", questId)
     .single();
 
   if (!quest) {
     return { success: false as const, error: "Quest not found" };
+  }
+
+  if (quest.neighborhood_id !== userProfile.neighborhood_id) {
+    return { success: false as const, error: "Quest is not in your neighborhood" };
   }
 
   if (quest.status !== "open") {
@@ -194,12 +209,19 @@ export async function claimQuest(questId: string) {
     return { success: false as const, error: "Cannot claim your own quest" };
   }
 
-  // Update quest status
+  // C5: Optimistic lock — only update if still "open" to prevent TOCTOU race
   const newStatus = quest.max_party_size > 1 ? "claimed" : "in_progress";
-  await admin
+  const { data: updated } = await admin
     .from("quests")
     .update({ status: newStatus })
-    .eq("id", questId);
+    .eq("id", questId)
+    .eq("status", "open")
+    .select("id")
+    .single();
+
+  if (!updated) {
+    return { success: false as const, error: "Quest is no longer available" };
+  }
 
   // Create party if multi-person
   if (quest.max_party_size > 1) {
@@ -237,7 +259,7 @@ export async function completeQuest(questId: string) {
 
   const { data: quest } = await admin
     .from("quests")
-    .select("id, status, difficulty, validation_method, validation_threshold, skill_domains, xp_reward, created_by")
+    .select("id, status, difficulty, validation_method, validation_threshold, skill_domains, xp_reward, created_by, max_party_size")
     .eq("id", questId)
     .single();
 
@@ -247,6 +269,27 @@ export async function completeQuest(questId: string) {
 
   if (quest.status !== "in_progress" && quest.status !== "claimed") {
     return { success: false as const, error: "Quest is not in progress" };
+  }
+
+  // C10: Claimer verification — ensure current user is a participant
+  if (quest.max_party_size > 1) {
+    // Multi-person: check party membership
+    const { data: partyMember } = await admin
+      .from("parties")
+      .select("id, party_members!inner(user_id)")
+      .eq("quest_id", questId)
+      .eq("party_members.user_id", user.id)
+      .limit(1)
+      .single();
+
+    if (!partyMember) {
+      return { success: false as const, error: "Only party members can complete this quest" };
+    }
+  } else {
+    // Solo: the claimer is not the author (claimQuest already prevents self-claim)
+    if (quest.created_by === user.id) {
+      return { success: false as const, error: "Cannot complete your own quest" };
+    }
   }
 
   // Self-report quests (Spark) complete immediately
@@ -290,14 +333,29 @@ export async function validateQuest(
 
   const admin = createServiceClient();
 
+  // W1: Neighborhood scoping
+  const { data: userProfile } = await admin
+    .from("profiles")
+    .select("neighborhood_id, renown_tier")
+    .eq("id", user.id)
+    .single();
+
+  if (!userProfile?.neighborhood_id) {
+    return { success: false as const, error: "Profile not found" };
+  }
+
   const { data: quest } = await admin
     .from("quests")
-    .select("id, status, validation_count, validation_threshold, skill_domains, xp_reward, created_by")
+    .select("id, status, validation_count, validation_threshold, skill_domains, xp_reward, created_by, neighborhood_id")
     .eq("id", questId)
     .single();
 
   if (!quest || quest.status !== "pending_validation") {
     return { success: false as const, error: "Quest is not pending validation" };
+  }
+
+  if (quest.neighborhood_id !== userProfile.neighborhood_id) {
+    return { success: false as const, error: "Quest is not in your neighborhood" };
   }
 
   if (quest.created_by === user.id) {
@@ -319,25 +377,24 @@ export async function validateQuest(
     return { success: false as const, error: "Failed to submit validation" };
   }
 
-  // Update validation count
-  const newCount = quest.validation_count + (approved ? 1 : 0);
-  await admin
-    .from("quests")
-    .update({ validation_count: newCount })
-    .eq("id", questId);
+  // C6: Use atomic RPC to increment validation count (prevents drift)
+  if (approved) {
+    const { data: rpcResult, error: rpcError } = await admin.rpc(
+      "increment_quest_validation",
+      { p_quest_id: questId }
+    );
 
-  // Check if threshold met
-  if (newCount >= quest.validation_threshold) {
-    await admin
-      .from("quests")
-      .update({
-        status: "completed",
-        completed_at: new Date().toISOString(),
-      })
-      .eq("id", questId);
+    if (rpcError) {
+      return { success: false as const, error: "Failed to update validation count" };
+    }
 
-    // Award XP to quest creator
-    await awardQuestXp(admin, quest.created_by, quest);
+    // RPC returns { new_count, threshold, status }
+    const result = rpcResult as { new_count: number; threshold: number; status: string };
+
+    // Check if threshold met and quest was just completed by the RPC
+    if (result.status === "completed") {
+      await awardQuestXp(admin, quest.created_by, quest);
+    }
   }
 
   return { success: true as const };
@@ -425,6 +482,17 @@ export async function getNeighborhoodQuests(neighborhoodId: string) {
   }
 
   const admin = createServiceClient();
+
+  // W1: Verify user belongs to this neighborhood
+  const { data: userProfile } = await admin
+    .from("profiles")
+    .select("neighborhood_id")
+    .eq("id", user.id)
+    .single();
+
+  if (userProfile?.neighborhood_id !== neighborhoodId) {
+    return { success: false as const, error: "Not your neighborhood" };
+  }
 
   const { data: quests, error } = await admin
     .from("quests")

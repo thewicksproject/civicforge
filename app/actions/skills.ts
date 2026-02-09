@@ -67,6 +67,15 @@ function xpNeededForLevel(level: number): number {
 }
 
 export async function getSkillSummary(userId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { domains: [], totalLevel: 0, primaryDomain: null };
+  }
+
   const admin = createServiceClient();
 
   const { data: skills } = await admin

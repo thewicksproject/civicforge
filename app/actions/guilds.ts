@@ -141,14 +141,29 @@ export async function joinGuild(guildId: string) {
 
   const admin = createServiceClient();
 
+  // W1: Neighborhood scoping
+  const { data: userProfile } = await admin
+    .from("profiles")
+    .select("neighborhood_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!userProfile?.neighborhood_id) {
+    return { success: false as const, error: "Profile not found" };
+  }
+
   const { data: guild } = await admin
     .from("guilds")
-    .select("id, active, member_count")
+    .select("id, active, neighborhood_id")
     .eq("id", guildId)
     .single();
 
   if (!guild || !guild.active) {
     return { success: false as const, error: "Guild not found or inactive" };
+  }
+
+  if (guild.neighborhood_id !== userProfile.neighborhood_id) {
+    return { success: false as const, error: "Guild is not in your neighborhood" };
   }
 
   const { error } = await admin.from("guild_members").insert({
@@ -163,11 +178,7 @@ export async function joinGuild(guildId: string) {
     return { success: false as const, error: "Failed to join guild" };
   }
 
-  // Increment member count
-  await admin
-    .from("guilds")
-    .update({ member_count: guild.member_count + 1 })
-    .eq("id", guildId);
+  // W5: member_count now maintained by DB trigger (update_guild_member_count)
 
   return { success: true as const };
 }
@@ -217,19 +228,7 @@ export async function leaveGuild(guildId: string) {
     .eq("guild_id", guildId)
     .eq("user_id", user.id);
 
-  // Decrement member count
-  const { data: guild } = await admin
-    .from("guilds")
-    .select("member_count")
-    .eq("id", guildId)
-    .single();
-
-  if (guild) {
-    await admin
-      .from("guilds")
-      .update({ member_count: Math.max(0, guild.member_count - 1) })
-      .eq("id", guildId);
-  }
+  // W5: member_count now maintained by DB trigger (update_guild_member_count)
 
   return { success: true as const };
 }
@@ -245,6 +244,17 @@ export async function getNeighborhoodGuilds(neighborhoodId: string) {
   }
 
   const admin = createServiceClient();
+
+  // W1: Verify user belongs to this neighborhood
+  const { data: userProfile } = await admin
+    .from("profiles")
+    .select("neighborhood_id")
+    .eq("id", user.id)
+    .single();
+
+  if (userProfile?.neighborhood_id !== neighborhoodId) {
+    return { success: false as const, error: "Not your neighborhood" };
+  }
 
   const { data: guilds, error } = await admin
     .from("guilds")

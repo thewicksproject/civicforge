@@ -44,8 +44,16 @@ export async function middleware(request: NextRequest) {
     response.headers.set("x-gpc-honored", "true");
   }
 
-  // Auth protection for non-public routes
+  // Catch OAuth codes that arrive at the root (Supabase Site URL fallback)
   const path = request.nextUrl.pathname;
+  const code = request.nextUrl.searchParams.get("code");
+  if (path === "/" && code) {
+    const callbackUrl = new URL("/api/auth/callback", request.url);
+    callbackUrl.searchParams.set("code", code);
+    return NextResponse.redirect(callbackUrl);
+  }
+
+  // Auth protection for non-public routes
   const isPublicRoute = PUBLIC_ROUTES.some(
     (route) => path === route || path.startsWith(`${route}/`)
   );

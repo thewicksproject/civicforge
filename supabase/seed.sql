@@ -1,24 +1,24 @@
 -- ============================================================================
--- CivicForge V2 Seed Data — "Maplewood Heights" neighborhood
+-- CivicForge V2 Seed Data — "Maplewood Heights" community
 -- Run with: psql -f supabase/seed.sql
 -- ============================================================================
 
 -- Use fixed UUIDs for reproducible test data
--- Neighborhood
-INSERT INTO neighborhoods (id, name, city, state, zip_codes, description, created_by)
+-- Community
+INSERT INTO communities (id, name, city, state, zip_codes, description, created_by)
 VALUES (
   '00000000-0000-0000-0000-000000000001',
   'Maplewood Heights',
   'Portland',
   'OR',
   ARRAY['97201', '97205'],
-  'A friendly tree-lined neighborhood near the park. We look out for each other.',
+  'A friendly tree-lined community near the park. We look out for each other.',
   '00000000-0000-0000-0000-000000000010'
 ) ON CONFLICT (id) DO NOTHING;
 
 -- Users (5 test users at various renown tiers)
--- User 1: Maria Santos — Tier 3 admin (neighborhood creator)
-INSERT INTO profiles (id, display_name, neighborhood_id, bio, skills, reputation_score, renown_tier, phone_verified)
+-- User 1: Maria Santos — Tier 3 admin (community creator)
+INSERT INTO profiles (id, display_name, community_id, bio, skills, reputation_score, renown_tier, phone_verified)
 VALUES (
   '00000000-0000-0000-0000-000000000010',
   'Maria Santos',
@@ -31,7 +31,7 @@ VALUES (
 ) ON CONFLICT (id) DO NOTHING;
 
 -- User 2: James Chen — Tier 2 confirmed
-INSERT INTO profiles (id, display_name, neighborhood_id, bio, skills, reputation_score, renown_tier, phone_verified)
+INSERT INTO profiles (id, display_name, community_id, bio, skills, reputation_score, renown_tier, phone_verified)
 VALUES (
   '00000000-0000-0000-0000-000000000020',
   'James Chen',
@@ -44,7 +44,7 @@ VALUES (
 ) ON CONFLICT (id) DO NOTHING;
 
 -- User 3: Priya Patel — Tier 2 confirmed
-INSERT INTO profiles (id, display_name, neighborhood_id, bio, skills, reputation_score, renown_tier, phone_verified)
+INSERT INTO profiles (id, display_name, community_id, bio, skills, reputation_score, renown_tier, phone_verified)
 VALUES (
   '00000000-0000-0000-0000-000000000030',
   'Priya Patel',
@@ -57,7 +57,7 @@ VALUES (
 ) ON CONFLICT (id) DO NOTHING;
 
 -- User 4: Tom Rodriguez — Tier 1 neighbor (new, no invite yet)
-INSERT INTO profiles (id, display_name, neighborhood_id, bio, skills, reputation_score, renown_tier, phone_verified)
+INSERT INTO profiles (id, display_name, community_id, bio, skills, reputation_score, renown_tier, phone_verified)
 VALUES (
   '00000000-0000-0000-0000-000000000040',
   'Tom Rodriguez',
@@ -70,7 +70,7 @@ VALUES (
 ) ON CONFLICT (id) DO NOTHING;
 
 -- User 5: Sarah Kim — Tier 1 neighbor
-INSERT INTO profiles (id, display_name, neighborhood_id, bio, skills, reputation_score, renown_tier, phone_verified)
+INSERT INTO profiles (id, display_name, community_id, bio, skills, reputation_score, renown_tier, phone_verified)
 VALUES (
   '00000000-0000-0000-0000-000000000050',
   'Sarah Kim',
@@ -85,7 +85,7 @@ VALUES (
 -- Posts (10 across categories — needs, offers, varying states)
 
 -- Post 1: Active need (home repair)
-INSERT INTO posts (id, author_id, neighborhood_id, type, title, description, category, urgency, status, location_hint, available_times, ai_assisted, review_status)
+INSERT INTO posts (id, author_id, community_id, type, title, description, category, urgency, status, location_hint, available_times, ai_assisted, review_status)
 VALUES (
   '00000000-0000-0000-0000-000000000101',
   '00000000-0000-0000-0000-000000000020',
@@ -103,7 +103,7 @@ VALUES (
 ) ON CONFLICT (id) DO NOTHING;
 
 -- Post 2: Active offer (cooking)
-INSERT INTO posts (id, author_id, neighborhood_id, type, title, description, category, urgency, status, available_times, ai_assisted, review_status)
+INSERT INTO posts (id, author_id, community_id, type, title, description, category, urgency, status, available_times, ai_assisted, review_status)
 VALUES (
   '00000000-0000-0000-0000-000000000102',
   '00000000-0000-0000-0000-000000000030',
@@ -120,7 +120,7 @@ VALUES (
 ) ON CONFLICT (id) DO NOTHING;
 
 -- Post 3: Active need (childcare)
-INSERT INTO posts (id, author_id, neighborhood_id, type, title, description, category, urgency, status, available_times, ai_assisted, review_status)
+INSERT INTO posts (id, author_id, community_id, type, title, description, category, urgency, status, available_times, ai_assisted, review_status)
 VALUES (
   '00000000-0000-0000-0000-000000000103',
   '00000000-0000-0000-0000-000000000030',
@@ -137,14 +137,14 @@ VALUES (
 ) ON CONFLICT (id) DO NOTHING;
 
 -- Post 4: Active offer (tech help) — AI-assisted
-INSERT INTO posts (id, author_id, neighborhood_id, type, title, description, category, skills_relevant, status, available_times, ai_assisted, review_status)
+INSERT INTO posts (id, author_id, community_id, type, title, description, category, skills_relevant, status, available_times, ai_assisted, review_status)
 VALUES (
   '00000000-0000-0000-0000-000000000104',
   '00000000-0000-0000-0000-000000000020',
   '00000000-0000-0000-0000-000000000001',
   'offer',
   'Free tech help for seniors and anyone struggling with devices',
-  'I''m a software engineer and I''d love to help anyone in the neighborhood who''s having trouble with their computer, phone, WiFi setup, or smart home devices. No question is too basic. Happy to come to you or meet at the community center.',
+  'I''m a software engineer and I''d love to help anyone in the community who''s having trouble with their computer, phone, WiFi setup, or smart home devices. No question is too basic. Happy to come to you or meet at the community center.',
   'tech_help',
   ARRAY['computers', 'wifi', 'smartphones', 'smart home'],
   'active',
@@ -154,7 +154,7 @@ VALUES (
 ) ON CONFLICT (id) DO NOTHING;
 
 -- Post 5: Active need (yard/garden)
-INSERT INTO posts (id, author_id, neighborhood_id, type, title, description, category, urgency, status, location_hint, ai_assisted, review_status)
+INSERT INTO posts (id, author_id, community_id, type, title, description, category, urgency, status, location_hint, ai_assisted, review_status)
 VALUES (
   '00000000-0000-0000-0000-000000000105',
   '00000000-0000-0000-0000-000000000010',
@@ -171,7 +171,7 @@ VALUES (
 ) ON CONFLICT (id) DO NOTHING;
 
 -- Post 6: Completed post (moving help)
-INSERT INTO posts (id, author_id, neighborhood_id, type, title, description, category, urgency, status, ai_assisted, review_status, created_at)
+INSERT INTO posts (id, author_id, community_id, type, title, description, category, urgency, status, ai_assisted, review_status, created_at)
 VALUES (
   '00000000-0000-0000-0000-000000000106',
   '00000000-0000-0000-0000-000000000020',
@@ -188,7 +188,7 @@ VALUES (
 ) ON CONFLICT (id) DO NOTHING;
 
 -- Post 7: Active offer (pet care)
-INSERT INTO posts (id, author_id, neighborhood_id, type, title, description, category, status, available_times, ai_assisted, review_status)
+INSERT INTO posts (id, author_id, community_id, type, title, description, category, status, available_times, ai_assisted, review_status)
 VALUES (
   '00000000-0000-0000-0000-000000000107',
   '00000000-0000-0000-0000-000000000010',
@@ -204,7 +204,7 @@ VALUES (
 ) ON CONFLICT (id) DO NOTHING;
 
 -- Post 8: Active need (tutoring)
-INSERT INTO posts (id, author_id, neighborhood_id, type, title, description, category, urgency, status, ai_assisted, review_status)
+INSERT INTO posts (id, author_id, community_id, type, title, description, category, urgency, status, ai_assisted, review_status)
 VALUES (
   '00000000-0000-0000-0000-000000000108',
   '00000000-0000-0000-0000-000000000030',
@@ -220,7 +220,7 @@ VALUES (
 ) ON CONFLICT (id) DO NOTHING;
 
 -- Post 9: Auto-hidden post (flagged 3 times) — for testing admin review
-INSERT INTO posts (id, author_id, neighborhood_id, type, title, description, category, status, flag_count, hidden, ai_assisted, review_status, created_at)
+INSERT INTO posts (id, author_id, community_id, type, title, description, category, status, flag_count, hidden, ai_assisted, review_status, created_at)
 VALUES (
   '00000000-0000-0000-0000-000000000109',
   '00000000-0000-0000-0000-000000000020',
@@ -238,14 +238,14 @@ VALUES (
 ) ON CONFLICT (id) DO NOTHING;
 
 -- Post 10: Active offer (companionship)
-INSERT INTO posts (id, author_id, neighborhood_id, type, title, description, category, status, ai_assisted, review_status)
+INSERT INTO posts (id, author_id, community_id, type, title, description, category, status, ai_assisted, review_status)
 VALUES (
   '00000000-0000-0000-0000-000000000110',
   '00000000-0000-0000-0000-000000000010',
   '00000000-0000-0000-0000-000000000001',
   'offer',
   'Coffee and conversation for anyone feeling isolated',
-  'If you''re new to the neighborhood, living alone, or just want someone to chat with, I''d love to have you over for coffee. I''ve got a cozy porch and nowhere to be. All ages welcome.',
+  'If you''re new to the community, living alone, or just want someone to chat with, I''d love to have you over for coffee. I''ve got a cozy porch and nowhere to be. All ages welcome.',
   'companionship',
   'active',
   false,
@@ -276,12 +276,12 @@ INSERT INTO thanks (id, from_user, to_user, post_id, message) VALUES
 ON CONFLICT DO NOTHING;
 
 -- Invitations (1 used, 1 active)
-INSERT INTO invitations (id, code, neighborhood_id, created_by, used_by, expires_at) VALUES
+INSERT INTO invitations (id, code, community_id, created_by, used_by, expires_at) VALUES
   ('00000000-0000-0000-0000-000000000401', 'MAPLE001', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000010', '00000000-0000-0000-0000-000000000020', now() + interval '7 days'),
   ('00000000-0000-0000-0000-000000000402', 'MAPLE002', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000010', null, now() + interval '7 days')
 ON CONFLICT DO NOTHING;
 
 -- Membership request (1 pending)
-INSERT INTO membership_requests (id, user_id, neighborhood_id, status, message) VALUES
+INSERT INTO membership_requests (id, user_id, community_id, status, message) VALUES
   ('00000000-0000-0000-0000-000000000501', '00000000-0000-0000-0000-000000000040', '00000000-0000-0000-0000-000000000001', 'pending', 'Just moved to Elm Street! Would love to join the community.')
 ON CONFLICT DO NOTHING;

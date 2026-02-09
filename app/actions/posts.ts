@@ -59,7 +59,7 @@ export async function createPost(formData: FormData) {
   // Check renown tier
   const { data: profile, error: profileError } = await admin
     .from("profiles")
-    .select("renown_tier, neighborhood_id")
+    .select("renown_tier, community_id")
     .eq("id", user.id)
     .single();
 
@@ -74,10 +74,10 @@ export async function createPost(formData: FormData) {
     };
   }
 
-  if (!profile.neighborhood_id) {
+  if (!profile.community_id) {
     return {
       success: false as const,
-      error: "You must belong to a neighborhood to create posts",
+      error: "You must belong to a community to create posts",
     };
   }
 
@@ -181,7 +181,7 @@ export async function createPost(formData: FormData) {
     .from("posts")
     .insert({
       author_id: user.id,
-      neighborhood_id: profile.neighborhood_id,
+      community_id: profile.community_id,
       title: parsed.data.title,
       description: parsed.data.description,
       type: parsed.data.type,
@@ -353,7 +353,7 @@ export async function deletePost(postId: string) {
   return { success: true as const, data: null };
 }
 
-export async function getNeighborhoodPosts(neighborhoodId: string) {
+export async function getCommunityPosts(communityId: string) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -363,9 +363,9 @@ export async function getNeighborhoodPosts(neighborhoodId: string) {
     return { success: false as const, error: "You must be logged in" };
   }
 
-  const idParsed = z.string().uuid().safeParse(neighborhoodId);
+  const idParsed = z.string().uuid().safeParse(communityId);
   if (!idParsed.success) {
-    return { success: false as const, error: "Invalid neighborhood ID" };
+    return { success: false as const, error: "Invalid community ID" };
   }
 
   const admin = createServiceClient();
@@ -383,7 +383,7 @@ export async function getNeighborhoodPosts(neighborhoodId: string) {
       )
     `
     )
-    .eq("neighborhood_id", neighborhoodId)
+    .eq("community_id", communityId)
     .eq("hidden", false)
     .order("created_at", { ascending: false });
 

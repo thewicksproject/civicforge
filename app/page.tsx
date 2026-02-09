@@ -9,11 +9,11 @@ import {
 } from "@/components/illustrations";
 
 export const metadata: Metadata = {
-  title: "CivicForge — Your neighborhood, connected",
+  title: "CivicForge — Your community, connected",
   description:
-    "A neighborhood needs board where people post needs, offer help, get AI-matched, and build reputation. No ads, no data selling — just neighbors helping neighbors.",
+    "A community needs board where people post needs, offer help, get AI-matched, and build reputation. No ads, no data selling — just neighbors helping neighbors.",
   openGraph: {
-    title: "CivicForge — Your neighborhood, connected",
+    title: "CivicForge — Your community, connected",
     description:
       "Post a need, offer help, get matched with neighbors. Community-owned, privacy-first.",
   },
@@ -36,7 +36,7 @@ function HeroSection() {
       <HeroIllustration className="h-48 w-auto mb-8 sm:h-56" />
 
       <h1 className="max-w-3xl text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
-        Your neighborhood, connected.
+        Your community, connected.
       </h1>
 
       <p className="mt-6 max-w-xl text-lg text-muted-foreground sm:text-xl">
@@ -79,7 +79,7 @@ function HowItWorksSection() {
       icon: <HowItWorksTrustIllustration className="h-8 w-8" />,
       title: "Help each other, build trust",
       description:
-        "Every act of help strengthens the neighborhood. Build a reputation that reflects who you are in your community.",
+        "Every act of help strengthens the community. Build a reputation that reflects who you are in your community.",
     },
   ];
 
@@ -133,7 +133,7 @@ function ValuesSection() {
       icon: <Users className="h-6 w-6" aria-hidden="true" />,
       title: "Community-owned",
       description:
-        "Built to serve neighborhoods, not shareholders. The platform grows with the community it supports.",
+        "Built to serve communities, not shareholders. The platform grows with the community it supports.",
     },
   ];
 

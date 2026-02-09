@@ -16,11 +16,11 @@ export default async function NewProposalPage() {
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("neighborhood_id, renown_tier")
+    .select("community_id, renown_tier")
     .eq("id", user.id)
     .single();
 
-  if (!profile?.neighborhood_id) {
+  if (!profile?.community_id) {
     redirect("/onboarding");
   }
 
@@ -32,7 +32,7 @@ export default async function NewProposalPage() {
         </h2>
         <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
           You need to be at least Renown Tier 4 (Keeper) to create governance proposals.
-          Continue contributing to your neighborhood to increase your renown.
+          Continue contributing to your community to increase your renown.
         </p>
       </div>
     );

@@ -78,7 +78,7 @@ The Repository pattern sits between ViewModels and the Supabase SDK, making the 
 | AI matching | Yes | Yes | -- | Calls same `/api/ai/` endpoints |
 | Thanks / reputation | Yes | Yes | -- | Send thanks, view reputation badge |
 | Flag posts | Yes | Yes | -- | Same flagging + auto-hide at threshold |
-| Onboarding (3 steps) | Yes | Yes | -- | Name, neighborhood, invite code |
+| Onboarding (3 steps) | Yes | Yes | -- | Name, community, invite code |
 | Auth: magic link | Yes | Yes | -- | Universal links to handle callback |
 | Auth: Google OAuth | Yes | Yes | -- | Native Google Sign-In SDK or ASWebAuthenticationSession |
 | Push notifications | No | Yes | -- | iOS-exclusive; APNs for new responses, thanks, matches |
@@ -88,7 +88,7 @@ The Repository pattern sits between ViewModels and the Supabase SDK, making the 
 | Admin review queue | Yes | -- | Yes | Web-only initially; complex moderation UI |
 | Data export (JSON) | Yes | -- | Yes | Share sheet export in future |
 | Account deletion | Yes | -- | Yes | Requires web confirmation flow initially |
-| Neighborhood management | Yes | -- | Yes | Create/edit neighborhoods, member list |
+| Community management | Yes | -- | Yes | Create/edit communitys, member list |
 | Phone verification | Yes | -- | Yes | Requires SMS API integration |
 | Dark mode | Yes | Yes | -- | System setting respected |
 | Offline browsing | No | -- | Yes | Cache board locally |
@@ -106,7 +106,7 @@ The `supabase-swift` package (v2.x) covers all four pillars needed:
 | **Auth** (GoTrue) | Full | Magic link OTP, Google OAuth, session management, `getUser()` |
 | **Database** (PostgREST) | Full | All 14 tables via typed queries; RLS enforced automatically |
 | **Storage** | Full | Upload to `post-photos` bucket; download signed URLs |
-| **Realtime** | Full | Subscribe to `posts` and `responses` changes in user's neighborhood |
+| **Realtime** | Full | Subscribe to `posts` and `responses` changes in user's community |
 
 ### Auth Flows on iOS
 
@@ -131,7 +131,7 @@ Recommendation: Start with Option A for v1. Evaluate Option B if user feedback i
 
 All 13 tables have RLS enabled with policies keyed on `auth.uid()`. The Supabase Swift SDK sends the same JWT as the web client, so every policy works identically:
 
-- `profiles_select_same_neighborhood` -- neighborhood-scoped reads
+- `profiles_select_same_community` -- community-scoped reads
 - `posts_insert_tier2` -- trust tier enforcement
 - `responses_insert_tier2` -- trust tier enforcement
 - `storage_post_photos_insert_own` -- user-scoped upload folders
@@ -361,7 +361,7 @@ AuthView (if not signed in)
   v
 OnboardingFlow (if profile incomplete)
   |-- Step 1: Display Name
-  |-- Step 2: Neighborhood (search or create)
+  |-- Step 2: Community (search or create)
   |-- Step 3: Invite Code (optional)
   v
 Main TabView
@@ -456,7 +456,7 @@ CivicForge/
       Views/
         OnboardingFlow.swift            # 3-step pager container
         NameStepView.swift              # Step 1: display name
-        NeighborhoodStepView.swift      # Step 2: search or create
+        CommunityStepView.swift      # Step 2: search or create
         InviteStepView.swift            # Step 3: invite code (skippable)
       ViewModels/
         OnboardingViewModel.swift
@@ -497,7 +497,7 @@ CivicForge/
       Profile.swift                     # Codable struct matching profiles table
       Response.swift                    # Codable struct matching responses table
       Thanks.swift                      # Codable struct matching thanks table
-      Neighborhood.swift                # Codable struct matching neighborhoods table
+      Community.swift                # Codable struct matching communitys table
       PostPhoto.swift                   # Codable struct matching post_photos table
       Invitation.swift                  # Codable struct matching invitations table
       Enums.swift                       # PostType, PostStatus, UrgencyLevel, etc.
@@ -509,7 +509,7 @@ CivicForge/
       ResponseRepository.swift          # CRUD for responses
       ProfileRepository.swift           # CRUD for profiles
       ThanksRepository.swift            # Send/fetch thanks
-      NeighborhoodRepository.swift      # Search/create neighborhoods
+      CommunityRepository.swift      # Search/create communitys
       InvitationRepository.swift        # Redeem invite codes
       PhotoProcessor.swift              # EXIF strip, resize, compress, thumbnail
       PushNotificationService.swift     # APNs registration, token management
@@ -571,7 +571,7 @@ CivicForge/
 
 **Week 3**:
 - Define `Post`, `Profile`, `Response`, `PostPhoto` Codable models
-- Implement `PostRepository` with neighborhood-scoped fetch
+- Implement `PostRepository` with community-scoped fetch
 - Build `BoardView` with `List` and `PostCardView` cells
 - Implement pull-to-refresh
 - Add segmented filter control (All / Needs / Offers)
@@ -609,8 +609,8 @@ CivicForge/
 ### M4: Onboarding + Profile + Settings (1 week)
 
 **Week 7**:
-- Build `OnboardingFlow` with 3-step pager (name, neighborhood, invite code)
-- Implement `NeighborhoodRepository` for searching and creating neighborhoods
+- Build `OnboardingFlow` with 3-step pager (name, community, invite code)
+- Implement `CommunityRepository` for searching and creating communitys
 - Implement `InvitationRepository` for redeeming invite codes
 - Build `ProfileView` showing own posts and thanks received
 - Build `OtherProfileView` for viewing other users

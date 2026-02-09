@@ -55,11 +55,11 @@ export async function createProposal(data: {
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("neighborhood_id, renown_tier")
+    .select("community_id, renown_tier")
     .eq("id", user.id)
     .single();
 
-  if (!profile || !profile.neighborhood_id) {
+  if (!profile || !profile.community_id) {
     return { success: false as const, error: "Profile not found" };
   }
 
@@ -85,7 +85,7 @@ export async function createProposal(data: {
   const { data: proposal, error } = await admin
     .from("governance_proposals")
     .insert({
-      neighborhood_id: profile.neighborhood_id,
+      community_id: profile.community_id,
       guild_id: parsed.data.guild_id ?? null,
       author_id: user.id,
       title: parsed.data.title,
@@ -147,7 +147,7 @@ export async function castVote(data: {
   // Check proposal is in voting phase (no longer need votes_for/against — RPC handles tallies)
   const { data: proposal } = await admin
     .from("governance_proposals")
-    .select("id, status, vote_type, voting_ends_at, neighborhood_id")
+    .select("id, status, vote_type, voting_ends_at, community_id")
     .eq("id", data.proposal_id)
     .single();
 
@@ -159,19 +159,19 @@ export async function castVote(data: {
     return { success: false as const, error: "Voting period has ended" };
   }
 
-  // W1: Neighborhood scoping
+  // W1: Community scoping
   const { data: userProfile } = await admin
     .from("profiles")
-    .select("neighborhood_id")
+    .select("community_id")
     .eq("id", user.id)
     .single();
 
-  if (!userProfile?.neighborhood_id) {
+  if (!userProfile?.community_id) {
     return { success: false as const, error: "Profile not found" };
   }
 
-  if (proposal.neighborhood_id !== userProfile.neighborhood_id) {
-    return { success: false as const, error: "Proposal is not in your neighborhood" };
+  if (proposal.community_id !== userProfile.community_id) {
+    return { success: false as const, error: "Proposal is not in your community" };
   }
 
   // C4: Validate and bound credits (1-100 integers only)
@@ -229,7 +229,7 @@ export async function castVote(data: {
   return { success: true as const };
 }
 
-export async function getNeighborhoodProposals(neighborhoodId: string) {
+export async function getCommunityProposals(communityId: string) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -241,15 +241,15 @@ export async function getNeighborhoodProposals(neighborhoodId: string) {
 
   const admin = createServiceClient();
 
-  // W1: Verify user belongs to this neighborhood
+  // W1: Verify user belongs to this community
   const { data: userProfile } = await admin
     .from("profiles")
-    .select("neighborhood_id")
+    .select("community_id")
     .eq("id", user.id)
     .single();
 
-  if (userProfile?.neighborhood_id !== neighborhoodId) {
-    return { success: false as const, error: "Not your neighborhood" };
+  if (userProfile?.community_id !== communityId) {
+    return { success: false as const, error: "Not your community" };
   }
 
   const { data: proposals, error } = await admin
@@ -260,7 +260,7 @@ export async function getNeighborhoodProposals(neighborhoodId: string) {
       deliberation_ends_at, voting_ends_at, created_at,
       author_id, profiles!governance_proposals_author_id_fkey(display_name, renown_tier)
     `)
-    .eq("neighborhood_id", neighborhoodId)
+    .eq("community_id", communityId)
     .order("created_at", { ascending: false })
     .limit(30);
 

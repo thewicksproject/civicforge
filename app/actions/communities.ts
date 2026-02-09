@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
-const CreateNeighborhoodSchema = z.object({
+const CreateCommunitySchema = z.object({
   name: z
     .string()
     .min(3, "Name must be at least 3 characters")
@@ -32,7 +32,7 @@ const SearchSchema = z
   .min(1, "Search query must not be empty")
   .max(100, "Search query is too long");
 
-export async function createNeighborhood(formData: FormData) {
+export async function createCommunity(formData: FormData) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -50,17 +50,17 @@ export async function createNeighborhood(formData: FormData) {
     description: formData.get("description") || "",
   };
 
-  const parsed = CreateNeighborhoodSchema.safeParse(raw);
+  const parsed = CreateCommunitySchema.safeParse(raw);
   if (!parsed.success) {
     return { success: false as const, error: parsed.error.issues[0].message };
   }
 
-  // Check user doesn't already belong to a neighborhood
+  // Check user doesn't already belong to a community
   // Use service client to bypass RLS (user already verified via getUser above)
   const admin = createServiceClient();
   const { data: profile, error: profileError } = await admin
     .from("profiles")
-    .select("neighborhood_id")
+    .select("community_id")
     .eq("id", user.id)
     .single();
 
@@ -68,10 +68,10 @@ export async function createNeighborhood(formData: FormData) {
     return { success: false as const, error: "Profile not found" };
   }
 
-  if (profile.neighborhood_id) {
+  if (profile.community_id) {
     return {
       success: false as const,
-      error: "You already belong to a neighborhood",
+      error: "You already belong to a community",
     };
   }
 
@@ -99,9 +99,9 @@ export async function createNeighborhood(formData: FormData) {
     }
   }
 
-  // Create the neighborhood (use admin client to bypass RLS)
-  const { data: neighborhood, error: insertError } = await admin
-    .from("neighborhoods")
+  // Create the community (use admin client to bypass RLS)
+  const { data: community, error: insertError } = await admin
+    .from("communities")
     .insert({
       name: parsed.data.name,
       city: parsed.data.city,
@@ -114,14 +114,14 @@ export async function createNeighborhood(formData: FormData) {
     .single();
 
   if (insertError) {
-    return { success: false as const, error: "Failed to create neighborhood" };
+    return { success: false as const, error: "Failed to create community" };
   }
 
-  // Auto-promote user to Tier 2 and assign to the new neighborhood
+  // Auto-promote user to Tier 2 and assign to the new community
   const { error: profileUpdateError } = await admin
     .from("profiles")
     .update({
-      neighborhood_id: neighborhood.id,
+      community_id: community.id,
       renown_tier: 2,
       updated_at: new Date().toISOString(),
     })
@@ -129,16 +129,16 @@ export async function createNeighborhood(formData: FormData) {
 
   if (profileUpdateError) {
     console.error(
-      "Failed to update creator profile after neighborhood creation:",
+      "Failed to update creator profile after community creation:",
       profileUpdateError
     );
-    // The neighborhood was created, so return it even if profile update failed
+    // The community was created, so return it even if profile update failed
   }
 
-  return { success: true as const, data: neighborhood };
+  return { success: true as const, data: community };
 }
 
-export async function getNeighborhood(id: string) {
+export async function getCommunity(id: string) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -150,39 +150,39 @@ export async function getNeighborhood(id: string) {
 
   const idParsed = z.string().uuid().safeParse(id);
   if (!idParsed.success) {
-    return { success: false as const, error: "Invalid neighborhood ID" };
+    return { success: false as const, error: "Invalid community ID" };
   }
 
-  const { data: neighborhood, error } = await supabase
-    .from("neighborhoods")
+  const { data: community, error } = await supabase
+    .from("communities")
     .select("*")
     .eq("id", id)
     .single();
 
-  if (error || !neighborhood) {
-    return { success: false as const, error: "Neighborhood not found" };
+  if (error || !community) {
+    return { success: false as const, error: "Community not found" };
   }
 
   // Get member count
   const { count, error: countError } = await supabase
     .from("profiles")
     .select("id", { count: "exact", head: true })
-    .eq("neighborhood_id", id);
+    .eq("community_id", id);
 
   if (countError) {
     return {
       success: true as const,
-      data: { ...neighborhood, member_count: 0 },
+      data: { ...community, member_count: 0 },
     };
   }
 
   return {
     success: true as const,
-    data: { ...neighborhood, member_count: count ?? 0 },
+    data: { ...community, member_count: count ?? 0 },
   };
 }
 
-export async function searchNeighborhoods(query: string) {
+export async function searchCommunities(query: string) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -210,30 +210,30 @@ export async function searchNeighborhoods(query: string) {
   }
 
   // Search by name or city using ilike
-  const { data: neighborhoods, error } = await supabase
-    .from("neighborhoods")
+  const { data: communities, error } = await supabase
+    .from("communities")
     .select("*")
     .or(`name.ilike.%${safeTerm}%,city.ilike.%${safeTerm}%`)
     .order("name", { ascending: true })
     .limit(20);
 
   if (error) {
-    return { success: false as const, error: "Failed to search neighborhoods" };
+    return { success: false as const, error: "Failed to search communities" };
   }
 
   // Also check if query looks like a zip code and search zip_codes array
   const isZipLike = /^\d{3,5}$/.test(searchTerm);
   if (isZipLike) {
     const { data: zipMatches, error: zipError } = await supabase
-      .from("neighborhoods")
+      .from("communities")
       .select("*")
       .contains("zip_codes", [searchTerm])
       .limit(20);
 
     if (!zipError && zipMatches) {
       // Merge results, avoiding duplicates
-      const existingIds = new Set(neighborhoods?.map((n) => n.id) ?? []);
-      const combined = [...(neighborhoods ?? [])];
+      const existingIds = new Set(communities?.map((n) => n.id) ?? []);
+      const combined = [...(communities ?? [])];
       for (const match of zipMatches) {
         if (!existingIds.has(match.id)) {
           combined.push(match);
@@ -243,5 +243,5 @@ export async function searchNeighborhoods(query: string) {
     }
   }
 
-  return { success: true as const, data: neighborhoods ?? [] };
+  return { success: true as const, data: communities ?? [] };
 }

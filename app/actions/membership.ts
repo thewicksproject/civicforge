@@ -4,7 +4,7 @@ import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 const RequestMembershipSchema = z.object({
-  neighborhoodId: z.string().uuid("Invalid neighborhood ID"),
+  communityId: z.string().uuid("Invalid community ID"),
   message: z
     .string()
     .max(500, "Message must be at most 500 characters")
@@ -14,7 +14,7 @@ const RequestMembershipSchema = z.object({
 const ReviewStatusSchema = z.enum(["approved", "denied"] as const);
 
 export async function requestMembership(
-  neighborhoodId: string,
+  communityId: string,
   message?: string
 ) {
   const supabase = await createClient();
@@ -26,28 +26,28 @@ export async function requestMembership(
     return { success: false as const, error: "You must be logged in" };
   }
 
-  const parsed = RequestMembershipSchema.safeParse({ neighborhoodId, message });
+  const parsed = RequestMembershipSchema.safeParse({ communityId, message });
   if (!parsed.success) {
     return { success: false as const, error: parsed.error.issues[0].message };
   }
 
   const admin = createServiceClient();
 
-  // Check that the neighborhood exists
-  const { data: neighborhood, error: neighborhoodError } = await admin
-    .from("neighborhoods")
+  // Check that the community exists
+  const { data: community, error: communityError } = await admin
+    .from("communities")
     .select("id")
-    .eq("id", parsed.data.neighborhoodId)
+    .eq("id", parsed.data.communityId)
     .single();
 
-  if (neighborhoodError || !neighborhood) {
-    return { success: false as const, error: "Neighborhood not found" };
+  if (communityError || !community) {
+    return { success: false as const, error: "Community not found" };
   }
 
-  // Check user doesn't already belong to a neighborhood
+  // Check user doesn't already belong to a community
   const { data: profile, error: profileError } = await admin
     .from("profiles")
-    .select("neighborhood_id")
+    .select("community_id")
     .eq("id", user.id)
     .single();
 
@@ -55,26 +55,26 @@ export async function requestMembership(
     return { success: false as const, error: "Profile not found" };
   }
 
-  if (profile.neighborhood_id) {
+  if (profile.community_id) {
     return {
       success: false as const,
-      error: "You already belong to a neighborhood",
+      error: "You already belong to a community",
     };
   }
 
-  // Check for existing pending request to this neighborhood
+  // Check for existing pending request to this community
   const { data: existingRequest } = await admin
     .from("membership_requests")
     .select("id, status")
     .eq("user_id", user.id)
-    .eq("neighborhood_id", parsed.data.neighborhoodId)
+    .eq("community_id", parsed.data.communityId)
     .eq("status", "pending")
     .maybeSingle();
 
   if (existingRequest) {
     return {
       success: false as const,
-      error: "You already have a pending request for this neighborhood",
+      error: "You already have a pending request for this community",
     };
   }
 
@@ -82,7 +82,7 @@ export async function requestMembership(
     .from("membership_requests")
     .insert({
       user_id: user.id,
-      neighborhood_id: parsed.data.neighborhoodId,
+      community_id: parsed.data.communityId,
       message: parsed.data.message ?? null,
     })
     .select()
@@ -141,10 +141,10 @@ export async function reviewMembership(
     };
   }
 
-  // Verify reviewer is Tier 2+ in the same neighborhood
+  // Verify reviewer is Tier 2+ in the same community
   const { data: reviewerProfile, error: reviewerError } = await admin
     .from("profiles")
-    .select("renown_tier, neighborhood_id")
+    .select("renown_tier, community_id")
     .eq("id", user.id)
     .single();
 
@@ -159,10 +159,10 @@ export async function reviewMembership(
     };
   }
 
-  if (reviewerProfile.neighborhood_id !== request.neighborhood_id) {
+  if (reviewerProfile.community_id !== request.community_id) {
     return {
       success: false as const,
-      error: "You can only review requests for your own neighborhood",
+      error: "You can only review requests for your own community",
     };
   }
 
@@ -190,7 +190,7 @@ export async function reviewMembership(
     const { error: profileUpdateError } = await admin
       .from("profiles")
       .update({
-        neighborhood_id: request.neighborhood_id,
+        community_id: request.community_id,
         renown_tier: 2,
         updated_at: new Date().toISOString(),
       })

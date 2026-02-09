@@ -69,7 +69,7 @@ The data export function lives at `/lib/privacy/export.ts` and is exposed via `/
 | `audit_log` | Yes (actions taken by user) | No | **Yes (fixed)** |
 | `deletion_requests` | Yes (deletion request history) | No | **Yes (fixed)** |
 | `post_flags` | Yes (flags submitted by user) | No | **Yes (fixed)** |
-| `neighborhoods` | Indirect (created_by reference) | No | No (not user-owned PII) |
+| `communities` | Indirect (created_by reference) | No | No (not user-owned PII) |
 
 **Remaining gaps:**
 - **FORMAT:** Export is JSON-only. CCPA does not mandate a specific format, but providing CSV or human-readable alternatives improves accessibility.
@@ -181,7 +181,7 @@ The `updateProfile` server action processes these changes. RLS policies allow us
 
 CivicForge collects limited sensitive personal information:
 - **Phone number:** Collected for verification only, processed via Twilio Verify, and only a boolean `phone_verified` flag is stored (the actual phone number is not persisted in the database).
-- **Precise geolocation:** Explicitly excluded. The AI extraction prompt instructs: "NEVER include precise addresses -- coarsen to neighborhood level." The `location_hint` schema field is max 100 characters and described as "Neighborhood-level location hint only."
+- **Precise geolocation:** Explicitly excluded. The AI extraction prompt instructs: "NEVER include precise addresses -- coarsen to community level." The `location_hint` schema field is max 100 characters and described as "Community-level location hint only."
 
 No social security numbers, financial accounts, health data, racial/ethnic origin, or other sensitive PI categories (per 1798.140(ae)) are collected.
 
@@ -348,7 +348,7 @@ Match results include a `match_reason` per suggestion, stored in `ai_matches` ta
 
 CivicForge demonstrates strong data minimization:
 
-- **Location:** AI prompts explicitly coarsen to neighborhood level. `location_hint` schema field enforces max 100 characters with the instruction "Neighborhood-level location hint only. NEVER include precise addresses."
+- **Location:** AI prompts explicitly coarsen to community level. `location_hint` schema field enforces max 100 characters with the instruction "Community-level location hint only. NEVER include precise addresses."
 - **Phone numbers:** Not stored. Only a boolean `phone_verified` flag is persisted after Twilio verification.
 - **Photos:** All EXIF/GPS metadata is stripped via Sharp (`/lib/photos/process.ts`). Photos are auto-oriented, then re-encoded to JPEG with all metadata removed.
 - **Permissions policy:** Middleware disables camera, microphone, and geolocation browser APIs: `camera=(), microphone=(), geolocation=()`.
@@ -467,10 +467,10 @@ Added:
 - `audit_log` -- all audit log entries for the user
 - `deletion_requests` -- deletion request history
 - `invitations` -- invitations created by the user
-- `membership_requests` -- neighborhood membership requests
+- `membership_requests` -- community membership requests
 - `post_flags` -- flags submitted by the user
 
-The `neighborhoods` table is excluded because it contains community data, not individual user PII (the `created_by` reference is captured through the profile's `neighborhood_id`).
+The `communities` table is excluded because it contains community data, not individual user PII (the `created_by` reference is captured through the profile's `community_id`).
 
 ---
 
@@ -555,8 +555,8 @@ User Input
 
 All 14 database tables have Row Level Security enabled. Key access patterns:
 
-- **Profiles:** Users read same-neighborhood profiles; create/update/delete own only.
-- **Posts:** Users read non-hidden posts in own neighborhood; create/update/delete own only. Tier 3 can read/update all for moderation.
+- **Profiles:** Users read same-community profiles; create/update/delete own only.
+- **Posts:** Users read non-hidden posts in own community; create/update/delete own only. Tier 3 can read/update all for moderation.
 - **Responses:** Visible to post author and responder only.
 - **AI Matches:** Visible to post author only. Insert by service role only.
 - **AI Usage:** Own records only.

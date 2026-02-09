@@ -150,7 +150,7 @@ export function HeroIllustration({ className }: IllustrationProps) {
       fill="none"
       className={className}
       role="img"
-      aria-label="Neighborhood connected by golden paths"
+      aria-label="Community connected by golden paths"
     >
       {/* Warm radial glow */}
       <circle cx="200" cy="150" r="120" fill="var(--golden-hour)" fillOpacity="0.06" />

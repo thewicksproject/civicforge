@@ -72,7 +72,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-primary mb-1">CivicForge</h1>
           <p className="text-sm text-muted-foreground">
-            Your neighborhood, connected.
+            Your community, connected.
           </p>
         </div>
 

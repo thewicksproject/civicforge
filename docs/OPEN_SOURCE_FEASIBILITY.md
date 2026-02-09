@@ -132,9 +132,9 @@ Source-available license that restricts commercial use for a defined period, aft
 CivicForge is a community coordination tool, not a commercial product generating revenue from software licensing. Key considerations:
 
 - **Mission alignment:** The project's stated principle is "community ownership -- no ads, no data selling, ever." Restrictive licenses contradict this ethos.
-- **Network effects over code protection:** CivicForge's value comes from neighborhood communities using it, not from the code itself. More deployments (even forks) advance the mission.
+- **Network effects over code protection:** CivicForge's value comes from communities using it, not from the code itself. More deployments (even forks) advance the mission.
 - **Stack alignment:** Supabase (Apache 2.0), Next.js (MIT), Drizzle (Apache 2.0) -- the entire stack is permissively licensed. AGPL or BSL would create a licensing mismatch and deter contributors.
-- **No revenue to protect:** There is no SaaS revenue stream that a fork could undercut. The risk of a commercial competitor forking a neighborhood needs board is negligible.
+- **No revenue to protect:** There is no SaaS revenue stream that a fork could undercut. The risk of a commercial competitor forking a community needs board is negligible.
 - **Contributor attraction:** Permissive licenses attract more contributors. AGPL and BSL scare away corporate contributors and many individual developers.
 
 ### 3.6 Recommendation
@@ -221,7 +221,7 @@ CivicForge's infrastructure costs scale with usage. At current (pre-launch) scal
 
 | Service | Free Tier | Paid Tier | Notes |
 |---------|-----------|-----------|-------|
-| Supabase | 500 MB DB, 1 GB storage, 50K monthly active users | $25/mo (Pro) | Sufficient for a single neighborhood; Pro needed for multiple |
+| Supabase | 500 MB DB, 1 GB storage, 50K monthly active users | $25/mo (Pro) | Sufficient for a single community; Pro needed for multiple |
 | Vercel | 100 GB bandwidth, serverless functions | $20/mo (Pro) | Free tier adequate for moderate traffic |
 | Anthropic API | None (pay-per-use) | ~$5-50/mo | Depends on AI feature usage; rate limiting keeps costs bounded |
 | Upstash Redis | 10K commands/day | $10/mo (Pro) | Free tier sufficient for rate limiting at low scale |
@@ -252,7 +252,7 @@ Dual licensing (e.g., Apache 2.0 for open source, commercial license for enterpr
 - Dual licensing creates confusion and discourages contributors
 - The maintenance burden of managing two license tracks is not justified
 
-If Wicks LLC later develops a hosted multi-neighborhood SaaS offering, revenue should come from the hosted service (infrastructure, support, SLAs) rather than from licensing the code.
+If Wicks LLC later develops a hosted multi-community SaaS offering, revenue should come from the hosted service (infrastructure, support, SLAs) rather than from licensing the code.
 
 ---
 
@@ -366,7 +366,7 @@ Establish a clear vulnerability disclosure process before going public:
 
 ### Timing
 
-Open source after V2 is stable and deployed to at least one real neighborhood. The initial release should be a working product, not a work in progress. A premature open-source launch invites contributions to a moving target and wastes both maintainer and contributor time.
+Open source after V2 is stable and deployed to at least one real community. The initial release should be a working product, not a work in progress. A premature open-source launch invites contributions to a moving target and wastes both maintainer and contributor time.
 
 ### Summary
 

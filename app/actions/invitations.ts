@@ -4,7 +4,7 @@ import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { generateInviteCode } from "@/lib/utils";
 
-export async function createInvitation(neighborhoodId: string) {
+export async function createInvitation(communityId: string) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -14,17 +14,17 @@ export async function createInvitation(neighborhoodId: string) {
     return { success: false as const, error: "You must be logged in" };
   }
 
-  const idParsed = z.string().uuid().safeParse(neighborhoodId);
+  const idParsed = z.string().uuid().safeParse(communityId);
   if (!idParsed.success) {
-    return { success: false as const, error: "Invalid neighborhood ID" };
+    return { success: false as const, error: "Invalid community ID" };
   }
 
   const admin = createServiceClient();
 
-  // Verify user is Tier 2+ and belongs to this neighborhood
+  // Verify user is Tier 2+ and belongs to this community
   const { data: profile, error: profileError } = await admin
     .from("profiles")
-    .select("renown_tier, neighborhood_id")
+    .select("renown_tier, community_id")
     .eq("id", user.id)
     .single();
 
@@ -39,10 +39,10 @@ export async function createInvitation(neighborhoodId: string) {
     };
   }
 
-  if (profile.neighborhood_id !== neighborhoodId) {
+  if (profile.community_id !== communityId) {
     return {
       success: false as const,
-      error: "You can only create invitations for your own neighborhood",
+      error: "You can only create invitations for your own community",
     };
   }
 
@@ -55,7 +55,7 @@ export async function createInvitation(neighborhoodId: string) {
     .from("invitations")
     .insert({
       code,
-      neighborhood_id: neighborhoodId,
+      community_id: communityId,
       created_by: user.id,
       expires_at: expiresAt.toISOString(),
     })
@@ -70,7 +70,7 @@ export async function createInvitation(neighborhoodId: string) {
         .from("invitations")
         .insert({
           code: retryCode,
-          neighborhood_id: neighborhoodId,
+          community_id: communityId,
           created_by: user.id,
           expires_at: expiresAt.toISOString(),
         })
@@ -136,10 +136,10 @@ export async function redeemInvitation(code: string) {
     return { success: false as const, error: "This invitation has expired" };
   }
 
-  // Check if user already belongs to a neighborhood
+  // Check if user already belongs to a community
   const { data: profile, error: profileError } = await admin
     .from("profiles")
-    .select("neighborhood_id, renown_tier")
+    .select("community_id, renown_tier")
     .eq("id", user.id)
     .single();
 
@@ -147,10 +147,10 @@ export async function redeemInvitation(code: string) {
     return { success: false as const, error: "Profile not found" };
   }
 
-  if (profile.neighborhood_id) {
+  if (profile.community_id) {
     return {
       success: false as const,
-      error: "You already belong to a neighborhood",
+      error: "You already belong to a community",
     };
   }
 
@@ -164,12 +164,12 @@ export async function redeemInvitation(code: string) {
     return { success: false as const, error: "Failed to redeem invitation" };
   }
 
-  // Update user's profile: set neighborhood and upgrade renown tier to 2
+  // Update user's profile: set community and upgrade renown tier to 2
   const newRenownTier = Math.max(profile.renown_tier, 2);
   const { data: updatedProfile, error: updateProfileError } = await admin
     .from("profiles")
     .update({
-      neighborhood_id: invitation.neighborhood_id,
+      community_id: invitation.community_id,
       renown_tier: newRenownTier,
       updated_at: new Date().toISOString(),
     })
@@ -180,7 +180,7 @@ export async function redeemInvitation(code: string) {
   if (updateProfileError) {
     return {
       success: false as const,
-      error: "Failed to update profile with neighborhood",
+      error: "Failed to update profile with community",
     };
   }
 

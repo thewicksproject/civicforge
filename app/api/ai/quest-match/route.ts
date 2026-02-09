@@ -59,11 +59,11 @@ export async function POST(request: Request) {
   // Fetch user's profile and skill progress
   const { data: profile } = await admin
     .from("profiles")
-    .select("id, display_name, skills, neighborhood_id")
+    .select("id, display_name, skills, community_id")
     .eq("id", user.id)
     .single();
 
-  if (!profile || !profile.neighborhood_id) {
+  if (!profile || !profile.community_id) {
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });
   }
 
@@ -73,11 +73,11 @@ export async function POST(request: Request) {
     .select("domain, level")
     .eq("user_id", user.id);
 
-  // Fetch open quests in the user's neighborhood
+  // Fetch open quests in the user's community
   const { data: quests } = await admin
     .from("quests")
     .select("id, title, description, difficulty, skill_domains, created_by, status")
-    .eq("neighborhood_id", profile.neighborhood_id)
+    .eq("community_id", profile.community_id)
     .eq("status", "open")
     .neq("created_by", user.id)
     .limit(20);

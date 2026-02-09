@@ -1,14 +1,14 @@
 # CivicForge
 
-**Your neighborhood, connected.**
+**Your community, connected.**
 
-A neighborhood needs board where people post needs, offer help, get AI-matched, and build reputation. No ads, no data selling — just neighbors helping neighbors.
+A community needs board where people post needs, offer help, get AI-matched, and build reputation. No ads, no data selling — just neighbors helping neighbors.
 
 A [Wicks LLC](https://thewicksproject.org) project.
 
 ## How It Works
 
-1. **Post** a need or offer to your neighborhood board
+1. **Post** a need or offer to your community board
 2. **Get matched** with neighbors who can help (AI-suggested, human-decided)
 3. **Help each other** and build reputation through thanks
 

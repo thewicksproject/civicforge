@@ -63,11 +63,11 @@ export async function createQuest(data: {
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("neighborhood_id, renown_tier")
+    .select("community_id, renown_tier")
     .eq("id", user.id)
     .single();
 
-  if (!profile || !profile.neighborhood_id) {
+  if (!profile || !profile.community_id) {
     return { success: false as const, error: "Profile not found" };
   }
 
@@ -83,7 +83,7 @@ export async function createQuest(data: {
 
   const { data: quest, error } = await admin.from("quests").insert({
     post_id: data.post_id ?? null,
-    neighborhood_id: profile.neighborhood_id,
+    community_id: profile.community_id,
     created_by: user.id,
     title: parsed.data.title,
     description: parsed.data.description,
@@ -140,7 +140,7 @@ export async function createQuestFromPost(postId: string) {
 
   const { data: post } = await admin
     .from("posts")
-    .select("id, title, description, category, skills_relevant, urgency, author_id, neighborhood_id")
+    .select("id, title, description, category, skills_relevant, urgency, author_id, community_id")
     .eq("id", postId)
     .single();
 
@@ -176,20 +176,20 @@ export async function claimQuest(questId: string) {
 
   const admin = createServiceClient();
 
-  // W1: Neighborhood scoping
+  // W1: Community scoping
   const { data: userProfile } = await admin
     .from("profiles")
-    .select("neighborhood_id")
+    .select("community_id")
     .eq("id", user.id)
     .single();
 
-  if (!userProfile?.neighborhood_id) {
+  if (!userProfile?.community_id) {
     return { success: false as const, error: "Profile not found" };
   }
 
   const { data: quest } = await admin
     .from("quests")
-    .select("id, status, max_party_size, created_by, neighborhood_id")
+    .select("id, status, max_party_size, created_by, community_id")
     .eq("id", questId)
     .single();
 
@@ -197,8 +197,8 @@ export async function claimQuest(questId: string) {
     return { success: false as const, error: "Quest not found" };
   }
 
-  if (quest.neighborhood_id !== userProfile.neighborhood_id) {
-    return { success: false as const, error: "Quest is not in your neighborhood" };
+  if (quest.community_id !== userProfile.community_id) {
+    return { success: false as const, error: "Quest is not in your community" };
   }
 
   if (quest.status !== "open") {
@@ -333,20 +333,20 @@ export async function validateQuest(
 
   const admin = createServiceClient();
 
-  // W1: Neighborhood scoping
+  // W1: Community scoping
   const { data: userProfile } = await admin
     .from("profiles")
-    .select("neighborhood_id, renown_tier")
+    .select("community_id, renown_tier")
     .eq("id", user.id)
     .single();
 
-  if (!userProfile?.neighborhood_id) {
+  if (!userProfile?.community_id) {
     return { success: false as const, error: "Profile not found" };
   }
 
   const { data: quest } = await admin
     .from("quests")
-    .select("id, status, validation_count, validation_threshold, skill_domains, xp_reward, created_by, neighborhood_id")
+    .select("id, status, validation_count, validation_threshold, skill_domains, xp_reward, created_by, community_id")
     .eq("id", questId)
     .single();
 
@@ -354,8 +354,8 @@ export async function validateQuest(
     return { success: false as const, error: "Quest is not pending validation" };
   }
 
-  if (quest.neighborhood_id !== userProfile.neighborhood_id) {
-    return { success: false as const, error: "Quest is not in your neighborhood" };
+  if (quest.community_id !== userProfile.community_id) {
+    return { success: false as const, error: "Quest is not in your community" };
   }
 
   if (quest.created_by === user.id) {
@@ -471,7 +471,7 @@ function calculateLevel(totalXp: number): number {
   return level;
 }
 
-export async function getNeighborhoodQuests(neighborhoodId: string) {
+export async function getCommunityQuests(communityId: string) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -483,15 +483,15 @@ export async function getNeighborhoodQuests(neighborhoodId: string) {
 
   const admin = createServiceClient();
 
-  // W1: Verify user belongs to this neighborhood
+  // W1: Verify user belongs to this community
   const { data: userProfile } = await admin
     .from("profiles")
-    .select("neighborhood_id")
+    .select("community_id")
     .eq("id", user.id)
     .single();
 
-  if (userProfile?.neighborhood_id !== neighborhoodId) {
-    return { success: false as const, error: "Not your neighborhood" };
+  if (userProfile?.community_id !== communityId) {
+    return { success: false as const, error: "Not your community" };
   }
 
   const { data: quests, error } = await admin
@@ -501,7 +501,7 @@ export async function getNeighborhoodQuests(neighborhoodId: string) {
       xp_reward, max_party_size, is_emergency, created_at,
       created_by, profiles!quests_created_by_fkey(display_name, avatar_url, renown_tier)
     `)
-    .eq("neighborhood_id", neighborhoodId)
+    .eq("community_id", communityId)
     .in("status", ["open", "claimed", "in_progress", "pending_validation"])
     .order("created_at", { ascending: false })
     .limit(50);

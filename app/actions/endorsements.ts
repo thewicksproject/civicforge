@@ -46,25 +46,25 @@ export async function createEndorsement(data: {
 
   const admin = createServiceClient();
 
-  // W1: Neighborhood scoping — both users must be in same neighborhood
+  // W1: Community scoping — both users must be in same community
   const { data: fromProfile } = await admin
     .from("profiles")
-    .select("neighborhood_id")
+    .select("community_id")
     .eq("id", user.id)
     .single();
 
   const { data: toProfile } = await admin
     .from("profiles")
-    .select("neighborhood_id")
+    .select("community_id")
     .eq("id", parsed.data.to_user)
     .single();
 
-  if (!fromProfile?.neighborhood_id || !toProfile?.neighborhood_id) {
+  if (!fromProfile?.community_id || !toProfile?.community_id) {
     return { success: false as const, error: "Profile not found" };
   }
 
-  if (fromProfile.neighborhood_id !== toProfile.neighborhood_id) {
-    return { success: false as const, error: "Cannot endorse someone in a different neighborhood" };
+  if (fromProfile.community_id !== toProfile.community_id) {
+    return { success: false as const, error: "Cannot endorse someone in a different community" };
   }
 
   // W7: Check for duplicate endorsement before insert

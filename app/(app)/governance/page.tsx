@@ -17,14 +17,14 @@ export default async function GovernancePage() {
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("neighborhood_id, renown_tier")
+    .select("community_id, renown_tier")
     .eq("id", user.id)
     .single();
 
-  if (!profile?.neighborhood_id) {
+  if (!profile?.community_id) {
     return (
       <div className="text-center py-16">
-        <p className="text-muted-foreground">Join a neighborhood to see governance proposals.</p>
+        <p className="text-muted-foreground">Join a community to see governance proposals.</p>
       </div>
     );
   }
@@ -37,7 +37,7 @@ export default async function GovernancePage() {
       deliberation_ends_at, voting_ends_at, created_at,
       author_id, profiles!governance_proposals_author_id_fkey(display_name, renown_tier)
     `)
-    .eq("neighborhood_id", profile.neighborhood_id)
+    .eq("community_id", profile.community_id)
     .order("created_at", { ascending: false })
     .limit(30);
 
@@ -93,7 +93,7 @@ export default async function GovernancePage() {
         <div className="text-center py-16 rounded-xl border border-dashed border-border">
           <h3 className="text-lg font-semibold mb-1">No proposals yet</h3>
           <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
-            Governance proposals let your neighborhood deliberate and vote on rules,
+            Governance proposals let your community deliberate and vote on rules,
             charter amendments, and community decisions.
             Keepers (Renown Tier 4+) can create proposals.
           </p>

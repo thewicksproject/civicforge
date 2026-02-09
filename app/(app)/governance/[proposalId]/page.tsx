@@ -40,10 +40,10 @@ export default async function ProposalDetailPage({
 
   const admin = createServiceClient();
 
-  // C2: Neighborhood scoping
+  // C2: Community scoping
   const { data: profile } = await admin
     .from("profiles")
-    .select("neighborhood_id, renown_tier")
+    .select("community_id, renown_tier")
     .eq("id", user.id)
     .single();
 
@@ -57,7 +57,7 @@ export default async function ProposalDetailPage({
     .single();
 
   if (!proposal) notFound();
-  if (profile?.neighborhood_id !== proposal.neighborhood_id) notFound();
+  if (profile?.community_id !== proposal.community_id) notFound();
 
   const author = Array.isArray(proposal.author) ? proposal.author[0] : proposal.author;
 

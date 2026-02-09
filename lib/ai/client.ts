@@ -210,7 +210,7 @@ Renown tier: ${context.profile.renown_tier}
 Skills: ${context.profile.skill_domains.map((d) => `${d.domain} (level ${d.level})`).join(", ") || "none yet"}
 Guilds: ${context.profile.guild_memberships.join(", ") || "none yet"}
 
-RECENT NEIGHBORHOOD ACTIVITY:
+RECENT COMMUNITY ACTIVITY:
 ${context.recentActivity || "No recent activity"}
 
 ACTIVE QUESTS:

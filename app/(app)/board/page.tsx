@@ -26,21 +26,21 @@ export default async function BoardPage({
   // Use service client to bypass self-referencing RLS policy on profiles
   const admin = createServiceClient();
 
-  // Get user's profile to know their neighborhood
+  // Get user's profile to know their community
   const { data: profile } = await admin
     .from("profiles")
-    .select("neighborhood_id, renown_tier")
+    .select("community_id, renown_tier")
     .eq("id", user.id)
     .single();
 
-  if (!profile?.neighborhood_id) {
+  if (!profile?.community_id) {
     return (
       <div className="text-center py-16">
         <h2 className="text-2xl font-semibold mb-2">
           Welcome to CivicForge
         </h2>
         <p className="text-muted-foreground mb-6">
-          Join a neighborhood to see the needs board.
+          Join a community to see the needs board.
         </p>
         <Link
           href="/onboarding"
@@ -52,7 +52,7 @@ export default async function BoardPage({
     );
   }
 
-  // Fetch posts for user's neighborhood
+  // Fetch posts for user's community
   const { data: posts } = await admin
     .from("posts")
     .select(
@@ -63,13 +63,13 @@ export default async function BoardPage({
       responses (id)
     `
     )
-    .eq("neighborhood_id", profile.neighborhood_id)
+    .eq("community_id", profile.community_id)
     .eq("hidden", false)
     .eq("status", "active")
     .order("created_at", { ascending: false })
     .limit(50);
 
-  // Fetch quests for user's neighborhood
+  // Fetch quests for user's community
   const { data: quests } = await admin
     .from("quests")
     .select(`
@@ -77,7 +77,7 @@ export default async function BoardPage({
       xp_reward, max_party_size, is_emergency, created_at,
       created_by, profiles!quests_created_by_fkey(display_name, avatar_url, renown_tier)
     `)
-    .eq("neighborhood_id", profile.neighborhood_id)
+    .eq("community_id", profile.community_id)
     .in("status", ["open", "claimed", "in_progress", "pending_validation"])
     .order("created_at", { ascending: false })
     .limit(50);
@@ -92,7 +92,7 @@ export default async function BoardPage({
         <div>
           <h1 className="text-2xl font-semibold">Hearthboard</h1>
           <p className="text-sm text-muted-foreground">
-            What&apos;s happening in your neighborhood
+            What&apos;s happening in your community
           </p>
         </div>
         <div className="flex gap-2">
@@ -160,7 +160,7 @@ export default async function BoardPage({
           </h3>
           <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
             Quests are structured tasks with clear completion criteria and XP rewards.
-            Create the first one for your neighborhood.
+            Create the first one for your community.
           </p>
           {canCreateQuest && (
             <Link

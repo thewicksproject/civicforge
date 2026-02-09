@@ -1,26 +1,26 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { searchNeighborhoods } from "@/app/actions/neighborhoods";
+import { searchCommunities } from "@/app/actions/communities";
 
-interface Neighborhood {
+interface Community {
   id: string;
   name: string;
   city: string;
   state: string;
 }
 
-interface NeighborhoodPickerProps {
+interface CommunityPickerProps {
   onSelect: (id: string) => void;
   selectedId?: string;
 }
 
-export function NeighborhoodPicker({
+export function CommunityPicker({
   onSelect,
   selectedId,
-}: NeighborhoodPickerProps) {
+}: CommunityPickerProps) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Neighborhood[]>([]);
+  const [results, setResults] = useState<Community[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
 
@@ -31,7 +31,7 @@ export function NeighborhoodPicker({
 
     const timeout = setTimeout(async () => {
       setLoading(true);
-      const res = await searchNeighborhoods(query);
+      const res = await searchCommunities(query);
       if (res.success && res.data) {
         setResults(res.data);
       }
@@ -44,7 +44,7 @@ export function NeighborhoodPicker({
   return (
     <div className="space-y-3">
       <label className="block text-sm font-medium">
-        Find your neighborhood
+        Find your community
       </label>
       <input
         type="text"
@@ -83,24 +83,24 @@ export function NeighborhoodPicker({
       {query.length >= 2 && !loading && results.length === 0 && (
         <div className="text-center py-4">
           <p className="text-sm text-muted-foreground mb-2">
-            No neighborhoods found.
+            No communities found.
           </p>
           <button
             type="button"
             onClick={() => setShowCreate(true)}
             className="text-sm text-primary font-medium hover:underline"
           >
-            Create a new neighborhood
+            Create a new community
           </button>
         </div>
       )}
 
       {showCreate && (
-        <input type="hidden" name="create_neighborhood" value="true" />
+        <input type="hidden" name="create_community" value="true" />
       )}
 
       {selectedId && (
-        <input type="hidden" name="neighborhood_id" value={selectedId} />
+        <input type="hidden" name="community_id" value={selectedId} />
       )}
     </div>
   );

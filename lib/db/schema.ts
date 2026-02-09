@@ -121,7 +121,7 @@ export const privacyTierEnum = pgEnum("privacy_tier", [
 ]);
 
 export const sunsetRuleTypeEnum = pgEnum("sunset_rule_type", [
-  "neighborhood_charter",
+  "community_charter",
   "guild_charter",
   "tier_threshold",
   "federation_agreement",
@@ -131,11 +131,11 @@ export const sunsetRuleTypeEnum = pgEnum("sunset_rule_type", [
 ]);
 
 // ---------------------------------------------------------------------------
-// 1. Neighborhoods (defined before profiles because profiles references it)
+// 1. Communities (defined before profiles because profiles references it)
 // ---------------------------------------------------------------------------
 
-export const neighborhoods = pgTable(
-  "neighborhoods",
+export const communities = pgTable(
+  "communities",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     name: text("name").notNull(),
@@ -149,7 +149,7 @@ export const neighborhoods = pgTable(
       .defaultNow(),
   },
   (table) => [
-    index("neighborhoods_city_state_idx").on(table.city, table.state),
+    index("communities_city_state_idx").on(table.city, table.state),
   ],
 );
 
@@ -162,8 +162,8 @@ export const profiles = pgTable(
   {
     id: uuid("id").primaryKey(), // references auth.users; set by trigger/app
     displayName: text("display_name").notNull(),
-    neighborhoodId: uuid("neighborhood_id").references(
-      () => neighborhoods.id,
+    communityId: uuid("community_id").references(
+      () => communities.id,
       { onDelete: "set null" },
     ),
     bio: text("bio"),
@@ -184,12 +184,12 @@ export const profiles = pgTable(
       .$onUpdate(() => new Date()),
   },
   (table) => [
-    index("profiles_neighborhood_idx").on(table.neighborhoodId),
+    index("profiles_community_idx").on(table.communityId),
     index("profiles_renown_tier_idx").on(table.renownTier),
   ],
 );
 
-// Back-reference: neighborhoods.created_by -> profiles
+// Back-reference: communities.created_by -> profiles
 // Drizzle doesn't support circular FK at declaration time, so we define
 // the column as a plain uuid above and document the relationship here.
 // The actual FK is enforced via a Supabase migration / raw SQL.
@@ -205,9 +205,9 @@ export const posts = pgTable(
     authorId: uuid("author_id")
       .notNull()
       .references(() => profiles.id, { onDelete: "cascade" }),
-    neighborhoodId: uuid("neighborhood_id")
+    communityId: uuid("community_id")
       .notNull()
-      .references(() => neighborhoods.id, { onDelete: "cascade" }),
+      .references(() => communities.id, { onDelete: "cascade" }),
     type: postTypeEnum("type").notNull(),
     title: text("title").notNull(),
     description: text("description").notNull(),
@@ -232,7 +232,7 @@ export const posts = pgTable(
   },
   (table) => [
     index("posts_author_idx").on(table.authorId),
-    index("posts_neighborhood_idx").on(table.neighborhoodId),
+    index("posts_community_idx").on(table.communityId),
     index("posts_type_status_idx").on(table.type, table.status),
     index("posts_category_idx").on(table.category),
     index("posts_created_at_idx").on(table.createdAt),
@@ -360,9 +360,9 @@ export const invitations = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     code: varchar("code", { length: 32 }).notNull().unique(),
-    neighborhoodId: uuid("neighborhood_id")
+    communityId: uuid("community_id")
       .notNull()
-      .references(() => neighborhoods.id, { onDelete: "cascade" }),
+      .references(() => communities.id, { onDelete: "cascade" }),
     createdBy: uuid("created_by")
       .notNull()
       .references(() => profiles.id, { onDelete: "cascade" }),
@@ -376,7 +376,7 @@ export const invitations = pgTable(
   },
   (table) => [
     uniqueIndex("invitations_code_uniq").on(table.code),
-    index("invitations_neighborhood_idx").on(table.neighborhoodId),
+    index("invitations_community_idx").on(table.communityId),
   ],
 );
 
@@ -391,9 +391,9 @@ export const membershipRequests = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => profiles.id, { onDelete: "cascade" }),
-    neighborhoodId: uuid("neighborhood_id")
+    communityId: uuid("community_id")
       .notNull()
-      .references(() => neighborhoods.id, { onDelete: "cascade" }),
+      .references(() => communities.id, { onDelete: "cascade" }),
     status: membershipStatusEnum("status").notNull().default("pending"),
     reviewedBy: uuid("reviewed_by").references(() => profiles.id, {
       onDelete: "set null",
@@ -409,7 +409,7 @@ export const membershipRequests = pgTable(
   },
   (table) => [
     index("membership_requests_user_idx").on(table.userId),
-    index("membership_requests_neighborhood_idx").on(table.neighborhoodId),
+    index("membership_requests_community_idx").on(table.communityId),
     index("membership_requests_status_idx").on(table.status),
   ],
 );
@@ -548,9 +548,9 @@ export const quests = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     postId: uuid("post_id")
       .references(() => posts.id, { onDelete: "cascade" }),
-    neighborhoodId: uuid("neighborhood_id")
+    communityId: uuid("community_id")
       .notNull()
-      .references(() => neighborhoods.id, { onDelete: "cascade" }),
+      .references(() => communities.id, { onDelete: "cascade" }),
     createdBy: uuid("created_by")
       .notNull()
       .references(() => profiles.id, { onDelete: "cascade" }),
@@ -582,7 +582,7 @@ export const quests = pgTable(
   },
   (table) => [
     index("quests_post_idx").on(table.postId),
-    index("quests_neighborhood_idx").on(table.neighborhoodId),
+    index("quests_community_idx").on(table.communityId),
     index("quests_created_by_idx").on(table.createdBy),
     index("quests_status_idx").on(table.status),
     index("quests_difficulty_idx").on(table.difficulty),
@@ -718,9 +718,9 @@ export const guilds = pgTable(
   "guilds",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    neighborhoodId: uuid("neighborhood_id")
+    communityId: uuid("community_id")
       .notNull()
-      .references(() => neighborhoods.id, { onDelete: "cascade" }),
+      .references(() => communities.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     domain: skillDomainEnum("domain").notNull(),
     description: text("description"),
@@ -740,7 +740,7 @@ export const guilds = pgTable(
       .$onUpdate(() => new Date()),
   },
   (table) => [
-    index("guilds_neighborhood_idx").on(table.neighborhoodId),
+    index("guilds_community_idx").on(table.communityId),
     index("guilds_domain_idx").on(table.domain),
     index("guilds_created_by_idx").on(table.createdBy),
   ],
@@ -818,9 +818,9 @@ export const governanceProposals = pgTable(
   "governance_proposals",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    neighborhoodId: uuid("neighborhood_id")
+    communityId: uuid("community_id")
       .notNull()
-      .references(() => neighborhoods.id, { onDelete: "cascade" }),
+      .references(() => communities.id, { onDelete: "cascade" }),
     guildId: uuid("guild_id").references(() => guilds.id, {
       onDelete: "set null",
     }),
@@ -848,7 +848,7 @@ export const governanceProposals = pgTable(
       .$onUpdate(() => new Date()),
   },
   (table) => [
-    index("governance_proposals_neighborhood_idx").on(table.neighborhoodId),
+    index("governance_proposals_community_idx").on(table.communityId),
     index("governance_proposals_guild_idx").on(table.guildId),
     index("governance_proposals_author_idx").on(table.authorId),
     index("governance_proposals_status_idx").on(table.status),
@@ -902,9 +902,9 @@ export const sunsetRules = pgTable(
   "sunset_rules",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    neighborhoodId: uuid("neighborhood_id")
+    communityId: uuid("community_id")
       .notNull()
-      .references(() => neighborhoods.id, { onDelete: "cascade" }),
+      .references(() => communities.id, { onDelete: "cascade" }),
     ruleType: sunsetRuleTypeEnum("rule_type").notNull(),
     resourceId: uuid("resource_id"),
     description: text("description").notNull(),
@@ -924,7 +924,7 @@ export const sunsetRules = pgTable(
       .defaultNow(),
   },
   (table) => [
-    index("sunset_rules_neighborhood_idx").on(table.neighborhoodId),
+    index("sunset_rules_community_idx").on(table.communityId),
     index("sunset_rules_type_idx").on(table.ruleType),
     index("sunset_rules_expires_idx").on(table.expiresAt),
     index("sunset_rules_active_idx").on(table.active),
@@ -939,11 +939,11 @@ export const federationAgreements = pgTable(
   "federation_agreements",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    localNeighborhoodId: uuid("local_neighborhood_id")
+    localCommunityId: uuid("local_community_id")
       .notNull()
-      .references(() => neighborhoods.id, { onDelete: "cascade" }),
+      .references(() => communities.id, { onDelete: "cascade" }),
     remoteInstanceUrl: text("remote_instance_url").notNull(),
-    remoteNeighborhoodName: text("remote_neighborhood_name").notNull(),
+    remoteCommunityName: text("remote_community_name").notNull(),
     terms: text("terms"),
     active: boolean("active").notNull().default(true),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
@@ -952,7 +952,7 @@ export const federationAgreements = pgTable(
       .defaultNow(),
   },
   (table) => [
-    index("federation_agreements_local_idx").on(table.localNeighborhoodId),
+    index("federation_agreements_local_community_idx").on(table.localCommunityId),
     index("federation_agreements_active_idx").on(table.active),
   ],
 );
@@ -964,8 +964,8 @@ export const federationAgreements = pgTable(
 export type Profile = typeof profiles.$inferSelect;
 export type NewProfile = typeof profiles.$inferInsert;
 
-export type Neighborhood = typeof neighborhoods.$inferSelect;
-export type NewNeighborhood = typeof neighborhoods.$inferInsert;
+export type Community = typeof communities.$inferSelect;
+export type NewCommunity = typeof communities.$inferInsert;
 
 export type Post = typeof posts.$inferSelect;
 export type NewPost = typeof posts.$inferInsert;

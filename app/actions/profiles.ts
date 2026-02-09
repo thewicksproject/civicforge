@@ -18,7 +18,7 @@ const UpdateProfileSchema = z.object({
     .max(1000, "Skills text is too long")
     .optional()
     .default(""),
-  neighborhood_id: z.string().uuid("Invalid neighborhood ID").optional(),
+  community_id: z.string().uuid("Invalid community ID").optional(),
 });
 
 export async function updateProfile(formData: FormData) {
@@ -35,7 +35,7 @@ export async function updateProfile(formData: FormData) {
     display_name: formData.get("display_name"),
     bio: formData.get("bio") || "",
     skills: formData.get("skills") || "",
-    neighborhood_id: formData.get("neighborhood_id") || undefined,
+    community_id: formData.get("community_id") || undefined,
   };
 
   const parsed = UpdateProfileSchema.safeParse(raw);
@@ -57,7 +57,7 @@ export async function updateProfile(formData: FormData) {
 
   const { data: existingProfile, error: existingProfileError } = await admin
     .from("profiles")
-    .select("id, neighborhood_id")
+    .select("id, community_id")
     .eq("id", user.id)
     .single();
 
@@ -65,29 +65,29 @@ export async function updateProfile(formData: FormData) {
     return { success: false as const, error: "Profile not found" };
   }
 
-  const requestedNeighborhoodId = parsed.data.neighborhood_id;
-  const currentNeighborhoodId = existingProfile.neighborhood_id;
+  const requestedCommunityId = parsed.data.community_id;
+  const currentCommunityId = existingProfile.community_id;
 
   if (
-    requestedNeighborhoodId &&
-    currentNeighborhoodId &&
-    requestedNeighborhoodId !== currentNeighborhoodId
+    requestedCommunityId &&
+    currentCommunityId &&
+    requestedCommunityId !== currentCommunityId
   ) {
     return {
       success: false as const,
-      error: "Neighborhood can only be changed through neighborhood workflows",
+      error: "Community can only be changed through community workflows",
     };
   }
 
-  if (requestedNeighborhoodId && !currentNeighborhoodId) {
-    const { data: neighborhood, error: neighborhoodError } = await admin
-      .from("neighborhoods")
+  if (requestedCommunityId && !currentCommunityId) {
+    const { data: community, error: communityError } = await admin
+      .from("communities")
       .select("id")
-      .eq("id", requestedNeighborhoodId)
+      .eq("id", requestedCommunityId)
       .single();
 
-    if (neighborhoodError || !neighborhood) {
-      return { success: false as const, error: "Neighborhood not found" };
+    if (communityError || !community) {
+      return { success: false as const, error: "Community not found" };
     }
   }
 
@@ -98,8 +98,8 @@ export async function updateProfile(formData: FormData) {
     updated_at: new Date().toISOString(),
   };
 
-  if (requestedNeighborhoodId && !currentNeighborhoodId) {
-    updateData.neighborhood_id = requestedNeighborhoodId;
+  if (requestedCommunityId && !currentCommunityId) {
+    updateData.community_id = requestedCommunityId;
   }
 
   const { data: profile, error: updateError } = await admin
@@ -143,7 +143,7 @@ export async function getProfile(userId: string) {
       reputation_score,
       renown_tier,
       avatar_url,
-      neighborhood_id,
+      community_id,
       created_at
     `
     )
@@ -173,7 +173,7 @@ export async function getMyProfile() {
     .select(
       `
       *,
-      neighborhood:neighborhoods!neighborhood_id (
+      community:communities!community_id (
         id,
         name,
         city,

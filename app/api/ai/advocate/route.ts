@@ -100,7 +100,7 @@ export async function POST(request: Request) {
   // Fetch user context for the advocate
   const { data: profile } = await admin
     .from("profiles")
-    .select("display_name, renown_tier, neighborhood_id")
+    .select("display_name, renown_tier, community_id")
     .eq("id", user.id)
     .single();
 
@@ -120,11 +120,11 @@ export async function POST(request: Request) {
     .select("guild_id, guilds(name)")
     .eq("user_id", user.id);
 
-  // Fetch recent neighborhood activity (last 5 completed quests)
+  // Fetch recent community activity (last 5 completed quests)
   const { data: recentQuests } = await admin
     .from("quests")
     .select("title, difficulty, completed_at, created_by, profiles!quests_created_by_fkey(display_name)")
-    .eq("neighborhood_id", profile.neighborhood_id)
+    .eq("community_id", profile.community_id)
     .eq("status", "completed")
     .order("completed_at", { ascending: false })
     .limit(5);
@@ -133,7 +133,7 @@ export async function POST(request: Request) {
   const { data: activeQuests } = await admin
     .from("quests")
     .select("title, difficulty, status")
-    .eq("neighborhood_id", profile.neighborhood_id)
+    .eq("community_id", profile.community_id)
     .eq("status", "open")
     .limit(10);
 

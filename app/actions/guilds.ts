@@ -52,11 +52,11 @@ export async function createGuild(data: {
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("neighborhood_id, renown_tier")
+    .select("community_id, renown_tier")
     .eq("id", user.id)
     .single();
 
-  if (!profile || !profile.neighborhood_id) {
+  if (!profile || !profile.community_id) {
     return { success: false as const, error: "Profile not found" };
   }
 
@@ -68,11 +68,11 @@ export async function createGuild(data: {
     };
   }
 
-  // Check no existing active guild for this domain in this neighborhood
+  // Check no existing active guild for this domain in this community
   const { data: existing } = await admin
     .from("guilds")
     .select("id")
-    .eq("neighborhood_id", profile.neighborhood_id)
+    .eq("community_id", profile.community_id)
     .eq("domain", parsed.data.domain)
     .eq("active", true)
     .limit(1);
@@ -80,7 +80,7 @@ export async function createGuild(data: {
   if (existing && existing.length > 0) {
     return {
       success: false as const,
-      error: "An active guild already exists for this domain in your neighborhood",
+      error: "An active guild already exists for this domain in your community",
     };
   }
 
@@ -92,7 +92,7 @@ export async function createGuild(data: {
   const { data: guild, error } = await admin
     .from("guilds")
     .insert({
-      neighborhood_id: profile.neighborhood_id,
+      community_id: profile.community_id,
       name: parsed.data.name,
       domain: parsed.data.domain,
       description: parsed.data.description ?? null,
@@ -119,7 +119,7 @@ export async function createGuild(data: {
 
   // Create sunset rule
   await admin.from("sunset_rules").insert({
-    neighborhood_id: profile.neighborhood_id,
+    community_id: profile.community_id,
     rule_type: "guild_charter",
     resource_id: guild.id,
     description: `Charter for ${parsed.data.name} guild`,
@@ -141,20 +141,20 @@ export async function joinGuild(guildId: string) {
 
   const admin = createServiceClient();
 
-  // W1: Neighborhood scoping
+  // W1: Community scoping
   const { data: userProfile } = await admin
     .from("profiles")
-    .select("neighborhood_id")
+    .select("community_id")
     .eq("id", user.id)
     .single();
 
-  if (!userProfile?.neighborhood_id) {
+  if (!userProfile?.community_id) {
     return { success: false as const, error: "Profile not found" };
   }
 
   const { data: guild } = await admin
     .from("guilds")
-    .select("id, active, neighborhood_id")
+    .select("id, active, community_id")
     .eq("id", guildId)
     .single();
 
@@ -162,8 +162,8 @@ export async function joinGuild(guildId: string) {
     return { success: false as const, error: "Guild not found or inactive" };
   }
 
-  if (guild.neighborhood_id !== userProfile.neighborhood_id) {
-    return { success: false as const, error: "Guild is not in your neighborhood" };
+  if (guild.community_id !== userProfile.community_id) {
+    return { success: false as const, error: "Guild is not in your community" };
   }
 
   const { error } = await admin.from("guild_members").insert({
@@ -233,7 +233,7 @@ export async function leaveGuild(guildId: string) {
   return { success: true as const };
 }
 
-export async function getNeighborhoodGuilds(neighborhoodId: string) {
+export async function getCommunityGuilds(communityId: string) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -245,15 +245,15 @@ export async function getNeighborhoodGuilds(neighborhoodId: string) {
 
   const admin = createServiceClient();
 
-  // W1: Verify user belongs to this neighborhood
+  // W1: Verify user belongs to this community
   const { data: userProfile } = await admin
     .from("profiles")
-    .select("neighborhood_id")
+    .select("community_id")
     .eq("id", user.id)
     .single();
 
-  if (userProfile?.neighborhood_id !== neighborhoodId) {
-    return { success: false as const, error: "Not your neighborhood" };
+  if (userProfile?.community_id !== communityId) {
+    return { success: false as const, error: "Not your community" };
   }
 
   const { data: guilds, error } = await admin
@@ -263,7 +263,7 @@ export async function getNeighborhoodGuilds(neighborhoodId: string) {
       member_count, active, created_at,
       created_by, profiles!guilds_created_by_fkey(display_name)
     `)
-    .eq("neighborhood_id", neighborhoodId)
+    .eq("community_id", communityId)
     .eq("active", true)
     .order("member_count", { ascending: false });
 

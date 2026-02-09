@@ -17,14 +17,14 @@ export default async function GuildsPage() {
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("neighborhood_id, renown_tier")
+    .select("community_id, renown_tier")
     .eq("id", user.id)
     .single();
 
-  if (!profile?.neighborhood_id) {
+  if (!profile?.community_id) {
     return (
       <div className="text-center py-16">
-        <p className="text-muted-foreground">Join a neighborhood to see guilds.</p>
+        <p className="text-muted-foreground">Join a community to see guilds.</p>
       </div>
     );
   }
@@ -36,7 +36,7 @@ export default async function GuildsPage() {
       member_count, active, created_at,
       created_by, profiles!guilds_created_by_fkey(display_name)
     `)
-    .eq("neighborhood_id", profile.neighborhood_id)
+    .eq("community_id", profile.community_id)
     .eq("active", true)
     .order("member_count", { ascending: false });
 

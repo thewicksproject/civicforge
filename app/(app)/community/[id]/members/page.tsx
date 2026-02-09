@@ -4,7 +4,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { RENOWN_TIER_LABELS, type RenownLegacyTier } from "@/lib/types";
 import { ReputationBadge } from "@/components/reputation-badge";
 
-export const metadata = { title: "Neighborhood Members" };
+export const metadata = { title: "Community Members" };
 
 export default async function MembersPage({
   params,
@@ -20,29 +20,29 @@ export default async function MembersPage({
 
   const admin = createServiceClient();
 
-  const { data: neighborhood } = await admin
-    .from("neighborhoods")
+  const { data: community } = await admin
+    .from("communities")
     .select("*")
     .eq("id", id)
     .single();
 
-  if (!neighborhood) notFound();
+  if (!community) notFound();
 
-  // Check if current user is an admin (Tier 2+ in this neighborhood)
+  // Check if current user is an admin (Tier 2+ in this community)
   const { data: profile } = await admin
     .from("profiles")
-    .select("renown_tier, neighborhood_id")
+    .select("renown_tier, community_id")
     .eq("id", user!.id)
     .single();
 
   const isAdmin =
-    profile?.neighborhood_id === id && (profile?.renown_tier ?? 1) >= 2;
+    profile?.community_id === id && (profile?.renown_tier ?? 1) >= 2;
 
   // Get members
   const { data: members } = await admin
     .from("profiles")
     .select("id, display_name, reputation_score, renown_tier, created_at")
-    .eq("neighborhood_id", id)
+    .eq("community_id", id)
     .order("reputation_score", { ascending: false });
 
   // Get pending membership requests (if admin)
@@ -52,7 +52,7 @@ export default async function MembersPage({
     const { data } = await admin
       .from("membership_requests")
       .select("id, user_id, message, created_at, user:profiles!user_id(display_name)")
-      .eq("neighborhood_id", id)
+      .eq("community_id", id)
       .eq("status", "pending")
       .order("created_at", { ascending: true });
     pendingRequests = data ?? [];
@@ -62,15 +62,15 @@ export default async function MembersPage({
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold">{neighborhood.name}</h1>
+          <h1 className="text-2xl font-semibold">{community.name}</h1>
           <p className="text-sm text-muted-foreground">
-            {neighborhood.city}, {neighborhood.state} &middot;{" "}
+            {community.city}, {community.state} &middot;{" "}
             {members?.length ?? 0} members
           </p>
         </div>
         {isAdmin && (
           <Link
-            href={`/neighborhood/${id}/invite`}
+            href={`/community/${id}/invite`}
             className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
           >
             Invite

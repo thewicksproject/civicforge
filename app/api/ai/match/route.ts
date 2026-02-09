@@ -64,7 +64,7 @@ export async function POST(request: Request) {
   // Fetch the post (only structured fields — NEVER raw user text in matching context)
   const { data: post } = await admin
     .from("posts")
-    .select("id, title, category, skills_relevant, urgency, available_times, neighborhood_id, author_id")
+    .select("id, title, category, skills_relevant, urgency, available_times, community_id, author_id")
     .eq("id", postId)
     .single();
 
@@ -72,11 +72,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Post not found" }, { status: 404 });
   }
 
-  // Fetch candidate profiles from the same neighborhood (excluding post author)
+  // Fetch candidate profiles from the same community (excluding post author)
   const { data: profiles } = await admin
     .from("profiles")
     .select("id, display_name, skills, reputation_score")
-    .eq("neighborhood_id", post.neighborhood_id)
+    .eq("community_id", post.community_id)
     .neq("id", post.author_id)
     .gte("renown_tier", 2)
     .limit(20);

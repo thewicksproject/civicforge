@@ -16,11 +16,11 @@ export default async function NewPostPage() {
   // Check renown tier — only Tier 2+ can post
   const { data: profile } = await admin
     .from("profiles")
-    .select("renown_tier, neighborhood_id")
+    .select("renown_tier, community_id")
     .eq("id", user!.id)
     .single();
 
-  if (!profile?.neighborhood_id) {
+  if (!profile?.community_id) {
     redirect("/onboarding");
   }
 
@@ -46,7 +46,7 @@ export default async function NewPostPage() {
     <div className="max-w-xl mx-auto">
       <h1 className="text-2xl font-semibold mb-1">Create a Post</h1>
       <p className="text-sm text-muted-foreground mb-6">
-        Share what you need or what you can offer to your neighborhood.
+        Share what you need or what you can offer to your community.
       </p>
       <PostForm />
     </div>

@@ -135,7 +135,7 @@ Pages checked: Landing, Login, Board, Post Detail, Profile, Settings/Privacy, Po
 
 ### LitRPG Design Principles (Anti-Social-Credit Guardrails)
 
-**Core philosophy: The game serves the neighborhood, not the other way around.**
+**Core philosophy: The game serves the community, not the other way around.**
 
 | Principle | Implementation Idea | Anti-Pattern It Prevents |
 |-----------|-------------------|--------------------------|
@@ -149,7 +149,8 @@ Pages checked: Landing, Login, Board, Post Detail, Profile, Settings/Privacy, Po
 
 ```
                     ┌─────────────┐
-                    │  NEIGHBOR   │ ← Everyone starts here
+                    │  COMMUNITY  │ ← Everyone starts here
+                    │   MEMBER    │
                     │   Tier 1    │
                     └──────┬──────┘
                            │ (invite code OR admin approval)
@@ -181,7 +182,7 @@ Pages checked: Landing, Login, Board, Post Detail, Profile, Settings/Privacy, Po
 | Post a need that gets fulfilled | +10 | Community | Asking for help is also valuable |
 | Post an offer | +15 | Generosity | Proactive help |
 | Give thanks with a message | +5 | Gratitude | Encourages detailed feedback |
-| Redeem an invite (new member joins) | +10 | Connector | Neighborhood growth |
+| Redeem an invite (new member joins) | +10 | Connector | Community growth |
 | First post in a new category | +5 | Explorer | Breadth encouragement |
 | Respond to a post (even if not selected) | +5 | Engagement | Effort matters |
 | 7-day helping streak | +20 | Consistency | Bonus, not penalty for missing |
@@ -200,7 +201,7 @@ Pages checked: Landing, Login, Board, Post Detail, Profile, Settings/Privacy, Po
 
 **Connector** (organizational skills)
 - Tracks: events, introductions, coordination, invitations
-- Milestone badges: "First Gathering", "Bridge Builder", "Neighborhood Heart"
+- Milestone badges: "First Gathering", "Bridge Builder", "Community Heart"
 - Visual: handshake icon, golden-hour tones
 
 ### Achievement System (Badges, Not Rankings)

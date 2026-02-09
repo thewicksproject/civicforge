@@ -16,11 +16,11 @@ export default async function NewQuestPage() {
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("renown_tier, neighborhood_id")
+    .select("renown_tier, community_id")
     .eq("id", user.id)
     .single();
 
-  if (!profile?.neighborhood_id) {
+  if (!profile?.community_id) {
     redirect("/onboarding");
   }
 
@@ -42,7 +42,7 @@ export default async function NewQuestPage() {
     <div className="max-w-xl mx-auto">
       <h1 className="text-2xl font-semibold mb-1">Create a Quest</h1>
       <p className="text-sm text-muted-foreground mb-6">
-        Define a task for your neighborhood with clear completion criteria.
+        Define a task for your community with clear completion criteria.
       </p>
       <QuestForm />
     </div>

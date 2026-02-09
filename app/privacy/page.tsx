@@ -44,7 +44,7 @@ export default function PrivacyPolicyPage() {
             name your neighbors will see
           </li>
           <li>
-            <strong className="text-foreground">Neighborhood</strong> -- used to
+            <strong className="text-foreground">Community</strong> -- used to
             scope your board to your local community
           </li>
         </ul>
@@ -96,7 +96,7 @@ export default function PrivacyPolicyPage() {
           <li>
             <strong className="text-foreground">Community features</strong> --
             displaying your posts, profile, and reputation within your
-            neighborhood board
+            community board
           </li>
           <li>
             <strong className="text-foreground">Notifications</strong> --

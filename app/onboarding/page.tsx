@@ -2,27 +2,27 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { NeighborhoodPicker } from "@/components/neighborhood-picker";
-import { createNeighborhood } from "@/app/actions/neighborhoods";
+import { CommunityPicker } from "@/components/community-picker";
+import { createCommunity } from "@/app/actions/communities";
 import { updateProfile } from "@/app/actions/profiles";
 import { redeemInvitation } from "@/app/actions/invitations";
 import { OnboardingWelcomeIllustration } from "@/components/illustrations";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-type Step = "name" | "neighborhood" | "invite" | "done";
+type Step = "name" | "community" | "invite" | "done";
 
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("name");
   const [displayName, setDisplayName] = useState("");
-  const [neighborhoodId, setNeighborhoodId] = useState<string | undefined>();
+  const [communityId, setCommunityId] = useState<string | undefined>();
   const [inviteCode, setInviteCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // New neighborhood form state
-  const [showCreateNeighborhood, setShowCreateNeighborhood] = useState(false);
+  // New community form state
+  const [showCreateCommunity, setShowCreateCommunity] = useState(false);
   const [newName, setNewName] = useState("");
   const [newCity, setNewCity] = useState("");
   const [newState, setNewState] = useState("");
@@ -35,26 +35,26 @@ export default function OnboardingPage() {
       return;
     }
     setError("");
-    setStep("neighborhood");
+    setStep("community");
   }
 
-  async function handleNeighborhoodSubmit(e: React.FormEvent) {
+  async function handleCommunitySubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    let nhId = neighborhoodId;
+    let nhId = communityId;
 
-    // Create new neighborhood if needed
-    if (showCreateNeighborhood) {
+    // Create new community if needed
+    if (showCreateCommunity) {
       const formData = new FormData();
       formData.set("name", newName);
       formData.set("city", newCity);
       formData.set("state", newState);
       formData.set("zip_codes", newZip);
-      const result = await createNeighborhood(formData);
+      const result = await createCommunity(formData);
       if (!result.success) {
-        setError(result.error ?? "Failed to create neighborhood");
+        setError(result.error ?? "Failed to create community");
         setLoading(false);
         return;
       }
@@ -62,15 +62,15 @@ export default function OnboardingPage() {
     }
 
     if (!nhId) {
-      setError("Please select or create a neighborhood.");
+      setError("Please select or create a community.");
       setLoading(false);
       return;
     }
 
-    // Update profile with name and neighborhood
+    // Update profile with name and community
     const formData = new FormData();
     formData.set("display_name", displayName);
-    formData.set("neighborhood_id", nhId);
+    formData.set("community_id", nhId);
     const result = await updateProfile(formData);
 
     if (!result.success) {
@@ -109,14 +109,14 @@ export default function OnboardingPage() {
       <div className="w-full max-w-md">
         {/* Progress indicator */}
         <div className="flex items-center justify-center gap-2 mb-8">
-          {(["name", "neighborhood", "invite"] as const).map((s, i) => (
+          {(["name", "community", "invite"] as const).map((s, i) => (
             <div
               key={s}
               className={`h-2 rounded-full transition-all ${
                 step === s
                   ? "w-8 bg-primary"
                   : i <
-                      ["name", "neighborhood", "invite"].indexOf(step)
+                      ["name", "community", "invite"].indexOf(step)
                     ? "w-2 bg-primary/50"
                     : "w-2 bg-border"
               }`}
@@ -157,31 +157,31 @@ export default function OnboardingPage() {
           </form>
         )}
 
-        {/* Step 2: Neighborhood */}
-        {step === "neighborhood" && (
-          <form onSubmit={handleNeighborhoodSubmit} className="space-y-6">
+        {/* Step 2: Community */}
+        {step === "community" && (
+          <form onSubmit={handleCommunitySubmit} className="space-y-6">
             <div className="text-center mb-6">
               <h1 className="text-2xl font-semibold mb-1">
-                Find Your Neighborhood
+                Find Your Community
               </h1>
               <p className="text-sm text-muted-foreground">
-                Join an existing neighborhood or start a new one.
+                Join an existing community or start a new one.
               </p>
             </div>
 
-            {!showCreateNeighborhood ? (
+            {!showCreateCommunity ? (
               <>
-                <NeighborhoodPicker
-                  onSelect={setNeighborhoodId}
-                  selectedId={neighborhoodId}
+                <CommunityPicker
+                  onSelect={setCommunityId}
+                  selectedId={communityId}
                 />
                 <div className="text-center">
                   <Button
                     type="button"
                     variant="link"
-                    onClick={() => setShowCreateNeighborhood(true)}
+                    onClick={() => setShowCreateCommunity(true)}
                   >
-                    Or create a new neighborhood
+                    Or create a new community
                   </Button>
                 </div>
               </>
@@ -191,7 +191,7 @@ export default function OnboardingPage() {
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Neighborhood name"
+                  placeholder="Community name"
                   required
                 />
                 <div className="grid grid-cols-2 gap-3">
@@ -221,7 +221,7 @@ export default function OnboardingPage() {
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={() => setShowCreateNeighborhood(false)}
+                  onClick={() => setShowCreateCommunity(false)}
                   className="text-sm"
                 >
                   Back to search

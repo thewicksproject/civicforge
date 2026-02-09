@@ -64,7 +64,7 @@ export const RENOWN_TIERS: Record<RenownTier, RenownTierConfig> = {
   },
   5: {
     name: "Founder",
-    description: "Cross-neighborhood coordination, system governance",
+    description: "Cross-community coordination, system governance",
     renownRequired: 500,
     color: "need",
   },
@@ -211,7 +211,7 @@ export type PrivacyTier = "ghost" | "quiet" | "open" | "mentor";
 export const PRIVACY_TIERS: Record<PrivacyTier, { label: string; description: string }> = {
   ghost: { label: "Ghost", description: "Badge only — minimal visibility" },
   quiet: { label: "Quiet", description: "Tier + domain summary visible (default)" },
-  open: { label: "Open", description: "Full profile visible to neighborhood" },
+  open: { label: "Open", description: "Full profile visible to community" },
   mentor: { label: "Mentor", description: "Full profile + availability for mentoring" },
 };
 
@@ -305,7 +305,7 @@ export const QUEST_REQUESTED_BY_OTHER_MULTIPLIER = 1.5;
 export const GUILD_STEWARD_TERM_MONTHS = 6;
 export const GUILD_STEWARD_MAX_CONSECUTIVE_TERMS = 2;
 export const GUILD_CHARTER_DEFAULT_SUNSET_YEARS = 1;
-export const NEIGHBORHOOD_CHARTER_SUNSET_YEARS = 2;
+export const COMMUNITY_CHARTER_SUNSET_YEARS = 2;
 export const RENOWN_DECAY_RATE_PER_MONTH = 0.02;
 export const RENOWN_CAP_PER_TIER: Record<RenownTier, number> = {
   1: 0,

@@ -4,7 +4,7 @@ Essential context for AI agents working on CivicForge.
 
 ## What is CivicForge?
 
-A neighborhood civic coordination system where people post needs, offer help, complete quests, develop skills, form guilds, and govern their community together. Inspired by LitRPG game mechanics translated to real civic coordination — but designed to distribute power, not concentrate it. A Wicks LLC project at `civicforge.org`.
+A community civic coordination system where people post needs, offer help, complete quests, develop skills, form guilds, and govern their community together. Inspired by LitRPG game mechanics translated to real civic coordination — but designed to distribute power, not concentrate it. A Wicks LLC project at `civicforge.org`.
 
 **Core Philosophy:** "People do not need to be managed into purpose; they need systems that make purposeful action legible, composable, and rewarding in ways that respect their autonomy."
 
@@ -38,7 +38,7 @@ npm run db:studio    # Open Drizzle Studio
 app/
   page.tsx                         # Landing page
   login/page.tsx                   # Auth (magic link + Google)
-  onboarding/page.tsx              # Neighborhood + profile setup
+  onboarding/page.tsx              # Community + profile setup
   (app)/                           # Auth-required routes with nav
     board/page.tsx                 # Needs Board (main screen)
     board/[postId]/page.tsx        # Post detail + responses
@@ -46,10 +46,10 @@ app/
     profile/page.tsx               # Own profile
     profile/[userId]/page.tsx      # View others
     settings/privacy/page.tsx      # Settings, data export, deletion
-    neighborhood/[id]/members/     # Member list + admin controls
-    neighborhood/[id]/invite/      # Generate invite codes
+    community/[id]/members/        # Member list + admin controls
+    community/[id]/invite/         # Generate invite codes
   actions/                         # Server Actions (all CRUD)
-    posts.ts, responses.ts, thanks.ts, profiles.ts, neighborhoods.ts
+    posts.ts, responses.ts, thanks.ts, profiles.ts, communities.ts
     invitations.ts, membership.ts, flags.ts, admin.ts
     quests.ts                      # Quest CRUD, XP awards, validation
     skills.ts                      # Skill progress queries
@@ -165,7 +165,7 @@ Reputation unlocks ACCESS, not PUNISHMENT. Never decremented by others.
 | 2 | Neighbor | Invitation + 1 quest | Post offers, create quests, join parties |
 | 3 | Pillar | 50+ Renown + vouched by 2 Pillars | Create guilds, moderate |
 | 4 | Keeper | 200+ Renown + 6 months + steward exp | Governance, propose rules |
-| 5 | Founder | 500+ Renown + cross-domain + mentoring | Cross-neighborhood coordination |
+| 5 | Founder | 500+ Renown + cross-domain + mentoring | Cross-community coordination |
 
 ### Guilds
 Persistent groups organized around skill domains:
@@ -194,7 +194,7 @@ Persistent groups organized around skill domains:
 4. **No economic gatekeeping:** Never controls housing, employment, government services
 5. **No leaderboards:** No public rankings, no streaks, no loss aversion mechanics
 6. **Sunset clauses:** No permanent rules — everything expires and must be re-ratified
-7. **Federated:** Each neighborhood is sovereign; no central override
+7. **Federated:** Each community is sovereign; no central override
 8. **AI proposes, never decides:** System AI suggests; humans approve
 
 ## Schneier's Design Axiom

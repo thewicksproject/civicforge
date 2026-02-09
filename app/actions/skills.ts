@@ -21,7 +21,7 @@ export async function getSkillProgress(userId?: string) {
   if (targetId !== user.id) {
     const { data: targetProfile } = await admin
       .from("profiles")
-      .select("privacy_tier, neighborhood_id")
+      .select("privacy_tier, community_id")
       .eq("id", targetId)
       .single();
 

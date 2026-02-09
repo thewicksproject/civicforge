@@ -58,7 +58,7 @@ export default function TermsOfServicePage() {
             <strong className="text-foreground">
               Provide accurate information
             </strong>{" "}
-            -- Your display name, neighborhood, and contact information must be
+            -- Your display name, community, and contact information must be
             truthful. You do not need to use your legal name, but you may not
             impersonate another person
           </li>
@@ -225,7 +225,7 @@ export default function TermsOfServicePage() {
           <li>
             <strong className="text-foreground">Community moderation</strong> --
             Experienced, trusted community members may be granted moderation
-            capabilities within their neighborhood. Moderators are expected to
+            capabilities within their community. Moderators are expected to
             act in accordance with community guidelines
           </li>
           <li>

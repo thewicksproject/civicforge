@@ -17,7 +17,7 @@ export interface ProcessedPhoto {
 /**
  * Process an uploaded photo:
  * 1. Validate it's a real image (sharp throws on invalid input)
- * 2. Strip ALL EXIF/metadata including GPS (non-negotiable for neighborhood app)
+ * 2. Strip ALL EXIF/metadata including GPS (non-negotiable for community app)
  * 3. Resize to max width, preserving aspect ratio
  * 4. Generate thumbnail
  * 5. Compress as JPEG with mozjpeg

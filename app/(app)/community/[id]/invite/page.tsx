@@ -37,7 +37,7 @@ export default function InvitePage({
 
   return (
     <div className="max-w-md mx-auto text-center py-8">
-      <h1 className="text-2xl font-semibold mb-2">Invite a Neighbor</h1>
+      <h1 className="text-2xl font-semibold mb-2">Invite a Member</h1>
       <p className="text-sm text-muted-foreground mb-8">
         Generate an invitation code to share with someone you know. Codes
         expire after 7 days.
@@ -66,7 +66,7 @@ export default function InvitePage({
             {copied ? "Copied!" : "Copy Code"}
           </button>
           <p className="text-xs text-muted-foreground">
-            Share this code with your neighbor. It can only be used once.
+            Share this code with someone you trust. It can only be used once.
           </p>
         </div>
       ) : (

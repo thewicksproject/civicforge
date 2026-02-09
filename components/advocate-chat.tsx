@@ -115,7 +115,7 @@ export function AdvocateChat() {
               <div className="text-center py-8">
                 <MessageCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">
-                  Ask about quests, skills, your neighborhood, or what you can do
+                  Ask about quests, skills, your community, or what you can do
                   to help.
                 </p>
               </div>

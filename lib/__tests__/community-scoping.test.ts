@@ -1,17 +1,17 @@
 import { describe, it, expect } from "vitest";
 
 /**
- * Pure logic tests for neighborhood matching and privacy tier display rules.
+ * Pure logic tests for community matching and privacy tier display rules.
  * These test the logic patterns used in page guards and server actions.
  */
 
-// Neighborhood matching logic (same pattern used across server actions)
-function isNeighborhoodMatch(
-  userNeighborhoodId: string | null,
-  resourceNeighborhoodId: string | null
+// Community matching logic (same pattern used across server actions)
+function isCommunityMatch(
+  userCommunityId: string | null,
+  resourceCommunityId: string | null
 ): boolean {
-  if (!userNeighborhoodId || !resourceNeighborhoodId) return false;
-  return userNeighborhoodId === resourceNeighborhoodId;
+  if (!userCommunityId || !resourceCommunityId) return false;
+  return userCommunityId === resourceCommunityId;
 }
 
 // Privacy tier display logic (used in profile/[userId]/page.tsx)
@@ -32,25 +32,25 @@ function getProfileVisibility(
   };
 }
 
-describe("Neighborhood matching", () => {
-  it("allows access when neighborhoods match", () => {
-    expect(isNeighborhoodMatch("n-1", "n-1")).toBe(true);
+describe("Community matching", () => {
+  it("allows access when communities match", () => {
+    expect(isCommunityMatch("n-1", "n-1")).toBe(true);
   });
 
-  it("denies access when neighborhoods differ", () => {
-    expect(isNeighborhoodMatch("n-1", "n-2")).toBe(false);
+  it("denies access when communities differ", () => {
+    expect(isCommunityMatch("n-1", "n-2")).toBe(false);
   });
 
-  it("denies access when user has no neighborhood", () => {
-    expect(isNeighborhoodMatch(null, "n-1")).toBe(false);
+  it("denies access when user has no community", () => {
+    expect(isCommunityMatch(null, "n-1")).toBe(false);
   });
 
-  it("denies access when resource has no neighborhood", () => {
-    expect(isNeighborhoodMatch("n-1", null)).toBe(false);
+  it("denies access when resource has no community", () => {
+    expect(isCommunityMatch("n-1", null)).toBe(false);
   });
 
   it("denies access when both are null", () => {
-    expect(isNeighborhoodMatch(null, null)).toBe(false);
+    expect(isCommunityMatch(null, null)).toBe(false);
   });
 });
 

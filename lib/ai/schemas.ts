@@ -42,7 +42,7 @@ export const PostExtractionSchema = z.object({
     .string()
     .max(100)
     .nullable()
-    .describe("Neighborhood-level location hint only. NEVER include precise addresses."),
+    .describe("Community-level location hint only. NEVER include precise addresses."),
 });
 
 export type PostExtraction = z.infer<typeof PostExtractionSchema>;
@@ -118,7 +118,7 @@ export const QuestExtractionSchema = z.object({
     .string()
     .max(100)
     .nullable()
-    .describe("Neighborhood-level location hint only. NEVER include precise addresses."),
+    .describe("Community-level location hint only. NEVER include precise addresses."),
 });
 
 export type QuestExtraction = z.infer<typeof QuestExtractionSchema>;

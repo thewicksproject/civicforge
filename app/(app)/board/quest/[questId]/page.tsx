@@ -40,10 +40,10 @@ export default async function QuestDetailPage({
 
   const admin = createServiceClient();
 
-  // C2: Neighborhood scoping — verify user belongs to quest's neighborhood
+  // C2: Community scoping — verify user belongs to quest's community
   const { data: userProfile } = await admin
     .from("profiles")
-    .select("neighborhood_id")
+    .select("community_id")
     .eq("id", user.id)
     .single();
 
@@ -60,7 +60,7 @@ export default async function QuestDetailPage({
 
   if (!quest) notFound();
 
-  if (userProfile?.neighborhood_id !== quest.neighborhood_id) notFound();
+  if (userProfile?.community_id !== quest.community_id) notFound();
 
   const author = Array.isArray(quest.author) ? quest.author[0] : quest.author;
   const isAuthor = user.id === author?.id;

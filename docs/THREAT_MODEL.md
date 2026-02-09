@@ -9,7 +9,7 @@
 
 ## 1. System Overview
 
-CivicForge is a neighborhood needs board where residents post needs, offer help, receive AI-assisted matching, and build community reputation. The system handles user-generated content, authentication, AI processing, phone verification, photo moderation, and file storage.
+CivicForge is a community needs board where residents post needs, offer help, receive AI-assisted matching, and build community reputation. The system handles user-generated content, authentication, AI processing, phone verification, photo moderation, and file storage.
 
 ### Architecture Components
 
@@ -106,7 +106,7 @@ CivicForge is a neighborhood needs board where residents post needs, offer help,
 |----|--------|----------|------------|--------|
 | TB2-T1 | Direct DB manipulation bypassing application logic | MEDIUM | RLS enabled on ALL 13 tables; policies enforce row-level access control | MITIGATED |
 | TB2-T2 | User modifies another user's profile | HIGH | `profiles_update_own` policy: USING (id = auth.uid()) WITH CHECK (id = auth.uid()) | MITIGATED |
-| TB2-T3 | User reads posts from other neighborhoods | MEDIUM | `posts_select_neighborhood` policy filters by user's neighborhood_id | MITIGATED |
+| TB2-T3 | User reads posts from other communities | MEDIUM | `posts_select_community` policy filters by user's community_id | MITIGATED |
 
 #### Information Disclosure
 | ID | Threat | Severity | Mitigation | Status |
@@ -264,7 +264,7 @@ CivicForge is a neighborhood needs board where residents post needs, offer help,
 
 ### V4: Invitation update policy USING (true) (HIGH) -- FIXED
 - **File:** `supabase/migrations/0001_initial_schema.sql` lines 554-559
-- **Issue:** The `invitations_update_authenticated` policy used `USING (true) WITH CHECK (true)`, allowing ANY authenticated user to modify ANY invitation record (change neighborhood, creator, expiry, etc.).
+- **Issue:** The `invitations_update_authenticated` policy used `USING (true) WITH CHECK (true)`, allowing ANY authenticated user to modify ANY invitation record (change community, creator, expiry, etc.).
 - **Fix:** New migration `0003_fix_invitation_rls.sql` drops the overly permissive policy and creates two scoped policies:
   1. **Creator update:** The invitation creator can update their own invitations (e.g., change expiry).
   2. **Redemption:** Any authenticated user can set `used_by` to their own `auth.uid()` (for redeeming an invitation), but only on invitations not yet used.

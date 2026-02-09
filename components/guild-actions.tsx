@@ -19,25 +19,35 @@ export function GuildActions({ guildId, isMember, isSteward }: GuildActionsProps
   async function handleJoin() {
     setLoading(true);
     setError(null);
-    const result = await joinGuild(guildId);
-    if (result.success) {
-      router.refresh();
-    } else {
-      setError(result.error);
+    try {
+      const result = await joinGuild(guildId);
+      if (result.success) {
+        router.refresh();
+      } else {
+        setError(result.error);
+      }
+    } catch {
+      setError("Failed to join guild. Please try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   async function handleLeave() {
     setLoading(true);
     setError(null);
-    const result = await leaveGuild(guildId);
-    if (result.success) {
-      router.refresh();
-    } else {
-      setError(result.error);
+    try {
+      const result = await leaveGuild(guildId);
+      if (result.success) {
+        router.refresh();
+      } else {
+        setError(result.error);
+      }
+    } catch {
+      setError("Failed to leave guild. Please try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   return (

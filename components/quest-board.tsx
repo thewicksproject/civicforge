@@ -43,13 +43,15 @@ export function QuestBoard({ quests }: { quests: QuestData[] }) {
   return (
     <>
       {/* Difficulty filter pills */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-1" role="radiogroup" aria-label="Filter by difficulty">
         {DIFFICULTY_FILTERS.map((f) => (
           <button
             key={f.value}
             onClick={() => setFilter(f.value)}
+            role="radio"
+            aria-checked={filter === f.value}
             className={cn(
-              "rounded-full px-4 py-1.5 text-sm font-medium border transition-colors whitespace-nowrap",
+              "rounded-full px-4 py-1.5 text-sm font-medium border transition-colors whitespace-nowrap focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
               filter === f.value
                 ? "bg-primary text-primary-foreground border-primary"
                 : "bg-card border-border hover:bg-muted",

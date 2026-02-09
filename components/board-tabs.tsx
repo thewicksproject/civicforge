@@ -12,9 +12,11 @@ interface BoardTabsProps {
 
 export function BoardTabs({ activeTab, postCount, questCount }: BoardTabsProps) {
   return (
-    <div className="flex gap-1 mb-6 border-b border-border">
+    <div className="flex gap-1 mb-6 border-b border-border" role="tablist" aria-label="Board views">
       <Link
         href="/board?tab=posts"
+        role="tab"
+        aria-selected={activeTab === "posts"}
         className={cn(
           "flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px",
           activeTab === "posts"
@@ -32,6 +34,8 @@ export function BoardTabs({ activeTab, postCount, questCount }: BoardTabsProps) 
       </Link>
       <Link
         href="/board?tab=quests"
+        role="tab"
+        aria-selected={activeTab === "quests"}
         className={cn(
           "flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px",
           activeTab === "quests"

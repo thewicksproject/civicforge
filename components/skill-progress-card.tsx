@@ -26,16 +26,24 @@ export function SkillProgressCard({ userId }: SkillProgressCardProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     async function load() {
-      const result = await getSkillProgress(userId);
-      if (result.success) {
-        setSkills(result.skills);
-      } else {
-        setError(result.error);
+      try {
+        const result = await getSkillProgress(userId);
+        if (cancelled) return;
+        if (result.success) {
+          setSkills(result.skills);
+        } else {
+          setError(result.error);
+        }
+      } catch {
+        if (!cancelled) setError("Failed to load skills");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
     }
     load();
+    return () => { cancelled = true; };
   }, [userId]);
 
   if (loading) {

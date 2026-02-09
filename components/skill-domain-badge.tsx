@@ -21,6 +21,16 @@ const DOMAIN_ICONS: Record<SkillDomain, typeof Hammer> = {
   weave: Network,
 };
 
+const DOMAIN_STYLES: Record<SkillDomain, string> = {
+  craft: "text-rose-clay border-rose-clay/20 bg-rose-clay/5",
+  green: "text-meadow border-meadow/20 bg-meadow/5",
+  care: "text-horizon border-horizon/20 bg-horizon/5",
+  bridge: "text-golden-hour border-golden-hour/20 bg-golden-hour/5",
+  signal: "text-horizon border-horizon/20 bg-horizon/5",
+  hearth: "text-rose-clay border-rose-clay/20 bg-rose-clay/5",
+  weave: "text-golden-hour border-golden-hour/20 bg-golden-hour/5",
+};
+
 interface SkillDomainBadgeProps {
   domain: SkillDomain;
   showLabel?: boolean;
@@ -44,7 +54,7 @@ export function SkillDomainBadge({
       className={cn(
         "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium",
         size === "sm" ? "text-xs" : "text-sm",
-        `text-${config.color} border-${config.color}/20 bg-${config.color}/5`,
+        DOMAIN_STYLES[domain],
         className,
       )}
     >

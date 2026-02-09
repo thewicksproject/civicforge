@@ -115,6 +115,7 @@ export function QuestForm() {
               key={key}
               type="button"
               onClick={() => setDifficulty(key)}
+              aria-pressed={difficulty === key}
               className={cn(
                 "rounded-lg border p-2 text-center transition-colors",
                 difficulty === key
@@ -145,6 +146,7 @@ export function QuestForm() {
               key={key}
               type="button"
               onClick={() => toggleDomain(key)}
+              aria-pressed={selectedDomains.includes(key)}
               className={cn(
                 "rounded-lg border p-2 text-left transition-colors",
                 selectedDomains.includes(key)
@@ -173,7 +175,7 @@ export function QuestForm() {
             min={1}
             max={10}
             value={maxPartySize}
-            onChange={(e) => setMaxPartySize(Number(e.target.value))}
+            onChange={(e) => setMaxPartySize(Math.min(10, Math.max(1, Number(e.target.value))))}
             className="w-20"
           />
           <span className="text-sm text-muted-foreground">

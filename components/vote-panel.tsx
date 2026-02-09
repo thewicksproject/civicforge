@@ -24,19 +24,23 @@ export function VotePanel({ proposalId, voteType, hasVoted, canVote }: VotePanel
   async function handleVote(inFavor: boolean) {
     setLoading(true);
     setError(null);
+    try {
+      const result = await castVote({
+        proposal_id: proposalId,
+        in_favor: inFavor,
+        credits_spent: voteType === "quadratic" ? credits : 1,
+      });
 
-    const result = await castVote({
-      proposal_id: proposalId,
-      in_favor: inFavor,
-      credits_spent: voteType === "quadratic" ? credits : 1,
-    });
-
-    if (result.success) {
-      router.refresh();
-    } else {
-      setError(result.error);
+      if (result.success) {
+        router.refresh();
+      } else {
+        setError(result.error);
+      }
+    } catch {
+      setError("Failed to cast vote. Please try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   if (hasVoted) {
@@ -79,11 +83,11 @@ export function VotePanel({ proposalId, voteType, hasVoted, canVote }: VotePanel
               min={1}
               max={100}
               value={credits}
-              onChange={(e) => setCredits(Math.max(1, Number(e.target.value)))}
+              onChange={(e) => setCredits(Math.min(100, Math.max(1, Math.floor(Number(e.target.value)))))}
               className="w-24"
             />
             <span className="text-sm text-muted-foreground">
-              = {voteWeight.toFixed(2)} vote weight (N votes cost N&sup2; credits)
+              = {voteWeight.toFixed(2)} vote weight (N votes cost N² credits)
             </span>
           </div>
         </div>

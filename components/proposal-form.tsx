@@ -104,6 +104,7 @@ export function ProposalForm() {
               key={c.value}
               type="button"
               onClick={() => setCategory(c.value)}
+              aria-pressed={category === c.value}
               className={cn(
                 "rounded-lg border p-2 text-sm text-left transition-colors",
                 category === c.value
@@ -125,6 +126,7 @@ export function ProposalForm() {
               key={v.value}
               type="button"
               onClick={() => setVoteType(v.value)}
+              aria-pressed={voteType === v.value}
               className={cn(
                 "rounded-lg border p-3 text-left transition-colors",
                 voteType === v.value
@@ -150,7 +152,7 @@ export function ProposalForm() {
             min={3}
             max={30}
             value={deliberationDays}
-            onChange={(e) => setDeliberationDays(Number(e.target.value))}
+            onChange={(e) => setDeliberationDays(Math.min(30, Math.max(3, Number(e.target.value))))}
           />
         </div>
         <div>
@@ -163,7 +165,7 @@ export function ProposalForm() {
             min={3}
             max={14}
             value={votingDays}
-            onChange={(e) => setVotingDays(Number(e.target.value))}
+            onChange={(e) => setVotingDays(Math.min(14, Math.max(3, Number(e.target.value))))}
           />
         </div>
       </div>

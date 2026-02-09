@@ -31,14 +31,21 @@ export function AdvocateChat() {
 
     setInput("");
     setError(null);
-    setMessages((prev) => [...prev, { role: "user", content: message }]);
+    const updatedMessages: Message[] = [...messages, { role: "user", content: message }];
+    setMessages(updatedMessages);
     setLoading(true);
 
     try {
       const res = await fetch("/api/ai/advocate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({
+          message,
+          messages: updatedMessages.map((m) => ({
+            role: m.role === "advocate" ? "assistant" : m.role,
+            content: m.content,
+          })),
+        }),
       });
 
       if (!res.ok) {

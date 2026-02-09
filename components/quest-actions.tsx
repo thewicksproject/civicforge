@@ -10,6 +10,7 @@ interface QuestActionsProps {
   questId: string;
   questStatus: string;
   isAuthor: boolean;
+  isClaimer?: boolean;
   hasValidated: boolean;
   validationMethod: string;
   validationCount: number;
@@ -20,6 +21,7 @@ export function QuestActions({
   questId,
   questStatus,
   isAuthor,
+  isClaimer = false,
   hasValidated,
   validationMethod,
   validationCount,
@@ -34,43 +36,58 @@ export function QuestActions({
   async function handleClaim() {
     setLoading(true);
     setError(null);
-    const result = await claimQuest(questId);
-    if (result.success) {
-      router.refresh();
-    } else {
-      setError(result.error);
+    try {
+      const result = await claimQuest(questId);
+      if (result.success) {
+        router.refresh();
+      } else {
+        setError(result.error);
+      }
+    } catch {
+      setError("Failed to claim quest. Please try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   async function handleComplete() {
     setLoading(true);
     setError(null);
-    const result = await completeQuest(questId);
-    if (result.success) {
-      router.refresh();
-    } else {
-      setError(result.error);
+    try {
+      const result = await completeQuest(questId);
+      if (result.success) {
+        router.refresh();
+      } else {
+        setError(result.error);
+      }
+    } catch {
+      setError("Failed to submit quest. Please try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   async function handleValidate(approved: boolean) {
     setLoading(true);
     setError(null);
-    const result = await validateQuest(
-      questId,
-      approved,
-      validationMessage || undefined,
-    );
-    if (result.success) {
-      setShowValidate(false);
-      setValidationMessage("");
-      router.refresh();
-    } else {
-      setError(result.error);
+    try {
+      const result = await validateQuest(
+        questId,
+        approved,
+        validationMessage || undefined,
+      );
+      if (result.success) {
+        setShowValidate(false);
+        setValidationMessage("");
+        router.refresh();
+      } else {
+        setError(result.error);
+      }
+    } catch {
+      setError("Failed to submit validation. Please try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   return (
@@ -91,8 +108,8 @@ export function QuestActions({
         </div>
       )}
 
-      {/* Claimed / in progress: show complete button */}
-      {(questStatus === "claimed" || questStatus === "in_progress") && (
+      {/* Claimed / in progress: show complete button (claimer only) */}
+      {(questStatus === "claimed" || questStatus === "in_progress") && isClaimer && (
         <div>
           <p className="text-sm text-muted-foreground mb-3">
             This quest is in progress.

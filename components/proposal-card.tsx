@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { formatRelativeTime } from "@/lib/utils";
-import { cn } from "@/lib/utils";
+import { formatRelativeTime, cn } from "@/lib/utils";
 import { RenownTierBadge } from "./trust-tier-badge";
 import type { RenownTier } from "@/lib/types";
 
@@ -47,7 +46,7 @@ export function ProposalCard({
   authorRenownTier,
 }: ProposalCardProps) {
   const totalVotes = votesFor + votesAgainst;
-  const forPercent = totalVotes > 0 ? (votesFor / totalVotes) * 100 : 50;
+  const forPercent = totalVotes > 0 ? (votesFor / totalVotes) * 100 : 0;
 
   return (
     <Link
@@ -86,14 +85,20 @@ export function ProposalCard({
             <span>Against: {votesAgainst}</span>
           </div>
           <div className="h-2 bg-muted rounded-full overflow-hidden flex">
-            <div
-              className="h-full bg-offer rounded-l-full transition-all"
-              style={{ width: `${forPercent}%` }}
-            />
-            <div
-              className="h-full bg-need rounded-r-full transition-all"
-              style={{ width: `${100 - forPercent}%` }}
-            />
+            {totalVotes > 0 ? (
+              <>
+                <div
+                  className="h-full bg-offer rounded-l-full transition-all"
+                  style={{ width: `${forPercent}%` }}
+                />
+                <div
+                  className="h-full bg-need rounded-r-full transition-all"
+                  style={{ width: `${100 - forPercent}%` }}
+                />
+              </>
+            ) : (
+              <div className="h-full w-full bg-muted rounded-full" />
+            )}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             Quorum: {quorum} votes needed

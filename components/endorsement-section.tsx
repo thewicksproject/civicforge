@@ -6,8 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SkillDomainBadge } from "@/components/skill-domain-badge";
 import { createEndorsement, getEndorsementsForUser } from "@/app/actions/endorsements";
 import { SKILL_DOMAINS, type SkillDomain } from "@/lib/types";
-import { formatRelativeTime } from "@/lib/utils";
-import { cn } from "@/lib/utils";
+import { formatRelativeTime, cn } from "@/lib/utils";
 
 const DOMAINS = Object.keys(SKILL_DOMAINS) as SkillDomain[];
 
@@ -38,14 +37,21 @@ export function EndorsementSection({ userId, isOwnProfile }: EndorsementSectionP
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     async function load() {
-      const result = await getEndorsementsForUser(userId);
-      if (result.success) {
-        setEndorsements(result.endorsements as EndorsementData[]);
+      try {
+        const result = await getEndorsementsForUser(userId);
+        if (!cancelled && result.success) {
+          setEndorsements(result.endorsements as EndorsementData[]);
+        }
+      } catch {
+        // Silently handle fetch errors on unmounted component
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
     }
     load();
+    return () => { cancelled = true; };
   }, [userId]);
 
   async function handleEndorse() {
@@ -113,6 +119,7 @@ export function EndorsementSection({ userId, isOwnProfile }: EndorsementSectionP
                 key={domain}
                 type="button"
                 onClick={() => setFormDomain(domain)}
+                aria-pressed={formDomain === domain}
                 className={cn(
                   "transition-opacity",
                   formDomain === domain ? "opacity-100" : "opacity-50 hover:opacity-75",

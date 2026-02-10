@@ -53,7 +53,7 @@ export function GuildHealth({ guilds }: GuildHealthProps) {
   }));
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6">
+    <div className="min-w-0 rounded-xl border border-border bg-card p-6">
       <h3 className="mb-4 text-lg font-semibold">Guild Ecosystem</h3>
 
       <ResponsiveContainer width="100%" height={Math.max(200, guilds.length * 45)}>
@@ -102,16 +102,18 @@ export function GuildHealth({ guilds }: GuildHealthProps) {
       </ResponsiveContainer>
 
       {/* Charter health legend */}
-      <div className="mt-3 flex gap-4 text-xs text-muted-foreground">
+      <div className="mt-3 grid max-h-44 gap-2 overflow-y-auto pr-1 text-xs text-muted-foreground sm:grid-cols-2">
         {guilds.map((g) => {
           const status = charterStatus(g.charterHealthDays);
           return (
-            <span key={g.name} className="flex items-center gap-1">
+            <span key={g.name} className="flex min-w-0 items-start gap-1.5">
               <span
                 className="inline-block h-2 w-2 rounded-full"
                 style={{ backgroundColor: status.color }}
               />
-              {g.name}: {status.label}
+              <span className="leading-tight break-words">
+                {g.name}: {status.label}
+              </span>
             </span>
           );
         })}

@@ -220,11 +220,22 @@ export async function castVote(data: {
 
   // C7: Use atomic RPC to increment vote tallies (prevents race conditions)
   const weightedVote = Math.round(voteWeight);
-  await admin.rpc("increment_proposal_votes", {
+  const { error: tallyError } = await admin.rpc("increment_proposal_votes", {
     p_proposal_id: data.proposal_id,
     p_for_delta: data.in_favor ? weightedVote : 0,
     p_against_delta: data.in_favor ? 0 : weightedVote,
   });
+
+  if (tallyError) {
+    // Best-effort compensation to keep proposal tallies aligned with votes.
+    await admin
+      .from("governance_votes")
+      .delete()
+      .eq("proposal_id", data.proposal_id)
+      .eq("voter_id", user.id);
+
+    return { success: false as const, error: "Failed to cast vote" };
+  }
 
   return { success: true as const };
 }

@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { moderateContent } from "@/lib/ai/client";
+import { isSameCommunity } from "@/lib/security/authorization";
 
 const MessageSchema = z
   .string()
@@ -36,11 +37,11 @@ export async function createResponse(postId: string, message: string) {
   // Check renown tier
   const { data: profile, error: profileError } = await admin
     .from("profiles")
-    .select("renown_tier")
+    .select("renown_tier, community_id")
     .eq("id", user.id)
     .single();
 
-  if (profileError || !profile) {
+  if (profileError || !profile || !profile.community_id) {
     return { success: false as const, error: "Profile not found" };
   }
 
@@ -54,11 +55,15 @@ export async function createResponse(postId: string, message: string) {
   // Verify the post exists and is active
   const { data: post, error: postError } = await admin
     .from("posts")
-    .select("id, author_id, status")
+    .select("id, author_id, status, community_id")
     .eq("id", postId)
     .single();
 
   if (postError || !post) {
+    return { success: false as const, error: "Post not found" };
+  }
+
+  if (!isSameCommunity(profile.community_id, post.community_id)) {
     return { success: false as const, error: "Post not found" };
   }
 

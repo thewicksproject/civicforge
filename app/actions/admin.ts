@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { canModerateCommunityResource } from "@/lib/security/authorization";
 
 async function requireTier3() {
   const supabase = await createClient();
@@ -16,23 +17,29 @@ async function requireTier3() {
   const admin = createServiceClient();
   const { data: profile } = await admin
     .from("profiles")
-    .select("renown_tier")
+    .select("renown_tier, community_id")
     .eq("id", user.id)
     .single();
 
-  if (!profile || profile.renown_tier < 3) {
+  if (!profile || profile.renown_tier < 3 || !profile.community_id) {
     return { admin: null, userId: null, error: "Admin access required" };
   }
 
-  return { admin, userId: user.id, error: null };
+  return {
+    admin,
+    userId: user.id,
+    communityId: profile.community_id,
+    renownTier: profile.renown_tier,
+    error: null,
+  };
 }
 
 export async function reviewPost(
   postId: string,
   decision: "approved" | "rejected"
 ) {
-  const { admin, userId, error } = await requireTier3();
-  if (error || !admin || !userId) {
+  const { admin, userId, communityId, renownTier, error } = await requireTier3();
+  if (error || !admin || !userId || !communityId) {
     return { success: false as const, error: error ?? "Unauthorized" };
   }
 
@@ -48,6 +55,23 @@ export async function reviewPost(
     return { success: false as const, error: "Invalid decision" };
   }
 
+  const { data: post } = await admin
+    .from("posts")
+    .select("id, community_id")
+    .eq("id", postId)
+    .single();
+
+  if (
+    !post ||
+    !canModerateCommunityResource({
+      renownTier,
+      moderatorCommunityId: communityId,
+      resourceCommunityId: post.community_id,
+    })
+  ) {
+    return { success: false as const, error: "Post not found" };
+  }
+
   const updateData: Record<string, unknown> = {
     review_status: decisionParsed.data,
   };
@@ -60,7 +84,8 @@ export async function reviewPost(
   const { error: updateError } = await admin
     .from("posts")
     .update(updateData)
-    .eq("id", postId);
+    .eq("id", postId)
+    .eq("community_id", communityId);
 
   if (updateError) {
     return { success: false as const, error: "Failed to update post" };
@@ -78,8 +103,8 @@ export async function reviewPost(
 }
 
 export async function unhidePost(postId: string) {
-  const { admin, userId, error } = await requireTier3();
-  if (error || !admin || !userId) {
+  const { admin, userId, communityId, renownTier, error } = await requireTier3();
+  if (error || !admin || !userId || !communityId) {
     return { success: false as const, error: error ?? "Unauthorized" };
   }
 
@@ -88,10 +113,28 @@ export async function unhidePost(postId: string) {
     return { success: false as const, error: "Invalid post ID" };
   }
 
+  const { data: post } = await admin
+    .from("posts")
+    .select("id, community_id")
+    .eq("id", postId)
+    .single();
+
+  if (
+    !post ||
+    !canModerateCommunityResource({
+      renownTier,
+      moderatorCommunityId: communityId,
+      resourceCommunityId: post.community_id,
+    })
+  ) {
+    return { success: false as const, error: "Post not found" };
+  }
+
   const { error: updateError } = await admin
     .from("posts")
     .update({ hidden: false, flag_count: 0 })
-    .eq("id", postId);
+    .eq("id", postId)
+    .eq("community_id", communityId);
 
   if (updateError) {
     return { success: false as const, error: "Failed to unhide post" };

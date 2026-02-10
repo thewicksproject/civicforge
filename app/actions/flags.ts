@@ -3,6 +3,10 @@
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { FLAG_THRESHOLD_HIDE } from "@/lib/types";
+import {
+  canModerateCommunityResource,
+  isSameCommunity,
+} from "@/lib/security/authorization";
 
 export async function flagPost(postId: string, reason?: string) {
   const supabase = await createClient();
@@ -26,14 +30,28 @@ export async function flagPost(postId: string, reason?: string) {
 
   const admin = createServiceClient();
 
+  const { data: actorProfile, error: actorProfileError } = await admin
+    .from("profiles")
+    .select("community_id")
+    .eq("id", user.id)
+    .single();
+
+  if (actorProfileError || !actorProfile?.community_id) {
+    return { success: false as const, error: "Profile not found" };
+  }
+
   // Verify the post exists and user is not the author
   const { data: post, error: postError } = await admin
     .from("posts")
-    .select("id, author_id, flag_count")
+    .select("id, author_id, flag_count, community_id")
     .eq("id", postId)
     .single();
 
   if (postError || !post) {
+    return { success: false as const, error: "Post not found" };
+  }
+
+  if (!isSameCommunity(actorProfile.community_id, post.community_id)) {
     return { success: false as const, error: "Post not found" };
   }
 
@@ -101,12 +119,29 @@ export async function unflagPost(postId: string) {
   // Verify Tier 3
   const { data: profile } = await admin
     .from("profiles")
-    .select("renown_tier")
+    .select("renown_tier, community_id")
     .eq("id", user.id)
     .single();
 
-  if (!profile || profile.renown_tier < 3) {
+  if (!profile || profile.renown_tier < 3 || !profile.community_id) {
     return { success: false as const, error: "Only verified members can unflag posts" };
+  }
+
+  const { data: post } = await admin
+    .from("posts")
+    .select("id, community_id")
+    .eq("id", postId)
+    .single();
+
+  if (
+    !post ||
+    !canModerateCommunityResource({
+      renownTier: profile.renown_tier,
+      moderatorCommunityId: profile.community_id,
+      resourceCommunityId: post.community_id,
+    })
+  ) {
+    return { success: false as const, error: "Post not found" };
   }
 
   // Delete all flags for this post

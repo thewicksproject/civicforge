@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { isSameCommunity } from "@/lib/security/authorization";
 
 const ThanksSchema = z.object({
   toUserId: z.string().uuid("Invalid recipient user ID"),
@@ -38,27 +39,55 @@ export async function createThanks(
 
   const admin = createServiceClient();
 
+  const { data: senderProfile, error: senderProfileError } = await admin
+    .from("profiles")
+    .select("community_id")
+    .eq("id", user.id)
+    .single();
+
+  if (senderProfileError || !senderProfile?.community_id) {
+    return { success: false as const, error: "Profile not found" };
+  }
+
   // Verify recipient exists
   const { data: recipient, error: recipientError } = await admin
     .from("profiles")
-    .select("id")
+    .select("id, community_id")
     .eq("id", parsed.data.toUserId)
     .single();
 
-  if (recipientError || !recipient) {
+  if (recipientError || !recipient || !recipient.community_id) {
     return { success: false as const, error: "Recipient not found" };
+  }
+
+  if (!isSameCommunity(senderProfile.community_id, recipient.community_id)) {
+    return {
+      success: false as const,
+      error: "You can only send thanks within your community",
+    };
   }
 
   // If postId is provided, verify the post exists
   if (parsed.data.postId) {
     const { data: post, error: postError } = await admin
       .from("posts")
-      .select("id")
+      .select("id, author_id, community_id")
       .eq("id", parsed.data.postId)
       .single();
 
     if (postError || !post) {
       return { success: false as const, error: "Post not found" };
+    }
+
+    if (!isSameCommunity(senderProfile.community_id, post.community_id)) {
+      return { success: false as const, error: "Post not found" };
+    }
+
+    if (post.author_id !== parsed.data.toUserId) {
+      return {
+        success: false as const,
+        error: "Thanks recipient does not match the post author",
+      };
     }
   }
 

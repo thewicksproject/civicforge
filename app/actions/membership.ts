@@ -166,44 +166,63 @@ export async function reviewMembership(
     };
   }
 
-  // Update the membership request
+  const nowIso = new Date().toISOString();
+
+  // Update the membership request only if still pending (race-safe).
   const { data: updatedRequest, error: updateError } = await admin
     .from("membership_requests")
     .update({
       status: statusParsed.data,
       reviewed_by: user.id,
-      updated_at: new Date().toISOString(),
+      updated_at: nowIso,
     })
     .eq("id", requestId)
+    .eq("status", "pending")
     .select()
-    .single();
+    .maybeSingle();
 
-  if (updateError) {
+  if (updateError || !updatedRequest) {
     return {
       success: false as const,
-      error: "Failed to update membership request",
+      error: "This request has already been reviewed",
     };
   }
 
   // If approved, update the requesting user's profile
   if (statusParsed.data === "approved") {
-    const { error: profileUpdateError } = await admin
+    const { data: approvedProfile, error: profileUpdateError } = await admin
       .from("profiles")
       .update({
         community_id: request.community_id,
         renown_tier: 2,
-        updated_at: new Date().toISOString(),
+        updated_at: nowIso,
       })
-      .eq("id", request.user_id);
+      .eq("id", request.user_id)
+      .is("community_id", null)
+      .select("id")
+      .maybeSingle();
 
-    if (profileUpdateError) {
+    if (profileUpdateError || !approvedProfile) {
+      // Roll back the request status if profile assignment failed.
+      await admin
+        .from("membership_requests")
+        .update({
+          status: "pending",
+          reviewed_by: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", requestId)
+        .eq("reviewed_by", user.id)
+        .eq("status", "approved");
+
       console.error(
         "Failed to update approved member profile:",
-        profileUpdateError
+        profileUpdateError ?? new Error("Profile already belongs to a community")
       );
       return {
         success: false as const,
-        error: "Request approved but failed to update member profile",
+        error:
+          "Request approval could not be completed because the member already belongs to a community",
       };
     }
   }

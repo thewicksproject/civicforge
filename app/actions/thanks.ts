@@ -41,7 +41,7 @@ export async function createThanks(
   // Verify recipient exists
   const { data: recipient, error: recipientError } = await admin
     .from("profiles")
-    .select("id, reputation_score")
+    .select("id")
     .eq("id", parsed.data.toUserId)
     .single();
 
@@ -78,14 +78,11 @@ export async function createThanks(
     return { success: false as const, error: "Failed to create thanks" };
   }
 
-  // Increment recipient's reputation_score by 1
-  const { error: updateError } = await admin
-    .from("profiles")
-    .update({
-      reputation_score: recipient.reputation_score + 1,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", parsed.data.toUserId);
+  // Increment recipient's reputation_score atomically.
+  const { error: updateError } = await admin.rpc("increment_reputation", {
+    p_user_id: parsed.data.toUserId,
+    p_amount: 1,
+  });
 
   if (updateError) {
     // Thanks was created but reputation update failed -- log but don't fail

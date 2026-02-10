@@ -64,19 +64,21 @@ export async function flagPost(postId: string, reason?: string) {
     return { success: false as const, error: "Failed to flag post" };
   }
 
-  // Increment flag count and auto-hide at threshold
-  const newFlagCount = post.flag_count + 1;
-  const shouldHide = newFlagCount >= FLAG_THRESHOLD_HIDE;
+  // Increment flag count and auto-hide at threshold atomically.
+  const { data: rpcResult, error: rpcError } = await admin.rpc("increment_post_flag", {
+    p_post_id: postId,
+    p_threshold: FLAG_THRESHOLD_HIDE,
+  });
 
-  await admin
-    .from("posts")
-    .update({
-      flag_count: newFlagCount,
-      ...(shouldHide ? { hidden: true } : {}),
-    })
-    .eq("id", postId);
+  if (rpcError) {
+    return { success: false as const, error: "Failed to flag post" };
+  }
 
-  return { success: true as const, data: { flagCount: newFlagCount, hidden: shouldHide } };
+  const row = Array.isArray(rpcResult) ? rpcResult[0] : rpcResult;
+  const newFlagCount = Number((row as { new_flag_count?: number } | null)?.new_flag_count ?? post.flag_count + 1);
+  const hidden = Boolean((row as { is_hidden?: boolean } | null)?.is_hidden ?? false);
+
+  return { success: true as const, data: { flagCount: newFlagCount, hidden } };
 }
 
 export async function unflagPost(postId: string) {

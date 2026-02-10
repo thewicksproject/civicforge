@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Clock, MapPin, TriangleAlert } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
@@ -13,20 +13,12 @@ import { FlagButton } from "@/components/flag-button";
 import { AiBadge } from "@/components/ai-badge";
 
 export async function generateMetadata({
-  params,
+  params: _params,
 }: {
   params: Promise<{ postId: string }>;
 }) {
-  const { postId } = await params;
-  const adminMeta = createServiceClient();
-  const { data: post } = await adminMeta
-    .from("posts")
-    .select("title, type")
-    .eq("id", postId)
-    .single();
-
-  if (!post) return { title: "Post Not Found" };
-  return { title: post.title };
+  void _params;
+  return { title: "Post" };
 }
 
 export default async function PostDetailPage({
@@ -41,8 +33,18 @@ export default async function PostDetailPage({
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) redirect("/login");
+
   // Use service client to bypass self-referencing RLS policy on profiles
   const admin = createServiceClient();
+
+  const { data: viewerProfile } = await admin
+    .from("profiles")
+    .select("community_id, renown_tier")
+    .eq("id", user.id)
+    .single();
+
+  if (!viewerProfile?.community_id) notFound();
 
   // Fetch post with author, photos, and responses
   const { data: post } = await admin
@@ -62,6 +64,7 @@ export default async function PostDetailPage({
     .single();
 
   if (!post || post.hidden) notFound();
+  if (post.community_id !== viewerProfile.community_id) notFound();
 
   const author = Array.isArray(post.author) ? post.author[0] : post.author;
   const isAuthor = user?.id === author?.id;
@@ -95,14 +98,7 @@ export default async function PostDetailPage({
       r.responder && r.responder.id === user?.id
   );
 
-  // Get user's renown tier for permission checks
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("renown_tier")
-    .eq("id", user!.id)
-    .single();
-
-  const canRespond = (profile?.renown_tier ?? 1) >= 2;
+  const canRespond = (viewerProfile.renown_tier ?? 1) >= 2;
 
   return (
     <div className="max-w-2xl mx-auto">

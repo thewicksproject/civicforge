@@ -16,6 +16,15 @@ export async function getSkillProgress(userId?: string) {
 
   const targetId = userId ?? user.id;
   const admin = createServiceClient();
+  const { data: viewerProfile } = await admin
+    .from("profiles")
+    .select("community_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!viewerProfile?.community_id) {
+    return { success: false as const, error: "Profile not found" };
+  }
 
   // If viewing someone else's skills, check privacy tier
   if (targetId !== user.id) {
@@ -27,6 +36,10 @@ export async function getSkillProgress(userId?: string) {
 
     if (!targetProfile) {
       return { success: false as const, error: "User not found" };
+    }
+
+    if (targetProfile.community_id !== viewerProfile.community_id) {
+      return { success: false as const, error: "This user's skills are private" };
     }
 
     if (
@@ -77,6 +90,35 @@ export async function getSkillSummary(userId: string) {
   }
 
   const admin = createServiceClient();
+  const { data: viewerProfile } = await admin
+    .from("profiles")
+    .select("community_id")
+    .eq("id", user.id)
+    .single();
+
+  const { data: targetProfile } = await admin
+    .from("profiles")
+    .select("community_id, privacy_tier")
+    .eq("id", userId)
+    .single();
+
+  if (!targetProfile) {
+    return { domains: [], totalLevel: 0, primaryDomain: null };
+  }
+
+  if (userId !== user.id) {
+    if (!viewerProfile?.community_id) {
+      return { domains: [], totalLevel: 0, primaryDomain: null };
+    }
+
+    if (targetProfile.community_id !== viewerProfile.community_id) {
+      return { domains: [], totalLevel: 0, primaryDomain: null };
+    }
+
+    if (targetProfile.privacy_tier === "ghost") {
+      return { domains: [], totalLevel: 0, primaryDomain: null };
+    }
+  }
 
   const { data: skills } = await admin
     .from("skill_progress")

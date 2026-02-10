@@ -9,19 +9,12 @@ import { EndorsementSection } from "@/components/endorsement-section";
 import { getSkillSummary } from "@/app/actions/skills";
 
 export async function generateMetadata({
-  params,
+  params: _params,
 }: {
   params: Promise<{ userId: string }>;
 }) {
-  const { userId } = await params;
-  const admin = createServiceClient();
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("display_name")
-    .eq("id", userId)
-    .single();
-
-  return { title: profile?.display_name ?? "Profile" };
+  void _params;
+  return { title: "Profile" };
 }
 
 export default async function UserProfilePage({
@@ -40,15 +33,26 @@ export default async function UserProfilePage({
 
   const admin = createServiceClient();
 
+  const { data: viewerProfile } = await admin
+    .from("profiles")
+    .select("community_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!viewerProfile?.community_id) notFound();
+
   const { data: profile } = await admin
     .from("profiles")
-    .select("id, display_name, bio, skills, reputation_score, renown_tier, privacy_tier, created_at")
+    .select("id, display_name, bio, skills, reputation_score, renown_tier, privacy_tier, created_at, community_id")
     .eq("id", userId)
     .single();
 
   if (!profile) notFound();
 
   const isOwnProfile = user.id === userId;
+  if (!isOwnProfile && profile.community_id !== viewerProfile.community_id) {
+    notFound();
+  }
   const privacyTier = profile.privacy_tier ?? "quiet";
 
   // C3: Privacy tier enforcement

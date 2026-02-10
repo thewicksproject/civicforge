@@ -223,9 +223,21 @@ export async function claimQuest(questId: string) {
     return { success: false as const, error: "Quest is no longer available" };
   }
 
-  // Create party if multi-person
-  if (quest.max_party_size > 1) {
-    const { data: party } = await admin
+  // Track claimers for both solo and party quests.
+  // Every claimed quest should have at least one party membership row.
+  let partyId: string | null = null;
+  const { data: existingParty } = await admin
+    .from("parties")
+    .select("id")
+    .eq("quest_id", questId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  partyId = existingParty?.id ?? null;
+
+  if (!partyId) {
+    const { data: party, error: partyError } = await admin
       .from("parties")
       .insert({
         quest_id: questId,
@@ -234,12 +246,30 @@ export async function claimQuest(questId: string) {
       .select("id")
       .single();
 
-    if (party) {
-      await admin.from("party_members").insert({
-        party_id: party.id,
-        user_id: user.id,
-      });
+    if (partyError || !party) {
+      await admin
+        .from("quests")
+        .update({ status: "open" })
+        .eq("id", questId)
+        .eq("status", newStatus);
+      return { success: false as const, error: "Failed to claim quest" };
     }
+
+    partyId = party.id;
+  }
+
+  const { error: memberError } = await admin.from("party_members").insert({
+    party_id: partyId,
+    user_id: user.id,
+  });
+
+  if (memberError && memberError.code !== "23505") {
+    await admin
+      .from("quests")
+      .update({ status: "open" })
+      .eq("id", questId)
+      .eq("status", newStatus);
+    return { success: false as const, error: "Failed to claim quest" };
   }
 
   return { success: true as const };
@@ -257,9 +287,19 @@ export async function completeQuest(questId: string) {
 
   const admin = createServiceClient();
 
+  const { data: userProfile } = await admin
+    .from("profiles")
+    .select("community_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!userProfile?.community_id) {
+    return { success: false as const, error: "Profile not found" };
+  }
+
   const { data: quest } = await admin
     .from("quests")
-    .select("id, status, difficulty, validation_method, validation_threshold, skill_domains, xp_reward, created_by, max_party_size")
+    .select("id, status, difficulty, validation_method, validation_threshold, skill_domains, xp_reward, max_party_size, community_id")
     .eq("id", questId)
     .single();
 
@@ -271,48 +311,56 @@ export async function completeQuest(questId: string) {
     return { success: false as const, error: "Quest is not in progress" };
   }
 
-  // C10: Claimer verification — ensure current user is a participant
-  if (quest.max_party_size > 1) {
-    // Multi-person: check party membership
-    const { data: partyMember } = await admin
-      .from("parties")
-      .select("id, party_members!inner(user_id)")
-      .eq("quest_id", questId)
-      .eq("party_members.user_id", user.id)
-      .limit(1)
-      .single();
+  if (quest.community_id !== userProfile.community_id) {
+    return { success: false as const, error: "Quest is not in your community" };
+  }
 
-    if (!partyMember) {
-      return { success: false as const, error: "Only party members can complete this quest" };
-    }
-  } else {
-    // Solo: the claimer is not the author (claimQuest already prevents self-claim)
-    if (quest.created_by === user.id) {
-      return { success: false as const, error: "Cannot complete your own quest" };
-    }
+  const { data: partyMember } = await admin
+    .from("parties")
+    .select("id, party_members!inner(user_id)")
+    .eq("quest_id", questId)
+    .eq("party_members.user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (!partyMember) {
+    return { success: false as const, error: "Only quest participants can complete this quest" };
   }
 
   // Self-report quests (Spark) complete immediately
   if (quest.validation_method === "self_report") {
-    await admin
+    const { data: completed } = await admin
       .from("quests")
       .update({
         status: "completed",
         completed_at: new Date().toISOString(),
       })
-      .eq("id", questId);
+      .eq("id", questId)
+      .in("status", ["in_progress", "claimed"])
+      .select("id")
+      .maybeSingle();
 
-    // Award XP
-    await awardQuestXp(admin, user.id, quest);
+    if (!completed) {
+      return { success: false as const, error: "Quest is no longer in progress" };
+    }
+
+    await awardQuestXpToParticipants(admin, questId, quest);
 
     return { success: true as const, status: "completed" };
   }
 
   // Other quests enter pending_validation
-  await admin
+  const { data: pending } = await admin
     .from("quests")
     .update({ status: "pending_validation" })
-    .eq("id", questId);
+    .eq("id", questId)
+    .in("status", ["in_progress", "claimed"])
+    .select("id")
+    .maybeSingle();
+
+  if (!pending) {
+    return { success: false as const, error: "Quest is no longer in progress" };
+  }
 
   return { success: true as const, status: "pending_validation" };
 }
@@ -388,16 +436,66 @@ export async function validateQuest(
       return { success: false as const, error: "Failed to update validation count" };
     }
 
-    // RPC returns { new_count, threshold, status }
-    const result = rpcResult as { new_count: number; threshold: number; status: string };
+    const rpcRow = Array.isArray(rpcResult) ? rpcResult[0] : rpcResult;
+    const result = rpcRow as { new_count?: number; threshold?: number } | null;
+    const newCount = Number(result?.new_count ?? 0);
+    const threshold = Number(result?.threshold ?? quest.validation_threshold);
 
-    // Check if threshold met and quest was just completed by the RPC
-    if (result.status === "completed") {
-      await awardQuestXp(admin, quest.created_by, quest);
+    if (newCount >= threshold) {
+      const { data: completed } = await admin
+        .from("quests")
+        .update({
+          status: "completed",
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", questId)
+        .eq("status", "pending_validation")
+        .select("id")
+        .maybeSingle();
+
+      if (completed) {
+        await awardQuestXpToParticipants(admin, questId, quest);
+      }
     }
   }
 
   return { success: true as const };
+}
+
+async function getQuestParticipantIds(
+  admin: ReturnType<typeof createServiceClient>,
+  questId: string
+): Promise<string[]> {
+  const { data: parties } = await admin
+    .from("parties")
+    .select("id")
+    .eq("quest_id", questId);
+
+  const partyIds = (parties ?? []).map((p) => p.id);
+  if (partyIds.length === 0) return [];
+
+  const { data: members } = await admin
+    .from("party_members")
+    .select("user_id")
+    .in("party_id", partyIds);
+
+  return Array.from(new Set((members ?? []).map((m) => m.user_id)));
+}
+
+async function awardQuestXpToParticipants(
+  admin: ReturnType<typeof createServiceClient>,
+  questId: string,
+  quest: {
+    skill_domains: string[];
+    xp_reward: number;
+  }
+) {
+  const participantIds = await getQuestParticipantIds(admin, questId);
+  if (participantIds.length === 0) return;
+
+  for (const participantId of participantIds) {
+    await awardQuestXp(admin, participantId, quest);
+  }
 }
 
 /** Award skill XP for a completed quest (internal, uses service client) */
@@ -407,7 +505,6 @@ async function awardQuestXp(
   quest: {
     skill_domains: string[];
     xp_reward: number;
-    created_by: string;
   }
 ) {
   const xpPerDomain = Math.round(

@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { RENOWN_TIER_LABELS, type RenownLegacyTier } from "@/lib/types";
@@ -18,6 +18,8 @@ export default async function MembersPage({
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) redirect("/login");
+
   const admin = createServiceClient();
 
   const { data: community } = await admin
@@ -32,11 +34,14 @@ export default async function MembersPage({
   const { data: profile } = await admin
     .from("profiles")
     .select("renown_tier, community_id")
-    .eq("id", user!.id)
+    .eq("id", user.id)
     .single();
 
-  const isAdmin =
-    profile?.community_id === id && (profile?.renown_tier ?? 1) >= 2;
+  if (!profile?.community_id || profile.community_id !== id) {
+    notFound();
+  }
+
+  const isAdmin = (profile.renown_tier ?? 1) >= 2;
 
   // Get members
   const { data: members } = await admin

@@ -154,13 +154,17 @@ export async function redeemInvitation(code: string) {
     };
   }
 
-  // Mark invitation as used
-  const { error: updateInvError } = await admin
+  // Mark invitation as used atomically (prevents concurrent double-redeem).
+  const { data: claimedInvitation, error: updateInvError } = await admin
     .from("invitations")
     .update({ used_by: user.id })
-    .eq("id", invitation.id);
+    .eq("id", invitation.id)
+    .is("used_by", null)
+    .gt("expires_at", new Date().toISOString())
+    .select("id, community_id")
+    .single();
 
-  if (updateInvError) {
+  if (updateInvError || !claimedInvitation) {
     return { success: false as const, error: "Failed to redeem invitation" };
   }
 
@@ -169,7 +173,7 @@ export async function redeemInvitation(code: string) {
   const { data: updatedProfile, error: updateProfileError } = await admin
     .from("profiles")
     .update({
-      community_id: invitation.community_id,
+      community_id: claimedInvitation.community_id,
       renown_tier: newRenownTier,
       updated_at: new Date().toISOString(),
     })
@@ -178,6 +182,13 @@ export async function redeemInvitation(code: string) {
     .single();
 
   if (updateProfileError) {
+    // Best-effort rollback so a failed profile update doesn't permanently consume the code.
+    await admin
+      .from("invitations")
+      .update({ used_by: null })
+      .eq("id", claimedInvitation.id)
+      .eq("used_by", user.id);
+
     return {
       success: false as const,
       error: "Failed to update profile with community",

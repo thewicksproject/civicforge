@@ -78,27 +78,15 @@ export default async function QuestDetailPage({
   const hasValidated = validations.some((v) => v.validator_id === user.id);
 
   // Determine if user is a claimer (party member or solo claimer)
-  let isClaimer = false;
-  if (quest.max_party_size > 1) {
-    const { data: party } = await admin
-      .from("parties")
-      .select("id")
-      .eq("quest_id", questId)
-      .limit(1)
-      .single();
-    if (party) {
-      const { data: membership } = await admin
-        .from("party_members")
-        .select("id")
-        .eq("party_id", party.id)
-        .eq("user_id", user.id)
-        .single();
-      isClaimer = !!membership;
-    }
-  } else {
-    // Solo quest: claimer is whoever moved it to in_progress (not the author)
-    isClaimer = !isAuthor && (quest.status === "in_progress" || quest.status === "claimed" || quest.status === "pending_validation" || quest.status === "completed");
-  }
+  const { data: claimMembership } = await admin
+    .from("parties")
+    .select("id, party_members!inner(user_id)")
+    .eq("quest_id", questId)
+    .eq("party_members.user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+
+  const isClaimer = !!claimMembership;
 
   return (
     <div className="max-w-2xl mx-auto">

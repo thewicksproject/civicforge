@@ -132,6 +132,35 @@ export async function getEndorsementsForUser(userId: string) {
   }
 
   const admin = createServiceClient();
+  const { data: viewerProfile } = await admin
+    .from("profiles")
+    .select("community_id")
+    .eq("id", user.id)
+    .single();
+
+  const { data: targetProfile } = await admin
+    .from("profiles")
+    .select("community_id, privacy_tier")
+    .eq("id", userId)
+    .single();
+
+  if (!targetProfile) {
+    return { success: false as const, error: "Profile not found" };
+  }
+
+  const isOwnProfile = user.id === userId;
+  if (!isOwnProfile) {
+    if (!viewerProfile?.community_id || targetProfile.community_id !== viewerProfile.community_id) {
+      return { success: false as const, error: "Profile not found" };
+    }
+
+    const canView =
+      targetProfile.privacy_tier === "open" ||
+      targetProfile.privacy_tier === "mentor";
+    if (!canView) {
+      return { success: false as const, error: "This user's endorsements are private" };
+    }
+  }
 
   const { data: endorsements, error } = await admin
     .from("endorsements")

@@ -441,7 +441,7 @@ async function fetchGuildEcosystem(
   const { data: sunsets } = await admin
     .from("sunset_rules")
     .select("resource_id, expires_at")
-    .eq("resource_type", "guild_charter")
+    .eq("rule_type", "guild_charter")
     .in("resource_id", guildIds);
 
   const charterExpiry: Record<string, string> = {};

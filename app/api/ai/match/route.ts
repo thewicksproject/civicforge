@@ -72,6 +72,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Post not found" }, { status: 404 });
   }
 
+  const { data: requesterProfile } = await admin
+    .from("profiles")
+    .select("community_id, renown_tier")
+    .eq("id", user.id)
+    .single();
+
+  if (!requesterProfile?.community_id) {
+    return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+  }
+
+  if (requesterProfile.community_id !== post.community_id) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const isPostAuthor = post.author_id === user.id;
+  const isModerator = (requesterProfile.renown_tier ?? 1) >= 3;
+  if (!isPostAuthor && !isModerator) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   // Fetch candidate profiles from the same community (excluding post author)
   const { data: profiles } = await admin
     .from("profiles")

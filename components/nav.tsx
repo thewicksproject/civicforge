@@ -4,12 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useTheme } from "next-themes";
-import { LayoutGrid, CirclePlus, CircleUser, Settings, ShieldCheck, Sun, Moon, Shield, Vote } from "lucide-react";
+import { LayoutGrid, CirclePlus, CircleUser, Settings, ShieldCheck, Sun, Moon, Shield, Vote, Globe } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/board", label: "Board", icon: LayoutGrid },
+  { href: "/commons", label: "Commons", icon: Globe },
   { href: "/guilds", label: "Guilds", icon: Shield },
   { href: "/post/new", label: "Post", icon: CirclePlus },
   { href: "/profile", label: "Profile", icon: CircleUser },

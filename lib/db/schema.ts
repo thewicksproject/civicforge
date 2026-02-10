@@ -807,6 +807,11 @@ export const endorsements = pgTable(
     index("endorsements_to_user_idx").on(table.toUser),
     index("endorsements_domain_idx").on(table.domain),
     index("endorsements_quest_idx").on(table.questId),
+    uniqueIndex("endorsements_from_to_domain_uniq").on(
+      table.fromUser,
+      table.toUser,
+      table.domain,
+    ),
   ],
 );
 

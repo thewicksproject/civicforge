@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Lock, Shield, Users } from "lucide-react";
+import { Lock, Shield, Users, Globe } from "lucide-react";
 import {
   HeroIllustration,
   HowItWorksPostIllustration,
@@ -165,6 +165,31 @@ function ValuesSection() {
   );
 }
 
+function CommonsSection() {
+  return (
+    <section className="border-t border-border px-6 py-24 text-center">
+      <div className="mx-auto max-w-2xl">
+        <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-offer-light text-offer">
+          <Globe className="h-7 w-7" aria-hidden="true" />
+        </div>
+        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+          See The Commons
+        </h2>
+        <p className="mt-4 text-lg text-muted-foreground">
+          Explore the living relationships between skill domains, guilds, and
+          civic coordination — all in the open, privacy-respecting, and free.
+        </p>
+        <Link
+          href="/commons"
+          className="mt-8 inline-flex h-12 items-center justify-center rounded-full bg-golden-hour px-10 text-base font-medium text-accent-foreground shadow-sm transition-colors hover:bg-golden-hour/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-golden-hour"
+        >
+          Explore The Commons
+        </Link>
+      </div>
+    </section>
+  );
+}
+
 function CTASection() {
   return (
     <section className="px-6 py-24 text-center">
@@ -238,6 +263,7 @@ export default function Home() {
         <HeroSection />
         <HowItWorksSection />
         <ValuesSection />
+        <CommonsSection />
         <CTASection />
       </main>
       <Footer />

@@ -19,6 +19,7 @@ A community civic coordination system where people post needs, offer help, compl
 | Styling | Tailwind CSS v4 + shadcn/ui (OKLCH colors) |
 | Rate Limiting | Upstash Redis |
 | Images | Sharp (EXIF strip, resize, compress) |
+| Visualization | D3-force (knowledge graph) + Recharts (charts) |
 | Deployment | Vercel |
 
 ## Quick Commands
@@ -48,7 +49,24 @@ app/
     settings/privacy/page.tsx      # Settings, data export, deletion
     community/[id]/members/        # Member list + admin controls
     community/[id]/invite/         # Generate invite codes
+  commons/                         # The Commons — public visualization dashboard
+    layout.tsx                     # Minimal layout, no auth required
+    page.tsx                       # Platform-wide aggregate view
+    commons-dashboard.tsx          # Client component assembling all charts
+    [communityId]/page.tsx         # Single-community view
+    components/
+      knowledge-graph.tsx          # D3-force interactive graph (centerpiece)
+      domain-radar.tsx             # 7-axis skill domain radar (Recharts)
+      renown-pyramid.tsx           # Tier distribution bars (custom SVG)
+      quest-activity.tsx           # 12-week completion timeline (Recharts)
+      guild-health.tsx             # Guild ecosystem bars (Recharts)
+      governance-gauge.tsx         # Proposal status donut (Recharts)
+      community-growth.tsx         # Member growth chart (Recharts)
+      stat-card.tsx                # KPI card
+      commons-header.tsx           # Title, community picker, timestamp
+      privacy-notice.tsx           # Transparency notice
   actions/                         # Server Actions (all CRUD)
+    commons.ts                     # Aggregate queries for Commons (no auth, privacy-guarded)
     posts.ts, responses.ts, thanks.ts, profiles.ts, communities.ts
     invitations.ts, membership.ts, flags.ts, admin.ts
     quests.ts                      # Quest CRUD, XP awards, validation
@@ -116,6 +134,15 @@ The advocate serves the USER, not the system. It is architecturally separated fr
 - AI endpoints: 10 req/min/user via Upstash
 - Daily token budget tracked in `ai_usage` table
 
+### The Commons (Public Dashboard)
+Privacy-respecting community visualization at `/commons` (public, no auth):
+- **K-anonymity threshold = 3**: aggregates with < 3 individuals suppressed
+- Only shows counts, distributions, averages — never individual rows
+- Weekly aggregation for time series (prevents temporal fingerprinting)
+- Communities < 10 members hide growth charts
+- Uses `createServiceClient()` to bypass RLS for aggregate-only reads
+- ISR with 5-minute revalidation
+
 ## Design System
 
 Inherits Wicks DNA with CivicForge twist:
@@ -126,6 +153,7 @@ Inherits Wicks DNA with CivicForge twist:
 - Charter serif headings, system-ui body (17px, line-height 1.7)
 - Warm White / Cream backgrounds, OKLCH color space
 - Cards: cream bg, 12px radius, subtle lift on hover
+- **Chart domain colors** (`--chart-craft` through `--chart-weave`): distinct per domain when shown together in Commons visualizations
 
 ## Ascendant System Architecture
 

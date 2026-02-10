@@ -56,6 +56,15 @@
   --reputation-from: oklch(0.81 0.1 75);
   --reputation-to: oklch(0.75 0.12 55);
 
+  /* Commons chart domain colors (distinct per domain when shown together) */
+  --chart-craft:  var(--rose-clay);
+  --chart-green:  var(--meadow);
+  --chart-care:   var(--horizon);
+  --chart-bridge: var(--golden-hour);
+  --chart-signal: oklch(0.68 0.14 230);
+  --chart-hearth: oklch(0.72 0.14 30);
+  --chart-weave:  oklch(0.78 0.12 65);
+
   /* shadcn extras */
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
@@ -159,6 +168,15 @@
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+
+  /* Commons chart domain colors */
+  --color-chart-craft: var(--chart-craft);
+  --color-chart-green: var(--chart-green);
+  --color-chart-care: var(--chart-care);
+  --color-chart-bridge: var(--chart-bridge);
+  --color-chart-signal: var(--chart-signal);
+  --color-chart-hearth: var(--chart-hearth);
+  --color-chart-weave: var(--chart-weave);
 }
 
 /* ============================================================================

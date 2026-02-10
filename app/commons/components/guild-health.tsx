@@ -102,7 +102,7 @@ export function GuildHealth({ guilds }: GuildHealthProps) {
       </ResponsiveContainer>
 
       {/* Charter health legend */}
-      <div className="mt-3 grid max-h-44 gap-2 overflow-y-auto pr-1 text-xs text-muted-foreground sm:grid-cols-2">
+      <div className="mt-3 grid max-h-32 gap-2 overflow-y-auto pr-1 text-xs text-muted-foreground sm:max-h-44 sm:grid-cols-2 lg:max-h-52">
         {guilds.map((g) => {
           const status = charterStatus(g.charterHealthDays);
           return (

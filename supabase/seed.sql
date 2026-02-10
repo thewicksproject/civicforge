@@ -1,6 +1,6 @@
 -- ============================================================================
 -- CivicForge V2.5 UAT Seed Data
--- ~625 rows across 25 tables, 5 communities, 50 users
+-- ~1175 rows across 25 tables, 5 communities, 110 users
 -- Run with: npm run db:seed (psql $DATABASE_URL -f supabase/seed.sql)
 -- Idempotent: every INSERT uses ON CONFLICT DO NOTHING
 -- Requires superuser/service_role to disable FK checks for circular deps
@@ -413,7 +413,7 @@ INSERT INTO ai_usage (id, user_id, date, tokens_used, requests_count) VALUES
   ('00000000-0000-0000-000b-000000000028', '00000000-0000-0000-0002-000000000001', (now() - interval '80 days')::date, 1000, 2),
   ('00000000-0000-0000-000b-000000000029', '00000000-0000-0000-0002-000000000001', (now() - interval '48 days')::date, 1400, 3),
   ('00000000-0000-0000-000b-000000000030', '00000000-0000-0000-0002-000000000014', (now() - interval '35 days')::date, 1900, 4)
-ON CONFLICT (user_id, date) DO NOTHING;
+ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================================
 -- SECTION 12: User Consents (50)
@@ -1062,6 +1062,2193 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO federation_agreements (id, local_community_id, remote_instance_url, remote_community_name, terms, active, expires_at, created_at) VALUES
   ('00000000-0000-0000-001b-000000000001', '00000000-0000-0000-0001-000000000001', 'https://riverside.civicforge.org', 'Riverside Commons', 'Reciprocal quest participation: members of either community may claim and complete quests in the other. Skill XP earned counts toward both communities. Renown is community-specific.', true, now() + interval '355 days', now() - interval '10 days'),
   ('00000000-0000-0000-001b-000000000002', '00000000-0000-0000-0001-000000000003', 'https://example-community.civicforge.org', 'Bayview Heights', 'Pilot federation agreement for shared seasonal quests. Limited to Blaze+ difficulty quests only.', false, now() - interval '10 days', now() - interval '60 days')
+ON CONFLICT (id) DO NOTHING;
+
+
+-- ============================================================================
+-- SEED DATA EXPANSION: Richer Commons Dashboard Visualizations
+-- Adds ~550 rows across profiles, quests, validations, skills, guilds,
+-- endorsements, governance, and sunset rules to fill K-anonymity gaps.
+-- ============================================================================
+
+-- ============================================================================
+-- CivicForge Seed Data Expansion #1
+-- 60 profiles, 170 skill_progress rows, 60 user_consents rows
+-- Generated 2026-02-09
+-- ============================================================================
+
+-- ============================================================================
+-- SECTION 2: PROFILES (60 rows, IDs 51-110)
+-- ============================================================================
+
+INSERT INTO profiles (id, display_name, community_id, bio, skills, reputation_score, renown_tier, renown_score, privacy_tier, phone_verified, created_at) VALUES
+
+-- Maplewood Heights (Portland, OR) — IDs 51-62
+('00000000-0000-0000-0002-000000000051', 'Kenji Yamamoto', '00000000-0000-0000-0001-000000000001', 'Master carpenter and former shop teacher. Volunteers at Habitat for Humanity builds.', ARRAY['carpentry','woodworking','home repair','mentoring','gardening'], 45, 5, 550, 'mentor', true, now() - interval '84 days'),
+('00000000-0000-0000-0002-000000000052', 'Dorothy Fletcher', '00000000-0000-0000-0001-000000000001', 'Retired pediatrician and community grandma. Organizes neighborhood potlucks.', ARRAY['eldercare','childcare','cooking','organizing','mentoring'], 42, 5, 530, 'mentor', true, now() - interval '82 days'),
+('00000000-0000-0000-0002-000000000053', 'Raj Gupta', '00000000-0000-0000-0001-000000000001', 'Data scientist at a health tech startup. Teaches coding workshops at the library.', ARRAY['tech help','coding','tutoring','data analysis'], 28, 4, 240, 'open', true, now() - interval '79 days'),
+('00000000-0000-0000-0002-000000000054', 'Anna Sokolova', '00000000-0000-0000-0001-000000000001', 'Environmental consultant and permaculture enthusiast. Runs composting workshops.', ARRAY['composting','gardening','environmental','teaching'], 24, 4, 220, 'open', true, now() - interval '76 days'),
+('00000000-0000-0000-0002-000000000055', 'Miguel Herrera', '00000000-0000-0000-0001-000000000001', 'Uber driver and handyman. Knows every shortcut in Portland.', ARRAY['transportation','delivery','home repair','moving'], 16, 3, 90, 'open', true, now() - interval '72 days'),
+('00000000-0000-0000-0002-000000000056', 'Grace Park', '00000000-0000-0000-0001-000000000001', 'Pediatric nurse who runs first aid workshops for parents.', ARRAY['first aid','childcare','teaching','meal prep'], 14, 3, 75, 'open', true, now() - interval '66 days'),
+('00000000-0000-0000-0002-000000000057', 'Thomas Bailey', '00000000-0000-0000-0001-000000000001', 'Landscape designer working on native plant restoration projects.', ARRAY['landscaping','gardening','composting','organizing'], 11, 3, 60, 'quiet', true, now() - interval '58 days'),
+('00000000-0000-0000-0002-000000000058', 'Fatima Al-Rashid', '00000000-0000-0000-0001-000000000001', 'Home baker who makes the best baklava on the block. Hosts baking classes.', ARRAY['baking','cooking','event planning'], 7, 2, 30, 'quiet', true, now() - interval '50 days'),
+('00000000-0000-0000-0002-000000000059', 'Kevin Murphy', '00000000-0000-0000-0001-000000000001', 'Off-duty paramedic. Handy with drywall and basic plumbing.', ARRAY['first aid','home repair','plumbing'], 6, 2, 22, 'open', true, now() - interval '42 days'),
+('00000000-0000-0000-0002-000000000060', 'Lily Nakamura', '00000000-0000-0000-0001-000000000001', 'UX designer working remotely. Helps neighbors with tech and design.', ARRAY['tech help','design','photography'], 5, 2, 18, 'quiet', false, now() - interval '35 days'),
+('00000000-0000-0000-0002-000000000061', 'Jasper Doyle', '00000000-0000-0000-0001-000000000001', 'Just finished grad school. Looking for community while job hunting.', ARRAY['tutoring','writing'], 1, 1, 4, 'quiet', false, now() - interval '16 days'),
+('00000000-0000-0000-0002-000000000062', 'Mei-Lin Wu', '00000000-0000-0000-0001-000000000001', 'Recently relocated from San Francisco. Works in biotech.', ARRAY['science','cooking'], 0, 1, 0, 'ghost', false, now() - interval '8 days'),
+
+-- Riverside Commons (Austin, TX) — IDs 63-74
+('00000000-0000-0000-0002-000000000063', 'Maya Jackson', '00000000-0000-0000-0001-000000000002', 'Community mediator and nonprofit director. Bridges divides through dialogue.', ARRAY['mediation','organizing','governance','counseling','teaching'], 48, 5, 560, 'mentor', true, now() - interval '85 days'),
+('00000000-0000-0000-0002-000000000064', 'Carlos Gutierrez', '00000000-0000-0000-0001-000000000002', 'Urban farmer and composting evangelist. Runs a community seed library.', ARRAY['urban farming','composting','gardening','delivery','cooking'], 43, 5, 510, 'mentor', true, now() - interval '83 days'),
+('00000000-0000-0000-0002-000000000065', 'Priya Anand', '00000000-0000-0000-0001-000000000002', 'Software architect who builds apps for community organizations.', ARRAY['coding','tech help','teaching','data analysis'], 29, 4, 250, 'open', true, now() - interval '77 days'),
+('00000000-0000-0000-0002-000000000066', 'Liam O''Sullivan', '00000000-0000-0000-0001-000000000002', 'Bicycle mechanic and DIY solar panel installer. Sustainability through action.', ARRAY['bike repair','solar','home repair','welding','delivery'], 22, 4, 210, 'open', true, now() - interval '73 days'),
+('00000000-0000-0000-0002-000000000067', 'Amara Osei', '00000000-0000-0000-0001-000000000002', 'Social worker specializing in youth programs. Runs after-school tutoring.', ARRAY['counseling','childcare','tutoring','cooking'], 15, 3, 80, 'open', true, now() - interval '68 days'),
+('00000000-0000-0000-0002-000000000068', 'Ethan Rivers', '00000000-0000-0000-0001-000000000002', 'Environmental science grad student. Passionate about native plant restoration.', ARRAY['gardening','composting','science','hiking'], 13, 3, 65, 'quiet', true, now() - interval '60 days'),
+('00000000-0000-0000-0002-000000000069', 'Luna Vasquez', '00000000-0000-0000-0001-000000000002', 'Freelance web developer and community radio host. Bilingual English/Spanish.', ARRAY['tech help','translation','event planning','writing'], 11, 3, 55, 'open', true, now() - interval '53 days'),
+('00000000-0000-0000-0002-000000000070', 'Jin Park', '00000000-0000-0000-0001-000000000002', 'Bike courier and amateur mechanic. Delivers for local co-ops.', ARRAY['delivery','bike repair','moving','errands'], 7, 2, 25, 'quiet', true, now() - interval '45 days'),
+('00000000-0000-0000-0002-000000000071', 'Sage Williams', '00000000-0000-0000-0001-000000000002', 'Herbalist and backyard beekeeper. Sells honey at the farmers market.', ARRAY['gardening','beekeeping','herbalism'], 5, 2, 18, 'quiet', false, now() - interval '38 days'),
+('00000000-0000-0000-0002-000000000072', 'Ruby Chen', '00000000-0000-0000-0001-000000000002', 'Pastry chef at a local bakery. Brings treats to every community event.', ARRAY['baking','cooking','event planning'], 4, 2, 12, 'open', false, now() - interval '30 days'),
+('00000000-0000-0000-0002-000000000073', 'Diego Moreno', '00000000-0000-0000-0001-000000000002', 'New to Austin from Mexico City. Looking for community and pickup soccer.', ARRAY['cooking','soccer'], 1, 1, 3, 'quiet', false, now() - interval '17 days'),
+('00000000-0000-0000-0002-000000000074', 'Iris Kim', '00000000-0000-0000-0001-000000000002', 'UT Austin freshman studying environmental engineering.', ARRAY['science','tutoring'], 0, 1, 0, 'ghost', false, now() - interval '9 days'),
+
+-- Harbor Point (Baltimore, MD) — IDs 75-86
+('00000000-0000-0000-0002-000000000075', 'Reggie Carter', '00000000-0000-0000-0001-000000000003', 'Master electrician and union steward. Mentors apprentices on weekends.', ARRAY['electrical','carpentry','welding','mentoring','organizing'], 44, 5, 540, 'open', true, now() - interval '83 days'),
+('00000000-0000-0000-0002-000000000076', 'Mary O''Malley', '00000000-0000-0000-0001-000000000003', 'Retired school principal. Runs the neighborhood homework help center.', ARRAY['tutoring','childcare','organizing','cooking','teaching'], 41, 5, 505, 'mentor', true, now() - interval '80 days'),
+('00000000-0000-0000-0002-000000000077', 'Tyrone Jackson', '00000000-0000-0000-0001-000000000003', 'Roofer with 15 years experience. Volunteers for emergency storm repairs.', ARRAY['roofing','carpentry','home repair','gardening'], 26, 4, 235, 'open', true, now() - interval '75 days'),
+('00000000-0000-0000-0002-000000000078', 'Kim Tran', '00000000-0000-0000-0001-000000000003', 'Home health aide and CPR instructor. Always calm in a crisis.', ARRAY['eldercare','first aid','childcare','cooking','teaching'], 21, 4, 205, 'open', true, now() - interval '71 days'),
+('00000000-0000-0000-0002-000000000079', 'Darnell Washington', '00000000-0000-0000-0001-000000000003', 'Truck driver and amateur BBQ pitmaster. Delivers furniture on the side.', ARRAY['transportation','delivery','moving','grilling'], 16, 3, 85, 'open', true, now() - interval '66 days'),
+('00000000-0000-0000-0002-000000000080', 'Oksana Petrov', '00000000-0000-0000-0001-000000000003', 'Ukrainian baker. Her pierogies bring the whole block together.', ARRAY['baking','cooking','event planning','eldercare'], 13, 3, 70, 'quiet', true, now() - interval '59 days'),
+('00000000-0000-0000-0002-000000000081', 'Jamal Brooks', '00000000-0000-0000-0001-000000000003', 'Youth basketball coach and community organizer. Keeps kids off the streets.', ARRAY['coaching','organizing','mentoring','event planning'], 10, 3, 55, 'open', true, now() - interval '52 days'),
+('00000000-0000-0000-0002-000000000082', 'Colleen Murphy', '00000000-0000-0000-0001-000000000003', 'Visiting nurse who checks in on elderly neighbors after her shifts.', ARRAY['eldercare','first aid','transportation','cooking'], 7, 2, 28, 'quiet', true, now() - interval '44 days'),
+('00000000-0000-0000-0002-000000000083', 'Huy Nguyen', '00000000-0000-0000-0001-000000000003', 'HVAC technician. Helps neighbors with heating and cooling problems.', ARRAY['hvac','home repair','electrical'], 5, 2, 20, 'open', true, now() - interval '36 days'),
+('00000000-0000-0000-0002-000000000084', 'Destiny Adams', '00000000-0000-0000-0001-000000000003', 'Community college student studying horticulture. Starting a rooftop garden.', ARRAY['gardening','composting','errands'], 4, 2, 14, 'quiet', false, now() - interval '28 days'),
+('00000000-0000-0000-0002-000000000085', 'Tommy Doyle', '00000000-0000-0000-0001-000000000003', 'Just got back from the Navy. Getting reacquainted with the neighborhood.', ARRAY['mechanical','errands'], 1, 1, 5, 'quiet', false, now() - interval '18 days'),
+('00000000-0000-0000-0002-000000000086', 'Yuki Sato', '00000000-0000-0000-0001-000000000003', 'Johns Hopkins nursing student. Looking for a neighborhood to belong to.', ARRAY['first aid','tutoring'], 0, 1, 0, 'ghost', false, now() - interval '6 days'),
+
+-- Sunrise on the Monon (Carmel, IN) — IDs 87-98
+('00000000-0000-0000-0002-000000000087', 'Eleanor Whitfield', '00000000-0000-0000-0001-000000000004', 'Retired school superintendent. Bridges generations through community governance.', ARRAY['governance','organizing','mentoring','teaching','writing'], 47, 5, 570, 'mentor', true, now() - interval '73 days'),
+('00000000-0000-0000-0002-000000000088', 'Marcus Chen', '00000000-0000-0000-0001-000000000004', 'Contractor and trail maintenance volunteer. Builds anything from decks to pergolas.', ARRAY['carpentry','home repair','landscaping','woodworking','gardening'], 43, 5, 520, 'mentor', true, now() - interval '71 days'),
+('00000000-0000-0000-0002-000000000089', 'Patricia Wicks', '00000000-0000-0000-0001-000000000004', 'Cookbook author and neighborhood hostess. Her porch is always open.', ARRAY['cooking','baking','event planning','gardening','mentoring'], 41, 5, 505, 'open', true, now() - interval '69 days'),
+('00000000-0000-0000-0002-000000000090', 'Amir Patel', '00000000-0000-0000-0001-000000000004', 'Cybersecurity engineer. Sets up home networks and teaches digital safety.', ARRAY['tech help','networking','coding','teaching'], 27, 4, 245, 'open', true, now() - interval '65 days'),
+('00000000-0000-0000-0002-000000000091', 'Stephanie Lang', '00000000-0000-0000-0001-000000000004', 'Master gardener and farmer''s market organizer. Grows the best tomatoes in Carmel.', ARRAY['gardening','composting','cooking','organizing','teaching'], 23, 4, 215, 'open', true, now() - interval '61 days'),
+('00000000-0000-0000-0002-000000000092', 'Jake Morrison', '00000000-0000-0000-0001-000000000004', 'Handyman and Monon trail maintenance crew lead. Built half the benches on the path.', ARRAY['carpentry','home repair','moving','landscaping'], 17, 3, 95, 'open', true, now() - interval '56 days'),
+('00000000-0000-0000-0002-000000000093', 'Anita Sharma', '00000000-0000-0000-0001-000000000004', 'Yoga instructor and meal prep queen. Feeds the block on potluck nights.', ARRAY['cooking','childcare','teaching','meal prep'], 14, 3, 72, 'quiet', true, now() - interval '49 days'),
+('00000000-0000-0000-0002-000000000094', 'Will Cooper', '00000000-0000-0000-0001-000000000004', 'Urban beekeeper and native plant advocate. His honey is legendary.', ARRAY['beekeeping','gardening','composting','organizing'], 12, 3, 58, 'open', true, now() - interval '42 days'),
+('00000000-0000-0000-0002-000000000095', 'Hana Sato', '00000000-0000-0000-0001-000000000004', 'IT support specialist. Fixes printers and routers for the whole block.', ARRAY['tech help','networking','tutoring'], 6, 2, 26, 'quiet', true, now() - interval '34 days'),
+('00000000-0000-0000-0002-000000000096', 'Brian Kelly', '00000000-0000-0000-0001-000000000004', 'FedEx driver who helps neighbors move packages and furniture.', ARRAY['delivery','moving','transportation'], 4, 2, 15, 'quiet', true, now() - interval '26 days'),
+('00000000-0000-0000-0002-000000000097', 'Zara Ahmed', '00000000-0000-0000-0001-000000000004', 'New mom looking for playdate friends and neighborhood connections.', ARRAY['childcare','cooking'], 1, 1, 4, 'quiet', false, now() - interval '16 days'),
+('00000000-0000-0000-0002-000000000098', 'Cody Barnes', '00000000-0000-0000-0001-000000000004', 'College student at Butler. Bikes the Monon daily and loves pickup basketball.', ARRAY['tutoring','errands'], 0, 1, 0, 'ghost', false, now() - interval '6 days'),
+
+-- Sunset Ridge (Tucson, AZ) — IDs 99-110
+('00000000-0000-0000-0002-000000000099', 'Isabel Reyes', '00000000-0000-0000-0001-000000000005', 'Retired social worker and neighborhood elder. Advocates for intergenerational connection.', ARRAY['counseling','organizing','mentoring','governance','eldercare'], 46, 5, 545, 'mentor', true, now() - interval '68 days'),
+('00000000-0000-0000-0002-000000000100', 'Henry Nakamura', '00000000-0000-0000-0001-000000000005', 'Retired engineer and master gardener. Builds raised beds for neighbors.', ARRAY['carpentry','gardening','home repair','mentoring','woodworking'], 42, 5, 515, 'mentor', true, now() - interval '64 days'),
+('00000000-0000-0000-0002-000000000101', 'Margaret Williams', '00000000-0000-0000-0001-000000000005', 'Church choir director who hosts Sunday suppers for the whole street.', ARRAY['cooking','event planning','music','mentoring','organizing'], 40, 5, 500, 'open', true, now() - interval '60 days'),
+('00000000-0000-0000-0002-000000000102', 'Tomas Gutierrez', '00000000-0000-0000-0001-000000000005', 'Retired postal carrier turned neighborhood shuttle driver. Still knows every address.', ARRAY['transportation','delivery','errands','moving','mentoring'], 25, 4, 240, 'open', true, now() - interval '56 days'),
+('00000000-0000-0000-0002-000000000103', 'Susan Park', '00000000-0000-0000-0001-000000000005', 'UA professor of education. Runs free tutoring for local kids.', ARRAY['tutoring','teaching','tech help','mentoring'], 22, 4, 210, 'mentor', true, now() - interval '51 days'),
+('00000000-0000-0000-0002-000000000104', 'Andre Johnson', '00000000-0000-0000-0001-000000000005', 'Retired plumber who still helps with leaky faucets and backed-up drains.', ARRAY['plumbing','home repair','gardening','mentoring'], 15, 3, 88, 'open', true, now() - interval '46 days'),
+('00000000-0000-0000-0002-000000000105', 'Mei Chen', '00000000-0000-0000-0001-000000000005', 'UA computer science grad student. Helps elders with phones and tablets.', ARRAY['tech help','tutoring','coding','translation'], 12, 3, 68, 'quiet', true, now() - interval '40 days'),
+('00000000-0000-0000-0002-000000000106', 'Roberto Alvarez', '00000000-0000-0000-0001-000000000005', 'Retired bus driver. Now drives neighbors to appointments and runs errands.', ARRAY['transportation','delivery','errands','organizing'], 10, 3, 55, 'open', true, now() - interval '34 days'),
+('00000000-0000-0000-0002-000000000107', 'Karen O''Brien', '00000000-0000-0000-0001-000000000005', 'Hospice volunteer and grief counselor. Brings comfort when it matters most.', ARRAY['eldercare','counseling','cooking'], 6, 2, 25, 'quiet', true, now() - interval '28 days'),
+('00000000-0000-0000-0002-000000000108', 'David Yazzie', '00000000-0000-0000-0001-000000000005', 'Retired botanist with a passion for desert native plants. Teaches xeriscaping.', ARRAY['gardening','teaching','composting'], 5, 2, 18, 'quiet', true, now() - interval '22 days'),
+('00000000-0000-0000-0002-000000000109', 'Samantha Liu', '00000000-0000-0000-0001-000000000005', 'UA culinary arts student. Cooks dinner for her elderly neighbors twice a week.', ARRAY['cooking','baking','meal prep'], 3, 2, 12, 'open', false, now() - interval '16 days'),
+('00000000-0000-0000-0002-000000000110', 'Jason Cruz', '00000000-0000-0000-0001-000000000005', 'Just moved from Phoenix. Working at a call center while figuring out life.', ARRAY['errands','tech help'], 1, 1, 4, 'quiet', false, now() - interval '10 days')
+
+ON CONFLICT (id) DO NOTHING;
+
+
+-- ============================================================================
+-- SECTION 17: SKILL PROGRESS (170 rows)
+-- ============================================================================
+
+INSERT INTO skill_progress (id, user_id, domain, total_xp, level, quests_completed, last_quest_at, created_at) VALUES
+
+-- ── Maplewood Heights ──
+
+-- 51 Kenji Yamamoto (T5): craft=500/L4, green=350/L3, signal=200/L2
+('00000000-0000-0000-0012-000000000071', '00000000-0000-0000-0002-000000000051', 'craft',  500, 4, 18, now() - interval '3 days',  now() - interval '83 days'),
+('00000000-0000-0000-0012-000000000072', '00000000-0000-0000-0002-000000000051', 'green',  350, 3, 12, now() - interval '7 days',  now() - interval '80 days'),
+('00000000-0000-0000-0012-000000000073', '00000000-0000-0000-0002-000000000051', 'signal', 200, 2,  8, now() - interval '10 days', now() - interval '75 days'),
+
+-- 52 Dorothy Fletcher (T5): care=400/L3, hearth=350/L3, weave=300/L2
+('00000000-0000-0000-0012-000000000074', '00000000-0000-0000-0002-000000000052', 'care',   400, 3, 15, now() - interval '4 days',  now() - interval '81 days'),
+('00000000-0000-0000-0012-000000000075', '00000000-0000-0000-0002-000000000052', 'hearth', 350, 3, 12, now() - interval '6 days',  now() - interval '78 days'),
+('00000000-0000-0000-0012-000000000076', '00000000-0000-0000-0002-000000000052', 'weave',  300, 2, 10, now() - interval '9 days',  now() - interval '74 days'),
+
+-- 53 Raj Gupta (T4): signal=380/L3, craft=250/L2
+('00000000-0000-0000-0012-000000000077', '00000000-0000-0000-0002-000000000053', 'signal', 380, 3, 13, now() - interval '5 days',  now() - interval '78 days'),
+('00000000-0000-0000-0012-000000000078', '00000000-0000-0000-0002-000000000053', 'craft',  250, 2,  9, now() - interval '8 days',  now() - interval '72 days'),
+
+-- 54 Anna Sokolova (T4): green=350/L3, care=200/L2
+('00000000-0000-0000-0012-000000000079', '00000000-0000-0000-0002-000000000054', 'green',  350, 3, 12, now() - interval '6 days',  now() - interval '75 days'),
+('00000000-0000-0000-0012-000000000080', '00000000-0000-0000-0002-000000000054', 'care',   200, 2,  7, now() - interval '10 days', now() - interval '70 days'),
+
+-- 55 Miguel Herrera (T3): bridge=200/L2, craft=150/L1
+('00000000-0000-0000-0012-000000000081', '00000000-0000-0000-0002-000000000055', 'bridge', 200, 2,  7, now() - interval '8 days',  now() - interval '71 days'),
+('00000000-0000-0000-0012-000000000082', '00000000-0000-0000-0002-000000000055', 'craft',  150, 1,  5, now() - interval '12 days', now() - interval '65 days'),
+
+-- 56 Grace Park (T3): care=200/L2, signal=100/L1
+('00000000-0000-0000-0012-000000000083', '00000000-0000-0000-0002-000000000056', 'care',   200, 2,  7, now() - interval '9 days',  now() - interval '65 days'),
+('00000000-0000-0000-0012-000000000084', '00000000-0000-0000-0002-000000000056', 'signal', 100, 1,  4, now() - interval '14 days', now() - interval '60 days'),
+
+-- 57 Thomas Bailey (T3): green=180/L2, weave=100/L1
+('00000000-0000-0000-0012-000000000085', '00000000-0000-0000-0002-000000000057', 'green',  180, 2,  6, now() - interval '10 days', now() - interval '57 days'),
+('00000000-0000-0000-0012-000000000086', '00000000-0000-0000-0002-000000000057', 'weave',  100, 1,  3, now() - interval '15 days', now() - interval '50 days'),
+
+-- 58 Fatima Al-Rashid (T2): hearth=80/L1
+('00000000-0000-0000-0012-000000000087', '00000000-0000-0000-0002-000000000058', 'hearth',  80, 1,  3, now() - interval '14 days', now() - interval '48 days'),
+
+-- 59 Kevin Murphy (T2): craft=70/L1
+('00000000-0000-0000-0012-000000000088', '00000000-0000-0000-0002-000000000059', 'craft',   70, 1,  2, now() - interval '16 days', now() - interval '40 days'),
+
+-- 60 Lily Nakamura (T2): signal=60/L0
+('00000000-0000-0000-0012-000000000089', '00000000-0000-0000-0002-000000000060', 'signal',  60, 0,  2, now() - interval '18 days', now() - interval '33 days'),
+
+-- 61 Jasper (T1): no skill rows
+-- 62 Mei-Lin (T1): no skill rows
+
+-- ── Riverside Commons ──
+
+-- 63 Maya Jackson (T5): weave=500/L4, care=350/L3, signal=200/L2
+('00000000-0000-0000-0012-000000000090', '00000000-0000-0000-0002-000000000063', 'weave',  500, 4, 18, now() - interval '2 days',  now() - interval '84 days'),
+('00000000-0000-0000-0012-000000000091', '00000000-0000-0000-0002-000000000063', 'care',   350, 3, 12, now() - interval '5 days',  now() - interval '80 days'),
+('00000000-0000-0000-0012-000000000092', '00000000-0000-0000-0002-000000000063', 'signal', 200, 2,  7, now() - interval '9 days',  now() - interval '76 days'),
+
+-- 64 Carlos Gutierrez (T5): green=450/L3, bridge=300/L2, hearth=200/L2
+('00000000-0000-0000-0012-000000000093', '00000000-0000-0000-0002-000000000064', 'green',  450, 3, 16, now() - interval '3 days',  now() - interval '82 days'),
+('00000000-0000-0000-0012-000000000094', '00000000-0000-0000-0002-000000000064', 'bridge', 300, 2, 10, now() - interval '6 days',  now() - interval '78 days'),
+('00000000-0000-0000-0012-000000000095', '00000000-0000-0000-0002-000000000064', 'hearth', 200, 2,  7, now() - interval '10 days', now() - interval '74 days'),
+
+-- 65 Priya Anand (T4): signal=350/L3, green=200/L2
+('00000000-0000-0000-0012-000000000096', '00000000-0000-0000-0002-000000000065', 'signal', 350, 3, 12, now() - interval '4 days',  now() - interval '76 days'),
+('00000000-0000-0000-0012-000000000097', '00000000-0000-0000-0002-000000000065', 'green',  200, 2,  7, now() - interval '8 days',  now() - interval '70 days'),
+
+-- 66 Liam O'Sullivan (T4): craft=300/L2, bridge=200/L2
+('00000000-0000-0000-0012-000000000098', '00000000-0000-0000-0002-000000000066', 'craft',  300, 2, 10, now() - interval '5 days',  now() - interval '72 days'),
+('00000000-0000-0000-0012-000000000099', '00000000-0000-0000-0002-000000000066', 'bridge', 200, 2,  7, now() - interval '9 days',  now() - interval '67 days'),
+
+-- 67 Amara Osei (T3): care=200/L2, hearth=100/L1
+('00000000-0000-0000-0012-000000000100', '00000000-0000-0000-0002-000000000067', 'care',   200, 2,  7, now() - interval '7 days',  now() - interval '67 days'),
+('00000000-0000-0000-0012-000000000101', '00000000-0000-0000-0002-000000000067', 'hearth', 100, 1,  4, now() - interval '12 days', now() - interval '60 days'),
+
+-- 68 Ethan Rivers (T3): green=180/L2, craft=100/L1
+('00000000-0000-0000-0012-000000000102', '00000000-0000-0000-0002-000000000068', 'green',  180, 2,  6, now() - interval '9 days',  now() - interval '59 days'),
+('00000000-0000-0000-0012-000000000103', '00000000-0000-0000-0002-000000000068', 'craft',  100, 1,  3, now() - interval '14 days', now() - interval '53 days'),
+
+-- 69 Luna Vasquez (T3): signal=150/L1, weave=100/L1
+('00000000-0000-0000-0012-000000000104', '00000000-0000-0000-0002-000000000069', 'signal', 150, 1,  5, now() - interval '8 days',  now() - interval '52 days'),
+('00000000-0000-0000-0012-000000000105', '00000000-0000-0000-0002-000000000069', 'weave',  100, 1,  3, now() - interval '13 days', now() - interval '46 days'),
+
+-- 70 Jin Park (T2): bridge=80/L1, craft=50/L0
+('00000000-0000-0000-0012-000000000106', '00000000-0000-0000-0002-000000000070', 'bridge',  80, 1,  3, now() - interval '15 days', now() - interval '44 days'),
+('00000000-0000-0000-0012-000000000107', '00000000-0000-0000-0002-000000000070', 'craft',   50, 0,  2, now() - interval '20 days', now() - interval '40 days'),
+
+-- 71 Sage Williams (T2): green=60/L0
+('00000000-0000-0000-0012-000000000108', '00000000-0000-0000-0002-000000000071', 'green',   60, 0,  2, now() - interval '16 days', now() - interval '36 days'),
+
+-- 72 Ruby Chen (T2): hearth=50/L0
+('00000000-0000-0000-0012-000000000109', '00000000-0000-0000-0002-000000000072', 'hearth',  50, 0,  2, now() - interval '18 days', now() - interval '28 days'),
+
+-- 73 Diego (T1): no skill rows
+-- 74 Iris (T1): no skill rows
+
+-- ── Harbor Point ──
+
+-- 75 Reggie Carter (T5): craft=550/L4, weave=300/L2, bridge=200/L2
+('00000000-0000-0000-0012-000000000110', '00000000-0000-0000-0002-000000000075', 'craft',  550, 4, 20, now() - interval '2 days',  now() - interval '82 days'),
+('00000000-0000-0000-0012-000000000111', '00000000-0000-0000-0002-000000000075', 'weave',  300, 2, 10, now() - interval '5 days',  now() - interval '78 days'),
+('00000000-0000-0000-0012-000000000112', '00000000-0000-0000-0002-000000000075', 'bridge', 200, 2,  7, now() - interval '8 days',  now() - interval '74 days'),
+
+-- 76 Mary O'Malley (T5): care=450/L3, hearth=300/L2, signal=200/L2
+('00000000-0000-0000-0012-000000000113', '00000000-0000-0000-0002-000000000076', 'care',   450, 3, 16, now() - interval '3 days',  now() - interval '79 days'),
+('00000000-0000-0000-0012-000000000114', '00000000-0000-0000-0002-000000000076', 'hearth', 300, 2, 10, now() - interval '6 days',  now() - interval '75 days'),
+('00000000-0000-0000-0012-000000000115', '00000000-0000-0000-0002-000000000076', 'signal', 200, 2,  7, now() - interval '10 days', now() - interval '71 days'),
+
+-- 77 Tyrone Jackson (T4): craft=350/L3, green=200/L2
+('00000000-0000-0000-0012-000000000116', '00000000-0000-0000-0002-000000000077', 'craft',  350, 3, 12, now() - interval '4 days',  now() - interval '74 days'),
+('00000000-0000-0000-0012-000000000117', '00000000-0000-0000-0002-000000000077', 'green',  200, 2,  7, now() - interval '9 days',  now() - interval '68 days'),
+
+-- 78 Kim Tran (T4): care=300/L2, signal=200/L2
+('00000000-0000-0000-0012-000000000118', '00000000-0000-0000-0002-000000000078', 'care',   300, 2, 10, now() - interval '5 days',  now() - interval '70 days'),
+('00000000-0000-0000-0012-000000000119', '00000000-0000-0000-0002-000000000078', 'signal', 200, 2,  7, now() - interval '9 days',  now() - interval '65 days'),
+
+-- 79 Darnell Washington (T3): bridge=200/L2, craft=150/L1
+('00000000-0000-0000-0012-000000000120', '00000000-0000-0000-0002-000000000079', 'bridge', 200, 2,  7, now() - interval '7 days',  now() - interval '65 days'),
+('00000000-0000-0000-0012-000000000121', '00000000-0000-0000-0002-000000000079', 'craft',  150, 1,  5, now() - interval '12 days', now() - interval '58 days'),
+
+-- 80 Oksana Petrov (T3): hearth=180/L2, care=100/L1
+('00000000-0000-0000-0012-000000000122', '00000000-0000-0000-0002-000000000080', 'hearth', 180, 2,  6, now() - interval '8 days',  now() - interval '58 days'),
+('00000000-0000-0000-0012-000000000123', '00000000-0000-0000-0002-000000000080', 'care',   100, 1,  4, now() - interval '13 days', now() - interval '52 days'),
+
+-- 81 Jamal Brooks (T3): weave=150/L1, signal=100/L1
+('00000000-0000-0000-0012-000000000124', '00000000-0000-0000-0002-000000000081', 'weave',  150, 1,  5, now() - interval '9 days',  now() - interval '51 days'),
+('00000000-0000-0000-0012-000000000125', '00000000-0000-0000-0002-000000000081', 'signal', 100, 1,  3, now() - interval '14 days', now() - interval '45 days'),
+
+-- 82 Colleen Murphy (T2): care=80/L1, bridge=50/L0
+('00000000-0000-0000-0012-000000000126', '00000000-0000-0000-0002-000000000082', 'care',    80, 1,  3, now() - interval '14 days', now() - interval '43 days'),
+('00000000-0000-0000-0012-000000000127', '00000000-0000-0000-0002-000000000082', 'bridge',  50, 0,  2, now() - interval '20 days', now() - interval '38 days'),
+
+-- 83 Huy Nguyen (T2): craft=70/L1
+('00000000-0000-0000-0012-000000000128', '00000000-0000-0000-0002-000000000083', 'craft',   70, 1,  2, now() - interval '16 days', now() - interval '34 days'),
+
+-- 84 Destiny Adams (T2): green=60/L0
+('00000000-0000-0000-0012-000000000129', '00000000-0000-0000-0002-000000000084', 'green',   60, 0,  2, now() - interval '18 days', now() - interval '26 days'),
+
+-- 85 Tommy (T1): no skill rows
+-- 86 Yuki (T1): no skill rows
+
+-- ── Sunrise on the Monon ──
+
+-- 87 Eleanor Whitfield (T5): weave=500/L4, signal=350/L3, care=250/L2
+('00000000-0000-0000-0012-000000000130', '00000000-0000-0000-0002-000000000087', 'weave',  500, 4, 18, now() - interval '2 days',  now() - interval '72 days'),
+('00000000-0000-0000-0012-000000000131', '00000000-0000-0000-0002-000000000087', 'signal', 350, 3, 12, now() - interval '5 days',  now() - interval '68 days'),
+('00000000-0000-0000-0012-000000000132', '00000000-0000-0000-0002-000000000087', 'care',   250, 2,  9, now() - interval '8 days',  now() - interval '64 days'),
+
+-- 88 Marcus Chen (T5): craft=480/L4, green=300/L2, bridge=200/L2
+('00000000-0000-0000-0012-000000000133', '00000000-0000-0000-0002-000000000088', 'craft',  480, 4, 17, now() - interval '3 days',  now() - interval '70 days'),
+('00000000-0000-0000-0012-000000000134', '00000000-0000-0000-0002-000000000088', 'green',  300, 2, 10, now() - interval '6 days',  now() - interval '66 days'),
+('00000000-0000-0000-0012-000000000135', '00000000-0000-0000-0002-000000000088', 'bridge', 200, 2,  7, now() - interval '9 days',  now() - interval '62 days'),
+
+-- 89 Patricia Wicks (T5): hearth=450/L3, weave=300/L2, care=200/L2
+('00000000-0000-0000-0012-000000000136', '00000000-0000-0000-0002-000000000089', 'hearth', 450, 3, 16, now() - interval '2 days',  now() - interval '68 days'),
+('00000000-0000-0000-0012-000000000137', '00000000-0000-0000-0002-000000000089', 'weave',  300, 2, 10, now() - interval '5 days',  now() - interval '64 days'),
+('00000000-0000-0000-0012-000000000138', '00000000-0000-0000-0002-000000000089', 'care',   200, 2,  7, now() - interval '9 days',  now() - interval '60 days'),
+
+-- 90 Amir Patel (T4): signal=350/L3, craft=200/L2
+('00000000-0000-0000-0012-000000000139', '00000000-0000-0000-0002-000000000090', 'signal', 350, 3, 12, now() - interval '4 days',  now() - interval '64 days'),
+('00000000-0000-0000-0012-000000000140', '00000000-0000-0000-0002-000000000090', 'craft',  200, 2,  7, now() - interval '8 days',  now() - interval '58 days'),
+
+-- 91 Stephanie Lang (T4): green=300/L2, care=200/L2
+('00000000-0000-0000-0012-000000000141', '00000000-0000-0000-0002-000000000091', 'green',  300, 2, 10, now() - interval '5 days',  now() - interval '60 days'),
+('00000000-0000-0000-0012-000000000142', '00000000-0000-0000-0002-000000000091', 'care',   200, 2,  7, now() - interval '9 days',  now() - interval '55 days'),
+
+-- 92 Jake Morrison (T3): craft=200/L2, bridge=150/L1
+('00000000-0000-0000-0012-000000000143', '00000000-0000-0000-0002-000000000092', 'craft',  200, 2,  7, now() - interval '7 days',  now() - interval '55 days'),
+('00000000-0000-0000-0012-000000000144', '00000000-0000-0000-0002-000000000092', 'bridge', 150, 1,  5, now() - interval '12 days', now() - interval '48 days'),
+
+-- 93 Anita Sharma (T3): care=180/L2, hearth=100/L1
+('00000000-0000-0000-0012-000000000145', '00000000-0000-0000-0002-000000000093', 'care',   180, 2,  6, now() - interval '8 days',  now() - interval '48 days'),
+('00000000-0000-0000-0012-000000000146', '00000000-0000-0000-0002-000000000093', 'hearth', 100, 1,  4, now() - interval '13 days', now() - interval '42 days'),
+
+-- 94 Will Cooper (T3): green=170/L1, weave=100/L1
+('00000000-0000-0000-0012-000000000147', '00000000-0000-0000-0002-000000000094', 'green',  170, 1,  6, now() - interval '9 days',  now() - interval '41 days'),
+('00000000-0000-0000-0012-000000000148', '00000000-0000-0000-0002-000000000094', 'weave',  100, 1,  3, now() - interval '14 days', now() - interval '35 days'),
+
+-- 95 Hana Sato (T2): signal=70/L1
+('00000000-0000-0000-0012-000000000149', '00000000-0000-0000-0002-000000000095', 'signal',  70, 1,  2, now() - interval '15 days', now() - interval '33 days'),
+
+-- 96 Brian Kelly (T2): bridge=60/L0
+('00000000-0000-0000-0012-000000000150', '00000000-0000-0000-0002-000000000096', 'bridge',  60, 0,  2, now() - interval '17 days', now() - interval '25 days'),
+
+-- 97 Zara (T1): no skill rows
+-- 98 Cody (T1): no skill rows
+
+-- ── Sunset Ridge ──
+
+-- 99 Isabel Reyes (T5): care=500/L4, weave=350/L3, signal=200/L2
+('00000000-0000-0000-0012-000000000151', '00000000-0000-0000-0002-000000000099', 'care',   500, 4, 18, now() - interval '2 days',  now() - interval '67 days'),
+('00000000-0000-0000-0012-000000000152', '00000000-0000-0000-0002-000000000099', 'weave',  350, 3, 12, now() - interval '5 days',  now() - interval '63 days'),
+('00000000-0000-0000-0012-000000000153', '00000000-0000-0000-0002-000000000099', 'signal', 200, 2,  7, now() - interval '9 days',  now() - interval '58 days'),
+
+-- 100 Henry Nakamura (T5): craft=480/L4, green=300/L2, bridge=200/L2
+('00000000-0000-0000-0012-000000000154', '00000000-0000-0000-0002-000000000100', 'craft',  480, 4, 17, now() - interval '3 days',  now() - interval '63 days'),
+('00000000-0000-0000-0012-000000000155', '00000000-0000-0000-0002-000000000100', 'green',  300, 2, 10, now() - interval '6 days',  now() - interval '59 days'),
+('00000000-0000-0000-0012-000000000156', '00000000-0000-0000-0002-000000000100', 'bridge', 200, 2,  7, now() - interval '10 days', now() - interval '55 days'),
+
+-- 101 Margaret Williams (T5): hearth=400/L3, weave=300/L2, care=250/L2
+('00000000-0000-0000-0012-000000000157', '00000000-0000-0000-0002-000000000101', 'hearth', 400, 3, 14, now() - interval '3 days',  now() - interval '59 days'),
+('00000000-0000-0000-0012-000000000158', '00000000-0000-0000-0002-000000000101', 'weave',  300, 2, 10, now() - interval '6 days',  now() - interval '55 days'),
+('00000000-0000-0000-0012-000000000159', '00000000-0000-0000-0002-000000000101', 'care',   250, 2,  9, now() - interval '9 days',  now() - interval '51 days'),
+
+-- 102 Tomas Gutierrez (T4): bridge=350/L3, craft=200/L2
+('00000000-0000-0000-0012-000000000160', '00000000-0000-0000-0002-000000000102', 'bridge', 350, 3, 12, now() - interval '4 days',  now() - interval '55 days'),
+('00000000-0000-0000-0012-000000000161', '00000000-0000-0000-0002-000000000102', 'craft',  200, 2,  7, now() - interval '8 days',  now() - interval '50 days'),
+
+-- 103 Susan Park (T4): signal=300/L2, care=200/L2
+('00000000-0000-0000-0012-000000000162', '00000000-0000-0000-0002-000000000103', 'signal', 300, 2, 10, now() - interval '5 days',  now() - interval '50 days'),
+('00000000-0000-0000-0012-000000000163', '00000000-0000-0000-0002-000000000103', 'care',   200, 2,  7, now() - interval '9 days',  now() - interval '45 days'),
+
+-- 104 Andre Johnson (T3): craft=200/L2, green=100/L1
+('00000000-0000-0000-0012-000000000164', '00000000-0000-0000-0002-000000000104', 'craft',  200, 2,  7, now() - interval '7 days',  now() - interval '45 days'),
+('00000000-0000-0000-0012-000000000165', '00000000-0000-0000-0002-000000000104', 'green',  100, 1,  3, now() - interval '13 days', now() - interval '39 days'),
+
+-- 105 Mei Chen (T3): signal=180/L2, hearth=80/L1
+('00000000-0000-0000-0012-000000000166', '00000000-0000-0000-0002-000000000105', 'signal', 180, 2,  6, now() - interval '8 days',  now() - interval '39 days'),
+('00000000-0000-0000-0012-000000000167', '00000000-0000-0000-0002-000000000105', 'hearth',  80, 1,  3, now() - interval '14 days', now() - interval '33 days'),
+
+-- 106 Roberto Alvarez (T3): bridge=150/L1, weave=100/L1
+('00000000-0000-0000-0012-000000000168', '00000000-0000-0000-0002-000000000106', 'bridge', 150, 1,  5, now() - interval '9 days',  now() - interval '33 days'),
+('00000000-0000-0000-0012-000000000169', '00000000-0000-0000-0002-000000000106', 'weave',  100, 1,  3, now() - interval '14 days', now() - interval '28 days'),
+
+-- 107 Karen O'Brien (T2): care=70/L1
+('00000000-0000-0000-0012-000000000170', '00000000-0000-0000-0002-000000000107', 'care',    70, 1,  2, now() - interval '15 days', now() - interval '27 days'),
+
+-- 108 David Yazzie (T2): green=60/L0
+('00000000-0000-0000-0012-000000000171', '00000000-0000-0000-0002-000000000108', 'green',   60, 0,  2, now() - interval '16 days', now() - interval '21 days'),
+
+-- 109 Samantha Liu (T2): hearth=50/L0
+('00000000-0000-0000-0012-000000000172', '00000000-0000-0000-0002-000000000109', 'hearth',  50, 0,  2, now() - interval '12 days', now() - interval '15 days')
+
+-- 110 Jason (T1): no skill rows
+
+ON CONFLICT (user_id, domain) DO NOTHING;
+
+
+-- ============================================================================
+-- SECTION 12: USER CONSENTS (60 rows)
+-- ============================================================================
+
+INSERT INTO user_consents (id, user_id, consent_type, policy_version, granted_at, revoked_at) VALUES
+
+-- Maplewood Heights (IDs 51-62)
+('00000000-0000-0000-000c-000000000051', '00000000-0000-0000-0002-000000000051', 'terms_of_service', '1.0', now() - interval '84 days', NULL),
+('00000000-0000-0000-000c-000000000052', '00000000-0000-0000-0002-000000000052', 'terms_of_service', '1.0', now() - interval '82 days', NULL),
+('00000000-0000-0000-000c-000000000053', '00000000-0000-0000-0002-000000000053', 'terms_of_service', '1.0', now() - interval '79 days', NULL),
+('00000000-0000-0000-000c-000000000054', '00000000-0000-0000-0002-000000000054', 'terms_of_service', '1.0', now() - interval '76 days', NULL),
+('00000000-0000-0000-000c-000000000055', '00000000-0000-0000-0002-000000000055', 'terms_of_service', '1.0', now() - interval '72 days', NULL),
+('00000000-0000-0000-000c-000000000056', '00000000-0000-0000-0002-000000000056', 'terms_of_service', '1.0', now() - interval '66 days', NULL),
+('00000000-0000-0000-000c-000000000057', '00000000-0000-0000-0002-000000000057', 'terms_of_service', '1.0', now() - interval '58 days', NULL),
+('00000000-0000-0000-000c-000000000058', '00000000-0000-0000-0002-000000000058', 'terms_of_service', '1.0', now() - interval '50 days', NULL),
+('00000000-0000-0000-000c-000000000059', '00000000-0000-0000-0002-000000000059', 'terms_of_service', '1.0', now() - interval '42 days', NULL),
+('00000000-0000-0000-000c-000000000060', '00000000-0000-0000-0002-000000000060', 'terms_of_service', '1.0', now() - interval '35 days', NULL),
+('00000000-0000-0000-000c-000000000061', '00000000-0000-0000-0002-000000000061', 'terms_of_service', '1.0', now() - interval '16 days', NULL),
+('00000000-0000-0000-000c-000000000062', '00000000-0000-0000-0002-000000000062', 'terms_of_service', '1.0', now() - interval '8 days', NULL),
+
+-- Riverside Commons (IDs 63-74)
+('00000000-0000-0000-000c-000000000063', '00000000-0000-0000-0002-000000000063', 'terms_of_service', '1.0', now() - interval '85 days', NULL),
+('00000000-0000-0000-000c-000000000064', '00000000-0000-0000-0002-000000000064', 'terms_of_service', '1.0', now() - interval '83 days', NULL),
+('00000000-0000-0000-000c-000000000065', '00000000-0000-0000-0002-000000000065', 'terms_of_service', '1.0', now() - interval '77 days', NULL),
+('00000000-0000-0000-000c-000000000066', '00000000-0000-0000-0002-000000000066', 'terms_of_service', '1.0', now() - interval '73 days', NULL),
+('00000000-0000-0000-000c-000000000067', '00000000-0000-0000-0002-000000000067', 'terms_of_service', '1.0', now() - interval '68 days', NULL),
+('00000000-0000-0000-000c-000000000068', '00000000-0000-0000-0002-000000000068', 'terms_of_service', '1.0', now() - interval '60 days', NULL),
+('00000000-0000-0000-000c-000000000069', '00000000-0000-0000-0002-000000000069', 'terms_of_service', '1.0', now() - interval '53 days', NULL),
+('00000000-0000-0000-000c-000000000070', '00000000-0000-0000-0002-000000000070', 'terms_of_service', '1.0', now() - interval '45 days', NULL),
+('00000000-0000-0000-000c-000000000071', '00000000-0000-0000-0002-000000000071', 'terms_of_service', '1.0', now() - interval '38 days', NULL),
+('00000000-0000-0000-000c-000000000072', '00000000-0000-0000-0002-000000000072', 'terms_of_service', '1.0', now() - interval '30 days', NULL),
+('00000000-0000-0000-000c-000000000073', '00000000-0000-0000-0002-000000000073', 'terms_of_service', '1.0', now() - interval '17 days', NULL),
+('00000000-0000-0000-000c-000000000074', '00000000-0000-0000-0002-000000000074', 'terms_of_service', '1.0', now() - interval '9 days', NULL),
+
+-- Harbor Point (IDs 75-86)
+('00000000-0000-0000-000c-000000000075', '00000000-0000-0000-0002-000000000075', 'terms_of_service', '1.0', now() - interval '83 days', NULL),
+('00000000-0000-0000-000c-000000000076', '00000000-0000-0000-0002-000000000076', 'terms_of_service', '1.0', now() - interval '80 days', NULL),
+('00000000-0000-0000-000c-000000000077', '00000000-0000-0000-0002-000000000077', 'terms_of_service', '1.0', now() - interval '75 days', NULL),
+('00000000-0000-0000-000c-000000000078', '00000000-0000-0000-0002-000000000078', 'terms_of_service', '1.0', now() - interval '71 days', NULL),
+('00000000-0000-0000-000c-000000000079', '00000000-0000-0000-0002-000000000079', 'terms_of_service', '1.0', now() - interval '66 days', NULL),
+('00000000-0000-0000-000c-000000000080', '00000000-0000-0000-0002-000000000080', 'terms_of_service', '1.0', now() - interval '59 days', NULL),
+('00000000-0000-0000-000c-000000000081', '00000000-0000-0000-0002-000000000081', 'terms_of_service', '1.0', now() - interval '52 days', NULL),
+('00000000-0000-0000-000c-000000000082', '00000000-0000-0000-0002-000000000082', 'terms_of_service', '1.0', now() - interval '44 days', NULL),
+('00000000-0000-0000-000c-000000000083', '00000000-0000-0000-0002-000000000083', 'terms_of_service', '1.0', now() - interval '36 days', NULL),
+('00000000-0000-0000-000c-000000000084', '00000000-0000-0000-0002-000000000084', 'terms_of_service', '1.0', now() - interval '28 days', NULL),
+('00000000-0000-0000-000c-000000000085', '00000000-0000-0000-0002-000000000085', 'terms_of_service', '1.0', now() - interval '18 days', NULL),
+('00000000-0000-0000-000c-000000000086', '00000000-0000-0000-0002-000000000086', 'terms_of_service', '1.0', now() - interval '6 days', NULL),
+
+-- Sunrise on the Monon (IDs 87-98)
+('00000000-0000-0000-000c-000000000087', '00000000-0000-0000-0002-000000000087', 'terms_of_service', '1.0', now() - interval '73 days', NULL),
+('00000000-0000-0000-000c-000000000088', '00000000-0000-0000-0002-000000000088', 'terms_of_service', '1.0', now() - interval '71 days', NULL),
+('00000000-0000-0000-000c-000000000089', '00000000-0000-0000-0002-000000000089', 'terms_of_service', '1.0', now() - interval '69 days', NULL),
+('00000000-0000-0000-000c-000000000090', '00000000-0000-0000-0002-000000000090', 'terms_of_service', '1.0', now() - interval '65 days', NULL),
+('00000000-0000-0000-000c-000000000091', '00000000-0000-0000-0002-000000000091', 'terms_of_service', '1.0', now() - interval '61 days', NULL),
+('00000000-0000-0000-000c-000000000092', '00000000-0000-0000-0002-000000000092', 'terms_of_service', '1.0', now() - interval '56 days', NULL),
+('00000000-0000-0000-000c-000000000093', '00000000-0000-0000-0002-000000000093', 'terms_of_service', '1.0', now() - interval '49 days', NULL),
+('00000000-0000-0000-000c-000000000094', '00000000-0000-0000-0002-000000000094', 'terms_of_service', '1.0', now() - interval '42 days', NULL),
+('00000000-0000-0000-000c-000000000095', '00000000-0000-0000-0002-000000000095', 'terms_of_service', '1.0', now() - interval '34 days', NULL),
+('00000000-0000-0000-000c-000000000096', '00000000-0000-0000-0002-000000000096', 'terms_of_service', '1.0', now() - interval '26 days', NULL),
+('00000000-0000-0000-000c-000000000097', '00000000-0000-0000-0002-000000000097', 'terms_of_service', '1.0', now() - interval '16 days', NULL),
+('00000000-0000-0000-000c-000000000098', '00000000-0000-0000-0002-000000000098', 'terms_of_service', '1.0', now() - interval '6 days', NULL),
+
+-- Sunset Ridge (IDs 99-110)
+('00000000-0000-0000-000c-000000000099', '00000000-0000-0000-0002-000000000099', 'terms_of_service', '1.0', now() - interval '68 days', NULL),
+('00000000-0000-0000-000c-000000000100', '00000000-0000-0000-0002-000000000100', 'terms_of_service', '1.0', now() - interval '64 days', NULL),
+('00000000-0000-0000-000c-000000000101', '00000000-0000-0000-0002-000000000101', 'terms_of_service', '1.0', now() - interval '60 days', NULL),
+('00000000-0000-0000-000c-000000000102', '00000000-0000-0000-0002-000000000102', 'terms_of_service', '1.0', now() - interval '56 days', NULL),
+('00000000-0000-0000-000c-000000000103', '00000000-0000-0000-0002-000000000103', 'terms_of_service', '1.0', now() - interval '51 days', NULL),
+('00000000-0000-0000-000c-000000000104', '00000000-0000-0000-0002-000000000104', 'terms_of_service', '1.0', now() - interval '46 days', NULL),
+('00000000-0000-0000-000c-000000000105', '00000000-0000-0000-0002-000000000105', 'terms_of_service', '1.0', now() - interval '40 days', NULL),
+('00000000-0000-0000-000c-000000000106', '00000000-0000-0000-0002-000000000106', 'terms_of_service', '1.0', now() - interval '34 days', NULL),
+('00000000-0000-0000-000c-000000000107', '00000000-0000-0000-0002-000000000107', 'terms_of_service', '1.0', now() - interval '28 days', NULL),
+('00000000-0000-0000-000c-000000000108', '00000000-0000-0000-0002-000000000108', 'terms_of_service', '1.0', now() - interval '22 days', NULL),
+('00000000-0000-0000-000c-000000000109', '00000000-0000-0000-0002-000000000109', 'terms_of_service', '1.0', now() - interval '16 days', NULL),
+('00000000-0000-0000-000c-000000000110', '00000000-0000-0000-0002-000000000110', 'terms_of_service', '1.0', now() - interval '10 days', NULL)
+
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================================
+-- CivicForge Seed Expansion 2: Quests & Quest Validations
+-- 60 quests (IDs 36-95) + 75 quest validations (IDs 46-120)
+-- Generated 2026-02-09
+-- ============================================================================
+
+-- ============================================================================
+-- QUESTS (60 rows)
+-- ============================================================================
+
+INSERT INTO quests (
+  id, post_id, community_id, created_by, title, description, difficulty,
+  validation_method, status, skill_domains, xp_reward, max_party_size,
+  requested_by_other, validation_count, validation_threshold, is_emergency,
+  is_seasonal, expires_at, completed_at, created_at
+) VALUES
+
+-- --------------------------------------------------------------------------
+-- Maplewood Heights (Portland, OR) — Quest IDs 36-47
+-- --------------------------------------------------------------------------
+
+-- Q36: spark, green, completed 56d ago
+(
+  '00000000-0000-0000-0010-000000000036', NULL,
+  '00000000-0000-0000-0001-000000000001',
+  '00000000-0000-0000-0002-000000000054',
+  'Sidewalk Weed Pull on Elm Street',
+  'Help clear the sidewalks along Elm Street of overgrown weeds so pedestrians and wheelchair users can pass safely. Bring gloves and a bucket.',
+  'spark', 'self_report', 'completed',
+  ARRAY['green']::skill_domain[], 5, 1,
+  false, 0, 0, false, false,
+  NULL, now() - interval '56 days', now() - interval '58 days'
+),
+
+-- Q37: ember, craft, completed 49d ago
+(
+  '00000000-0000-0000-0010-000000000037', NULL,
+  '00000000-0000-0000-0001-000000000001',
+  '00000000-0000-0000-0002-000000000051',
+  'Fix Mrs. Henderson''s Fence Gate',
+  'The front gate on Mrs. Henderson''s fence has a broken hinge and won''t latch properly. Needs someone with basic carpentry skills and a drill.',
+  'ember', 'peer_confirm', 'completed',
+  ARRAY['craft']::skill_domain[], 15, 1,
+  true, 1, 1, false, false,
+  NULL, now() - interval '49 days', now() - interval '52 days'
+),
+
+-- Q38: flame, signal, completed 42d ago
+(
+  '00000000-0000-0000-0010-000000000038', NULL,
+  '00000000-0000-0000-0001-000000000001',
+  '00000000-0000-0000-0002-000000000053',
+  'Set Up Community WiFi Hotspot at Park Pavilion',
+  'Install and configure a weatherproof WiFi hotspot at the Maplewood Park pavilion so community members can access internet during events and gatherings.',
+  'flame', 'photo_and_peer', 'completed',
+  ARRAY['signal']::skill_domain[], 35, 2,
+  false, 2, 1, false, false,
+  NULL, now() - interval '42 days', now() - interval '45 days'
+),
+
+-- Q39: ember, care, completed 35d ago
+(
+  '00000000-0000-0000-0010-000000000039', NULL,
+  '00000000-0000-0000-0001-000000000001',
+  '00000000-0000-0000-0002-000000000056',
+  'Organize Flu Shot Clinic at Community Center',
+  'Coordinate with the local pharmacy to host a walk-in flu shot clinic at the community center. Handle scheduling, signage, and day-of logistics.',
+  'ember', 'peer_confirm', 'completed',
+  ARRAY['care']::skill_domain[], 15, 3,
+  false, 1, 1, false, true,
+  NULL, now() - interval '35 days', now() - interval '38 days'
+),
+
+-- Q40: spark, bridge, completed 28d ago
+(
+  '00000000-0000-0000-0010-000000000040', NULL,
+  '00000000-0000-0000-0001-000000000001',
+  '00000000-0000-0000-0002-000000000055',
+  'Airport Run for Elderly Neighbor',
+  'Drive Mr. Torres to PDX airport for his 7am flight on Saturday. He has one suitcase and needs help with check-in.',
+  'spark', 'self_report', 'completed',
+  ARRAY['bridge']::skill_domain[], 5, 1,
+  true, 0, 0, false, false,
+  NULL, now() - interval '28 days', now() - interval '30 days'
+),
+
+-- Q41: flame, hearth, completed 21d ago
+(
+  '00000000-0000-0000-0010-000000000041', NULL,
+  '00000000-0000-0000-0001-000000000001',
+  '00000000-0000-0000-0002-000000000052',
+  'Holiday Cookie Exchange and Bake Sale',
+  'Organize and host the annual Maplewood cookie exchange at the community center. Coordinate sign-ups, set up tables, handle leftover donations to the food bank.',
+  'flame', 'photo_and_peer', 'completed',
+  ARRAY['hearth']::skill_domain[], 35, 5,
+  false, 2, 1, false, true,
+  NULL, now() - interval '21 days', now() - interval '24 days'
+),
+
+-- Q42: ember, weave, completed 14d ago
+(
+  '00000000-0000-0000-0010-000000000042', NULL,
+  '00000000-0000-0000-0001-000000000001',
+  '00000000-0000-0000-0002-000000000057',
+  'Draft Community Garden Rules Update',
+  'Review feedback from gardeners and draft an updated set of community garden rules addressing plot maintenance timelines, composting standards, and guest access.',
+  'ember', 'peer_confirm', 'completed',
+  ARRAY['weave']::skill_domain[], 15, 1,
+  false, 1, 1, false, false,
+  NULL, now() - interval '14 days', now() - interval '17 days'
+),
+
+-- Q43: blaze, green, completed 7d ago
+(
+  '00000000-0000-0000-0010-000000000043', NULL,
+  '00000000-0000-0000-0001-000000000001',
+  '00000000-0000-0000-0002-000000000054',
+  'Maplewood Park Native Plant Restoration',
+  'Lead a multi-day effort to remove invasive species and replant native Oregon plants in the east section of Maplewood Park. Coordinate volunteers, source plants from local nursery, and ensure proper planting technique.',
+  'blaze', 'community_vote', 'completed',
+  ARRAY['green']::skill_domain[], 75, 8,
+  false, 3, 3, false, false,
+  NULL, now() - interval '7 days', now() - interval '10 days'
+),
+
+-- Q44: spark, care, open
+(
+  '00000000-0000-0000-0010-000000000044', NULL,
+  '00000000-0000-0000-0001-000000000001',
+  '00000000-0000-0000-0002-000000000056',
+  'Check in on Homebound Neighbors This Week',
+  'Visit or call at least three homebound neighbors on our list to check on their wellbeing, see if they need groceries or prescriptions, and just say hello.',
+  'spark', 'self_report', 'open',
+  ARRAY['care']::skill_domain[], 5, 1,
+  false, 0, 0, false, false,
+  NULL, NULL, now() - interval '5 days'
+),
+
+-- Q45: inferno, weave, in_progress
+(
+  '00000000-0000-0000-0010-000000000045', NULL,
+  '00000000-0000-0000-0001-000000000001',
+  '00000000-0000-0000-0002-000000000001',
+  'Maplewood Heights Annual Neighborhood Plan',
+  'Facilitate the annual neighborhood planning process: gather input from residents, synthesize priorities, draft a community action plan, and present to the neighborhood association for ratification.',
+  'inferno', 'community_vote_and_evidence', 'in_progress',
+  ARRAY['weave']::skill_domain[], 150, 10,
+  false, 0, 5, false, false,
+  now() + interval '90 days', NULL, now() - interval '15 days'
+),
+
+-- Q46: ember, craft, claimed
+(
+  '00000000-0000-0000-0010-000000000046', NULL,
+  '00000000-0000-0000-0001-000000000001',
+  '00000000-0000-0000-0002-000000000051',
+  'Repair Community Center Back Door',
+  'The back door of the Maplewood community center is sticking and the weather stripping is worn. Needs someone to plane the door and replace the seal.',
+  'ember', 'peer_confirm', 'claimed',
+  ARRAY['craft']::skill_domain[], 15, 1,
+  false, 0, 1, false, false,
+  NULL, NULL, now() - interval '4 days'
+),
+
+-- Q47: flame, signal, open
+(
+  '00000000-0000-0000-0010-000000000047', NULL,
+  '00000000-0000-0000-0001-000000000001',
+  '00000000-0000-0000-0002-000000000053',
+  'Digital Literacy Workshop for Seniors',
+  'Plan and lead a two-hour workshop at the community center teaching seniors how to use smartphones for video calls, messaging, and online safety. Provide printed handouts.',
+  'flame', 'photo_and_peer', 'open',
+  ARRAY['signal']::skill_domain[], 35, 3,
+  false, 0, 1, false, false,
+  NULL, NULL, now() - interval '3 days'
+),
+
+-- --------------------------------------------------------------------------
+-- Riverside Commons (Austin, TX) — Quest IDs 48-59
+-- --------------------------------------------------------------------------
+
+-- Q48: ember, green, completed 63d ago
+(
+  '00000000-0000-0000-0010-000000000048', NULL,
+  '00000000-0000-0000-0001-000000000002',
+  '00000000-0000-0000-0002-000000000064',
+  'Compost Bin Rotation Day',
+  'Organize the quarterly compost bin rotation at the Riverside community garden. Turn all six bins, check temperatures, and sort any contamination.',
+  'ember', 'peer_confirm', 'completed',
+  ARRAY['green']::skill_domain[], 15, 3,
+  false, 1, 1, false, false,
+  NULL, now() - interval '63 days', now() - interval '66 days'
+),
+
+-- Q49: flame, craft, completed 56d ago
+(
+  '00000000-0000-0000-0010-000000000049', NULL,
+  '00000000-0000-0000-0001-000000000002',
+  '00000000-0000-0000-0002-000000000066',
+  'Build Shade Structure for Community Garden',
+  'Design and construct a shade structure over the seating area at the Riverside community garden using reclaimed lumber. Must withstand Austin summer heat.',
+  'flame', 'photo_and_peer', 'completed',
+  ARRAY['craft']::skill_domain[], 35, 4,
+  false, 2, 1, false, false,
+  NULL, now() - interval '56 days', now() - interval '59 days'
+),
+
+-- Q50: spark, care, completed 42d ago
+(
+  '00000000-0000-0000-0010-000000000050', NULL,
+  '00000000-0000-0000-0001-000000000002',
+  '00000000-0000-0000-0002-000000000067',
+  'Neighborhood First Aid Kit Refill',
+  'Check and restock the three neighborhood first aid kits located at the community center, garden shed, and playground. Replace expired items.',
+  'spark', 'self_report', 'completed',
+  ARRAY['care']::skill_domain[], 5, 1,
+  false, 0, 0, false, false,
+  NULL, now() - interval '42 days', now() - interval '44 days'
+),
+
+-- Q51: ember, bridge, completed 35d ago
+(
+  '00000000-0000-0000-0010-000000000051', NULL,
+  '00000000-0000-0000-0001-000000000002',
+  '00000000-0000-0000-0002-000000000070',
+  'Bike Delivery Run for Homebound Seniors',
+  'Use a cargo bike to deliver groceries and prescriptions to four homebound seniors on the east side of Riverside. Route and addresses provided.',
+  'ember', 'peer_confirm', 'completed',
+  ARRAY['bridge']::skill_domain[], 15, 1,
+  true, 1, 1, false, false,
+  NULL, now() - interval '35 days', now() - interval '38 days'
+),
+
+-- Q52: flame, signal, completed 28d ago
+(
+  '00000000-0000-0000-0010-000000000052', NULL,
+  '00000000-0000-0000-0001-000000000002',
+  '00000000-0000-0000-0002-000000000065',
+  'Set Up Community Bulletin Board App',
+  'Configure and launch a simple community bulletin board app for Riverside residents. Handle setup, user onboarding guide, and initial content migration from the physical board.',
+  'flame', 'photo_and_peer', 'completed',
+  ARRAY['signal']::skill_domain[], 35, 2,
+  false, 2, 1, false, false,
+  NULL, now() - interval '28 days', now() - interval '31 days'
+),
+
+-- Q53: ember, hearth, completed 21d ago
+(
+  '00000000-0000-0000-0010-000000000053', NULL,
+  '00000000-0000-0000-0001-000000000002',
+  '00000000-0000-0000-0002-000000000072',
+  'Riverside Potluck Dinner Night',
+  'Coordinate the monthly potluck dinner at the Riverside pavilion. Handle sign-ups, table setup, dietary accommodation tracking, and cleanup crew.',
+  'ember', 'peer_confirm', 'completed',
+  ARRAY['hearth']::skill_domain[], 15, 5,
+  false, 1, 1, false, false,
+  NULL, now() - interval '21 days', now() - interval '24 days'
+),
+
+-- Q54: spark, weave, completed 14d ago
+(
+  '00000000-0000-0000-0010-000000000054', NULL,
+  '00000000-0000-0000-0001-000000000002',
+  '00000000-0000-0000-0002-000000000063',
+  'Write Up Trail Cleanup Report for City Council',
+  'Compile volunteer hours, before/after photos, and waste data from the recent trail cleanup into a report for the Austin City Council parks committee.',
+  'spark', 'self_report', 'completed',
+  ARRAY['weave']::skill_domain[], 5, 1,
+  false, 0, 0, false, false,
+  NULL, now() - interval '14 days', now() - interval '16 days'
+),
+
+-- Q55: blaze, green, completed 7d ago
+(
+  '00000000-0000-0000-0010-000000000055', NULL,
+  '00000000-0000-0000-0001-000000000002',
+  '00000000-0000-0000-0002-000000000014',
+  'Community Garden Expansion — Phase 2',
+  'Lead the second phase of the Riverside community garden expansion: clear the new plot area, build eight raised beds, install drip irrigation, and coordinate soil delivery.',
+  'blaze', 'community_vote', 'completed',
+  ARRAY['green']::skill_domain[], 75, 10,
+  false, 3, 3, false, false,
+  NULL, now() - interval '7 days', now() - interval '10 days'
+),
+
+-- Q56: flame, care, open
+(
+  '00000000-0000-0000-0010-000000000056', NULL,
+  '00000000-0000-0000-0001-000000000002',
+  '00000000-0000-0000-0002-000000000067',
+  'Organize Monthly Childcare Co-op',
+  'Set up a rotating childcare co-op for Riverside families. Create the schedule, establish safety guidelines, and coordinate the first three sessions.',
+  'flame', 'photo_and_peer', 'open',
+  ARRAY['care']::skill_domain[], 35, 4,
+  false, 0, 1, false, false,
+  NULL, NULL, now() - interval '6 days'
+),
+
+-- Q57: inferno, weave, in_progress
+(
+  '00000000-0000-0000-0010-000000000057', NULL,
+  '00000000-0000-0000-0001-000000000002',
+  '00000000-0000-0000-0002-000000000063',
+  'Riverside Sustainability Roadmap v2',
+  'Facilitate community-wide input process to update the Riverside sustainability roadmap. Includes survey design, town hall facilitation, synthesis of feedback, and final document preparation for community vote.',
+  'inferno', 'community_vote_and_evidence', 'in_progress',
+  ARRAY['weave']::skill_domain[], 150, 10,
+  false, 0, 5, false, false,
+  now() + interval '90 days', NULL, now() - interval '20 days'
+),
+
+-- Q58: ember, craft, claimed
+(
+  '00000000-0000-0000-0010-000000000058', NULL,
+  '00000000-0000-0000-0001-000000000002',
+  '00000000-0000-0000-0002-000000000068',
+  'Fix Leaky Irrigation at Community Garden',
+  'Diagnose and repair the leaking drip irrigation line in plots 4-7 of the Riverside community garden. Parts are in the garden shed.',
+  'ember', 'peer_confirm', 'claimed',
+  ARRAY['craft']::skill_domain[], 15, 1,
+  false, 0, 1, false, false,
+  NULL, NULL, now() - interval '3 days'
+),
+
+-- Q59: spark, bridge, open
+(
+  '00000000-0000-0000-0010-000000000059', NULL,
+  '00000000-0000-0000-0001-000000000002',
+  '00000000-0000-0000-0002-000000000070',
+  'Saturday Morning Farmers Market Delivery Run',
+  'Pick up pre-ordered produce from the Saturday farmers market and deliver to five households who can''t make it in person. Route sheet provided.',
+  'spark', 'self_report', 'open',
+  ARRAY['bridge']::skill_domain[], 5, 1,
+  true, 0, 0, false, false,
+  NULL, NULL, now() - interval '2 days'
+),
+
+-- --------------------------------------------------------------------------
+-- Harbor Point (Baltimore, MD) — Quest IDs 60-71
+-- --------------------------------------------------------------------------
+
+-- Q60: ember, craft, completed 70d ago
+(
+  '00000000-0000-0000-0010-000000000060', NULL,
+  '00000000-0000-0000-0001-000000000003',
+  '00000000-0000-0000-0002-000000000075',
+  'Replace Rotted Window Frames on Oak Street',
+  'Remove and replace two rotted wooden window frames at the Oak Street row house. Measure, cut, and install new frames with proper weatherproofing.',
+  'ember', 'peer_confirm', 'completed',
+  ARRAY['craft']::skill_domain[], 15, 2,
+  true, 1, 1, false, false,
+  NULL, now() - interval '70 days', now() - interval '73 days'
+),
+
+-- Q61: flame, green, completed 63d ago
+(
+  '00000000-0000-0000-0010-000000000061', NULL,
+  '00000000-0000-0000-0001-000000000003',
+  '00000000-0000-0000-0002-000000000084',
+  'Harbor Community Garden Spring Prep',
+  'Prepare the Harbor Point community garden for spring planting season. Clear debris, turn soil in all beds, repair raised bed frames, and set up the tool lending station.',
+  'flame', 'photo_and_peer', 'completed',
+  ARRAY['green']::skill_domain[], 35, 6,
+  false, 2, 1, false, true,
+  NULL, now() - interval '63 days', now() - interval '66 days'
+),
+
+-- Q62: spark, care, completed 56d ago
+(
+  '00000000-0000-0000-0010-000000000062', NULL,
+  '00000000-0000-0000-0001-000000000003',
+  '00000000-0000-0000-0002-000000000078',
+  'Senior Wellness Check-In Round',
+  'Visit six seniors on the Harbor Point wellness list for a friendly check-in. Note any concerns about health, home safety, or isolation.',
+  'spark', 'self_report', 'completed',
+  ARRAY['care']::skill_domain[], 5, 1,
+  false, 0, 0, false, false,
+  NULL, now() - interval '56 days', now() - interval '58 days'
+),
+
+-- Q63: ember, bridge, completed 42d ago
+(
+  '00000000-0000-0000-0010-000000000063', NULL,
+  '00000000-0000-0000-0001-000000000003',
+  '00000000-0000-0000-0002-000000000079',
+  'Grocery Run for Three Homebound Neighbors',
+  'Pick up grocery orders from the Harbor Point list and deliver to three homebound neighbors. Handle any special dietary requests and check if they need anything else.',
+  'ember', 'peer_confirm', 'completed',
+  ARRAY['bridge']::skill_domain[], 15, 1,
+  true, 1, 1, false, false,
+  NULL, now() - interval '42 days', now() - interval '45 days'
+),
+
+-- Q64: flame, hearth, completed 35d ago
+(
+  '00000000-0000-0000-0010-000000000064', NULL,
+  '00000000-0000-0000-0001-000000000003',
+  '00000000-0000-0000-0002-000000000080',
+  'Neighborhood Fish Fry Fundraiser',
+  'Organize and host the Harbor Point fish fry fundraiser at the community center. Handle food prep, cooking, ticket sales, and donate proceeds to the youth scholarship fund.',
+  'flame', 'photo_and_peer', 'completed',
+  ARRAY['hearth']::skill_domain[], 35, 8,
+  false, 2, 1, false, false,
+  NULL, now() - interval '35 days', now() - interval '38 days'
+),
+
+-- Q65: ember, signal, completed 28d ago
+(
+  '00000000-0000-0000-0010-000000000065', NULL,
+  '00000000-0000-0000-0001-000000000003',
+  '00000000-0000-0000-0002-000000000075',
+  'Install Security Cameras at Community Center',
+  'Install four weatherproof security cameras at the Harbor Point community center entrances. Configure the recording system and set up remote access for the center manager.',
+  'ember', 'peer_confirm', 'completed',
+  ARRAY['signal']::skill_domain[], 15, 2,
+  false, 1, 1, false, false,
+  NULL, now() - interval '28 days', now() - interval '31 days'
+),
+
+-- Q66: spark, weave, completed 21d ago
+(
+  '00000000-0000-0000-0010-000000000066', NULL,
+  '00000000-0000-0000-0001-000000000003',
+  '00000000-0000-0000-0002-000000000081',
+  'Draft Youth Basketball League Charter',
+  'Write a charter for the new Harbor Point youth basketball league including rules, code of conduct, scheduling guidelines, and volunteer coach requirements.',
+  'spark', 'self_report', 'completed',
+  ARRAY['weave']::skill_domain[], 5, 1,
+  false, 0, 0, false, false,
+  NULL, now() - interval '21 days', now() - interval '23 days'
+),
+
+-- Q67: blaze, craft, completed 14d ago
+(
+  '00000000-0000-0000-0010-000000000067', NULL,
+  '00000000-0000-0000-0001-000000000003',
+  '00000000-0000-0000-0002-000000000075',
+  'Rebuild Community Center Stage',
+  'Demolish the old warped stage at the Harbor Point community center and build a new one with proper structural support, ADA-compliant ramp access, and a fresh finish.',
+  'blaze', 'community_vote', 'completed',
+  ARRAY['craft']::skill_domain[], 75, 6,
+  false, 3, 3, false, false,
+  NULL, now() - interval '14 days', now() - interval '17 days'
+),
+
+-- Q68: flame, care, completed 7d ago
+(
+  '00000000-0000-0000-0010-000000000068', NULL,
+  '00000000-0000-0000-0001-000000000003',
+  '00000000-0000-0000-0002-000000000076',
+  'Organize Holiday Toy Drive for Harbor Kids',
+  'Coordinate the annual Harbor Point toy drive: set up collection boxes, sort donations by age group, wrap gifts, and organize the distribution event at the community center.',
+  'flame', 'photo_and_peer', 'completed',
+  ARRAY['care']::skill_domain[], 35, 5,
+  false, 2, 1, false, true,
+  NULL, now() - interval '7 days', now() - interval '10 days'
+),
+
+-- Q69: ember, green, open
+(
+  '00000000-0000-0000-0010-000000000069', NULL,
+  '00000000-0000-0000-0001-000000000003',
+  '00000000-0000-0000-0002-000000000077',
+  'Plant Street Trees Along Harbor Avenue',
+  'Work with the city to plant ten new street trees along Harbor Avenue. Dig holes, plant trees, install stakes and mulch rings, and set up a watering schedule.',
+  'ember', 'peer_confirm', 'open',
+  ARRAY['green']::skill_domain[], 15, 4,
+  false, 0, 1, false, false,
+  NULL, NULL, now() - interval '5 days'
+),
+
+-- Q70: inferno, weave, in_progress
+(
+  '00000000-0000-0000-0010-000000000070', NULL,
+  '00000000-0000-0000-0001-000000000003',
+  '00000000-0000-0000-0002-000000000024',
+  'Harbor Point Mutual Aid Network Plan',
+  'Design a comprehensive mutual aid network for Harbor Point: map community assets, create resource-sharing protocols, establish emergency response procedures, and draft governance documents for community ratification.',
+  'inferno', 'community_vote_and_evidence', 'in_progress',
+  ARRAY['weave']::skill_domain[], 150, 10,
+  false, 0, 5, false, false,
+  now() + interval '90 days', NULL, now() - interval '18 days'
+),
+
+-- Q71: spark, bridge, open
+(
+  '00000000-0000-0000-0010-000000000071', NULL,
+  '00000000-0000-0000-0001-000000000003',
+  '00000000-0000-0000-0002-000000000079',
+  'Volunteer Driver Signup for Medical Appointments',
+  'Recruit and organize volunteer drivers to take neighbors to medical appointments. Create a signup sheet, match drivers with riders, and handle the first week of scheduling.',
+  'spark', 'self_report', 'open',
+  ARRAY['bridge']::skill_domain[], 5, 1,
+  true, 0, 0, false, false,
+  NULL, NULL, now() - interval '2 days'
+),
+
+-- --------------------------------------------------------------------------
+-- Sunrise on the Monon (Carmel, IN) — Quest IDs 72-83
+-- --------------------------------------------------------------------------
+
+-- Q72: ember, green, completed 77d ago
+(
+  '00000000-0000-0000-0010-000000000072', NULL,
+  '00000000-0000-0000-0001-000000000004',
+  '00000000-0000-0000-0002-000000000091',
+  'Monon Trail Wildflower Planting',
+  'Plant native Indiana wildflowers along the Monon Trail buffer zone near the Sunrise entrance. Prepare soil, plant plugs, and set up temporary fencing to protect new growth.',
+  'ember', 'peer_confirm', 'completed',
+  ARRAY['green']::skill_domain[], 15, 4,
+  false, 1, 1, false, true,
+  NULL, now() - interval '77 days', now() - interval '80 days'
+),
+
+-- Q73: flame, craft, completed 70d ago
+(
+  '00000000-0000-0000-0010-000000000073', NULL,
+  '00000000-0000-0000-0001-000000000004',
+  '00000000-0000-0000-0002-000000000088',
+  'Build New Trailside Bench from Reclaimed Wood',
+  'Design and build a sturdy trailside bench from reclaimed wood for the rest stop near the Sunrise community entrance. Must be weather-resistant and ADA-accessible height.',
+  'flame', 'photo_and_peer', 'completed',
+  ARRAY['craft']::skill_domain[], 35, 2,
+  false, 2, 1, false, false,
+  NULL, now() - interval '70 days', now() - interval '73 days'
+),
+
+-- Q74: spark, care, completed 63d ago
+(
+  '00000000-0000-0000-0010-000000000074', NULL,
+  '00000000-0000-0000-0001-000000000004',
+  '00000000-0000-0000-0002-000000000093',
+  'Welcome Basket Assembly for New Neighbors',
+  'Assemble welcome baskets with local goodies, a neighborhood guide, and community contact info for the three new families who just moved to Sunrise.',
+  'spark', 'self_report', 'completed',
+  ARRAY['care']::skill_domain[], 5, 2,
+  false, 0, 0, false, false,
+  NULL, now() - interval '63 days', now() - interval '65 days'
+),
+
+-- Q75: ember, hearth, completed 56d ago
+(
+  '00000000-0000-0000-0010-000000000075', NULL,
+  '00000000-0000-0000-0001-000000000004',
+  '00000000-0000-0000-0002-000000000089',
+  'Porch Potluck Dinner Series Kickoff',
+  'Launch the Sunrise porch potluck dinner series. Organize the first event, create a rotating host schedule, and handle the initial outreach to get ten families signed up.',
+  'ember', 'peer_confirm', 'completed',
+  ARRAY['hearth']::skill_domain[], 15, 4,
+  false, 1, 1, false, false,
+  NULL, now() - interval '56 days', now() - interval '58 days'
+),
+
+-- Q76: flame, signal, completed 42d ago
+(
+  '00000000-0000-0000-0010-000000000076', NULL,
+  '00000000-0000-0000-0001-000000000004',
+  '00000000-0000-0000-0002-000000000090',
+  'Monon Trail Safety App Development',
+  'Build a simple web app for Sunrise residents to report trail hazards, request escort walks after dark, and share real-time trail conditions.',
+  'flame', 'photo_and_peer', 'completed',
+  ARRAY['signal']::skill_domain[], 35, 2,
+  false, 2, 1, false, false,
+  NULL, now() - interval '42 days', now() - interval '45 days'
+),
+
+-- Q77: ember, weave, completed 35d ago
+(
+  '00000000-0000-0000-0010-000000000077', NULL,
+  '00000000-0000-0000-0001-000000000004',
+  '00000000-0000-0000-0002-000000000087',
+  'Neighborhood Watch Committee Formation',
+  'Establish a formal neighborhood watch committee for Sunrise. Draft the charter, recruit block captains, coordinate with Carmel PD community liaison, and plan the first meeting.',
+  'ember', 'peer_confirm', 'completed',
+  ARRAY['weave']::skill_domain[], 15, 3,
+  false, 1, 1, false, false,
+  NULL, now() - interval '35 days', now() - interval '38 days'
+),
+
+-- Q78: spark, bridge, completed 28d ago
+(
+  '00000000-0000-0000-0010-000000000078', NULL,
+  '00000000-0000-0000-0001-000000000004',
+  '00000000-0000-0000-0002-000000000096',
+  'Bike Shuttle Service for Trail Visitors',
+  'Offer a free bike shuttle service for Monon Trail visitors who need a ride from the trailhead to local shops. Provide a bike and trailer for a Saturday afternoon.',
+  'spark', 'self_report', 'completed',
+  ARRAY['bridge']::skill_domain[], 5, 1,
+  false, 0, 0, false, false,
+  NULL, now() - interval '28 days', now() - interval '30 days'
+),
+
+-- Q79: blaze, green, completed 21d ago
+(
+  '00000000-0000-0000-0010-000000000079', NULL,
+  '00000000-0000-0000-0001-000000000004',
+  '00000000-0000-0000-0002-000000000094',
+  'Community Rain Garden Installation',
+  'Design and install a rain garden at the Sunrise community entrance to manage stormwater runoff. Excavate the basin, install native plantings, and create an educational sign about bioretention.',
+  'blaze', 'community_vote', 'completed',
+  ARRAY['green']::skill_domain[], 75, 8,
+  false, 3, 3, false, false,
+  NULL, now() - interval '21 days', now() - interval '24 days'
+),
+
+-- Q80: flame, hearth, completed 5d ago
+(
+  '00000000-0000-0000-0010-000000000080', NULL,
+  '00000000-0000-0000-0001-000000000004',
+  '00000000-0000-0000-0002-000000000089',
+  'Monon Trail Hot Cocoa Stand for Runners',
+  'Set up and run a free hot cocoa stand near the Monon Trail for cold-weather runners and walkers. Coordinate supplies, volunteers, and cleanup for a Saturday morning event.',
+  'flame', 'photo_and_peer', 'completed',
+  ARRAY['hearth']::skill_domain[], 35, 3,
+  false, 2, 1, false, true,
+  NULL, now() - interval '5 days', now() - interval '8 days'
+),
+
+-- Q81: ember, craft, open
+(
+  '00000000-0000-0000-0010-000000000081', NULL,
+  '00000000-0000-0000-0001-000000000004',
+  '00000000-0000-0000-0002-000000000092',
+  'Repair Monon Trailhead Signage',
+  'The trailhead sign at the Sunrise entrance is faded and the post is leaning. Sand, repaint, and reset the post in concrete.',
+  'ember', 'peer_confirm', 'open',
+  ARRAY['craft']::skill_domain[], 15, 1,
+  false, 0, 1, false, false,
+  NULL, NULL, now() - interval '4 days'
+),
+
+-- Q82: inferno, weave, in_progress
+(
+  '00000000-0000-0000-0010-000000000082', NULL,
+  '00000000-0000-0000-0001-000000000004',
+  '00000000-0000-0000-0002-000000000087',
+  'Monon Trail Master Plan — Community Vision',
+  'Lead a comprehensive community visioning process for the Monon Trail corridor through Sunrise. Gather input through surveys and workshops, synthesize into a master plan document, and present for community ratification.',
+  'inferno', 'community_vote_and_evidence', 'in_progress',
+  ARRAY['weave']::skill_domain[], 150, 10,
+  false, 0, 5, false, false,
+  now() + interval '90 days', NULL, now() - interval '22 days'
+),
+
+-- Q83: spark, care, open
+(
+  '00000000-0000-0000-0010-000000000083', NULL,
+  '00000000-0000-0000-0001-000000000004',
+  '00000000-0000-0000-0002-000000000093',
+  'Collect Winter Coats for Donation Drive',
+  'Set up collection bins at three Sunrise locations for gently used winter coats. Sort by size, clean, and deliver to the local shelter before the cold snap.',
+  'spark', 'self_report', 'open',
+  ARRAY['care']::skill_domain[], 5, 1,
+  false, 0, 0, false, true,
+  NULL, NULL, now() - interval '3 days'
+),
+
+-- --------------------------------------------------------------------------
+-- Sunset Ridge (Tucson, AZ) — Quest IDs 84-95
+-- --------------------------------------------------------------------------
+
+-- Q84: ember, care, completed 70d ago
+(
+  '00000000-0000-0000-0010-000000000084', NULL,
+  '00000000-0000-0000-0001-000000000005',
+  '00000000-0000-0000-0002-000000000099',
+  'Weekly Check-Ins for Homebound Elders',
+  'Establish a weekly check-in rotation for five homebound elders in Sunset Ridge. Visit each person, assess needs, and coordinate any follow-up support.',
+  'ember', 'peer_confirm', 'completed',
+  ARRAY['care']::skill_domain[], 15, 2,
+  false, 1, 1, false, false,
+  NULL, now() - interval '70 days', now() - interval '73 days'
+),
+
+-- Q85: flame, craft, completed 63d ago
+(
+  '00000000-0000-0000-0010-000000000085', NULL,
+  '00000000-0000-0000-0001-000000000005',
+  '00000000-0000-0000-0002-000000000100',
+  'Build Wheelchair-Accessible Raised Garden Beds',
+  'Design and construct three wheelchair-accessible raised garden beds at the Sunset Ridge community garden. Use heat-resistant materials suitable for Tucson summers.',
+  'flame', 'photo_and_peer', 'completed',
+  ARRAY['craft']::skill_domain[], 35, 3,
+  false, 2, 1, false, false,
+  NULL, now() - interval '63 days', now() - interval '66 days'
+),
+
+-- Q86: spark, green, completed 56d ago
+(
+  '00000000-0000-0000-0010-000000000086', NULL,
+  '00000000-0000-0000-0001-000000000005',
+  '00000000-0000-0000-0002-000000000108',
+  'Desert Garden Watering Schedule Setup',
+  'Create and post a detailed watering schedule for the Sunset Ridge desert community garden. Account for seasonal changes, plant types, and water conservation guidelines.',
+  'spark', 'self_report', 'completed',
+  ARRAY['green']::skill_domain[], 5, 1,
+  false, 0, 0, false, false,
+  NULL, now() - interval '56 days', now() - interval '58 days'
+),
+
+-- Q87: ember, signal, completed 49d ago
+(
+  '00000000-0000-0000-0010-000000000087', NULL,
+  '00000000-0000-0000-0001-000000000005',
+  '00000000-0000-0000-0002-000000000103',
+  'Teach Elders to Video Call Grandkids',
+  'Host a hands-on workshop at the Sunset Ridge community room teaching ten seniors how to set up and use video calling on their tablets and phones.',
+  'ember', 'peer_confirm', 'completed',
+  ARRAY['signal']::skill_domain[], 15, 2,
+  false, 1, 1, false, false,
+  NULL, now() - interval '49 days', now() - interval '52 days'
+),
+
+-- Q88: flame, bridge, completed 42d ago
+(
+  '00000000-0000-0000-0010-000000000088', NULL,
+  '00000000-0000-0000-0001-000000000005',
+  '00000000-0000-0000-0002-000000000102',
+  'Set Up Weekly Shuttle to Grocery Store',
+  'Organize a weekly volunteer shuttle service taking Sunset Ridge residents to the nearest grocery store. Create the route, recruit drivers, and establish a regular Thursday schedule.',
+  'flame', 'photo_and_peer', 'completed',
+  ARRAY['bridge']::skill_domain[], 35, 2,
+  false, 2, 1, false, false,
+  NULL, now() - interval '42 days', now() - interval '45 days'
+),
+
+-- Q89: ember, hearth, completed 35d ago
+(
+  '00000000-0000-0000-0010-000000000089', NULL,
+  '00000000-0000-0000-0001-000000000005',
+  '00000000-0000-0000-0002-000000000101',
+  'Intergenerational Cooking Night — Sonoran Recipes',
+  'Host a cooking night where Sunset Ridge elders teach younger residents traditional Sonoran recipes. Handle ingredient sourcing, kitchen setup, and recipe card printing.',
+  'ember', 'peer_confirm', 'completed',
+  ARRAY['hearth']::skill_domain[], 15, 6,
+  false, 1, 1, false, false,
+  NULL, now() - interval '35 days', now() - interval '38 days'
+),
+
+-- Q90: spark, weave, completed 28d ago
+(
+  '00000000-0000-0000-0010-000000000090', NULL,
+  '00000000-0000-0000-0001-000000000005',
+  '00000000-0000-0000-0002-000000000099',
+  'Collect Neighborhood Survey Responses',
+  'Go door-to-door to collect responses for the annual Sunset Ridge neighborhood priorities survey. Compile results into a summary document.',
+  'spark', 'self_report', 'completed',
+  ARRAY['weave']::skill_domain[], 5, 1,
+  false, 0, 0, false, false,
+  NULL, now() - interval '28 days', now() - interval '30 days'
+),
+
+-- Q91: blaze, care, completed 21d ago
+(
+  '00000000-0000-0000-0010-000000000091', NULL,
+  '00000000-0000-0000-0001-000000000005',
+  '00000000-0000-0000-0002-000000000099',
+  'Organize Free Health Screening Day',
+  'Partner with the local clinic to host a free health screening day at the Sunset Ridge community center. Coordinate volunteers, set up stations for blood pressure, glucose, and vision checks, and handle outreach.',
+  'blaze', 'community_vote', 'completed',
+  ARRAY['care']::skill_domain[], 75, 8,
+  false, 3, 3, false, false,
+  NULL, now() - interval '21 days', now() - interval '24 days'
+),
+
+-- Q92: flame, signal, completed 14d ago
+(
+  '00000000-0000-0000-0010-000000000092', NULL,
+  '00000000-0000-0000-0001-000000000005',
+  '00000000-0000-0000-0002-000000000105',
+  'Install Community Alert System for Heat Waves',
+  'Set up an automated phone and text alert system to notify Sunset Ridge residents of extreme heat warnings, cooling center locations, and wellness check schedules.',
+  'flame', 'photo_and_peer', 'completed',
+  ARRAY['signal']::skill_domain[], 35, 2,
+  false, 2, 1, false, false,
+  NULL, now() - interval '14 days', now() - interval '17 days'
+),
+
+-- Q93: ember, green, completed 7d ago
+(
+  '00000000-0000-0000-0010-000000000093', NULL,
+  '00000000-0000-0000-0001-000000000005',
+  '00000000-0000-0000-0002-000000000108',
+  'Xeriscaping Workshop with Native Desert Plants',
+  'Lead a hands-on xeriscaping workshop at the community center teaching residents how to create beautiful, water-efficient landscapes using native desert plants.',
+  'ember', 'peer_confirm', 'completed',
+  ARRAY['green']::skill_domain[], 15, 4,
+  false, 1, 1, false, false,
+  NULL, now() - interval '7 days', now() - interval '10 days'
+),
+
+-- Q94: inferno, weave, in_progress
+(
+  '00000000-0000-0000-0010-000000000094', NULL,
+  '00000000-0000-0000-0001-000000000005',
+  '00000000-0000-0000-0002-000000000043',
+  'Sunset Ridge Intergenerational Charter Renewal',
+  'Facilitate the biennial charter renewal process for Sunset Ridge. Gather input from all generations, update the community charter to reflect evolving needs, and organize the ratification vote.',
+  'inferno', 'community_vote_and_evidence', 'in_progress',
+  ARRAY['weave']::skill_domain[], 150, 10,
+  false, 0, 5, false, false,
+  now() + interval '90 days', NULL, now() - interval '20 days'
+),
+
+-- Q95: spark, bridge, open
+(
+  '00000000-0000-0000-0010-000000000095', NULL,
+  '00000000-0000-0000-0001-000000000005',
+  '00000000-0000-0000-0002-000000000106',
+  'Organize Carpool to Sunday Farmers Market',
+  'Set up a recurring carpool for Sunset Ridge residents to attend the Sunday farmers market downtown. Create a signup sheet and coordinate drivers.',
+  'spark', 'self_report', 'open',
+  ARRAY['bridge']::skill_domain[], 5, 1,
+  false, 0, 0, false, false,
+  NULL, NULL, now() - interval '3 days'
+)
+
+ON CONFLICT (id) DO NOTHING;
+
+
+-- ============================================================================
+-- QUEST VALIDATIONS (75 rows)
+-- ============================================================================
+
+INSERT INTO quest_validations (id, quest_id, validator_id, approved, message, photo_url, created_at) VALUES
+
+-- --------------------------------------------------------------------------
+-- Maplewood Heights Validations
+-- --------------------------------------------------------------------------
+
+-- Q36 (spark): no validations needed
+-- Q37 (ember): 1 validation
+(
+  '00000000-0000-0000-0011-000000000046',
+  '00000000-0000-0000-0010-000000000037',
+  '00000000-0000-0000-0002-000000000052',
+  true,
+  'Gate swings and latches perfectly now. Mrs. Henderson is thrilled.',
+  NULL,
+  now() - interval '49 days'
+),
+
+-- Q38 (flame): 2 validations (1 with photo)
+(
+  '00000000-0000-0000-0011-000000000047',
+  '00000000-0000-0000-0010-000000000038',
+  '00000000-0000-0000-0002-000000000055',
+  true,
+  'WiFi hotspot is up and running. Got a strong signal all the way from the pavilion to the playground.',
+  'https://placeholder.civicforge.org/validations/maplewood-park-wifi-hotspot.jpg',
+  now() - interval '42 days'
+),
+(
+  '00000000-0000-0000-0011-000000000048',
+  '00000000-0000-0000-0010-000000000038',
+  '00000000-0000-0000-0002-000000000057',
+  true,
+  'Confirmed the hotspot works great. Connected five devices at once during the book club meetup.',
+  NULL,
+  now() - interval '41 days'
+),
+
+-- Q39 (ember): 1 validation
+(
+  '00000000-0000-0000-0011-000000000049',
+  '00000000-0000-0000-0010-000000000039',
+  '00000000-0000-0000-0002-000000000054',
+  true,
+  'Flu shot clinic ran smoothly. About 40 people came through in two hours. Great organization.',
+  NULL,
+  now() - interval '35 days'
+),
+
+-- Q40 (spark): no validations needed
+
+-- Q41 (flame): 2 validations (1 with photo)
+(
+  '00000000-0000-0000-0011-000000000050',
+  '00000000-0000-0000-0010-000000000041',
+  '00000000-0000-0000-0002-000000000056',
+  true,
+  'Cookie exchange was a huge hit! Over 30 families participated and we donated four boxes to the food bank.',
+  'https://placeholder.civicforge.org/validations/maplewood-cookie-exchange.jpg',
+  now() - interval '21 days'
+),
+(
+  '00000000-0000-0000-0011-000000000051',
+  '00000000-0000-0000-0010-000000000041',
+  '00000000-0000-0000-0002-000000000001',
+  true,
+  'Everything was beautifully organized. The bake sale raised over $200 for the food bank.',
+  NULL,
+  now() - interval '20 days'
+),
+
+-- Q42 (ember): 1 validation
+(
+  '00000000-0000-0000-0011-000000000052',
+  '00000000-0000-0000-0010-000000000042',
+  '00000000-0000-0000-0002-000000000054',
+  true,
+  'Draft looks solid. Addresses all the concerns from the last gardener meeting.',
+  NULL,
+  now() - interval '14 days'
+),
+
+-- Q43 (blaze): 3 validations
+(
+  '00000000-0000-0000-0011-000000000053',
+  '00000000-0000-0000-0010-000000000043',
+  '00000000-0000-0000-0002-000000000051',
+  true,
+  'The east section of the park looks incredible. All invasive species removed and native plants are already taking root.',
+  NULL,
+  now() - interval '7 days'
+),
+(
+  '00000000-0000-0000-0011-000000000054',
+  '00000000-0000-0000-0010-000000000043',
+  '00000000-0000-0000-0002-000000000057',
+  true,
+  'Walked through the restored area today. Beautiful work — the Oregon grape and sword ferns look perfect.',
+  NULL,
+  now() - interval '6 days'
+),
+(
+  '00000000-0000-0000-0011-000000000055',
+  '00000000-0000-0000-0010-000000000043',
+  '00000000-0000-0000-0002-000000000052',
+  true,
+  'The native plant restoration exceeded expectations. Volunteer coordination was top-notch.',
+  NULL,
+  now() - interval '6 days'
+),
+
+-- --------------------------------------------------------------------------
+-- Riverside Commons Validations
+-- --------------------------------------------------------------------------
+
+-- Q48 (ember): 1 validation
+(
+  '00000000-0000-0000-0011-000000000056',
+  '00000000-0000-0000-0010-000000000048',
+  '00000000-0000-0000-0002-000000000065',
+  true,
+  'All six bins turned and temperatures logged. Contamination sorted out of bin 3.',
+  NULL,
+  now() - interval '63 days'
+),
+
+-- Q49 (flame): 2 validations (1 with photo)
+(
+  '00000000-0000-0000-0011-000000000057',
+  '00000000-0000-0000-0010-000000000049',
+  '00000000-0000-0000-0002-000000000070',
+  true,
+  'Shade structure is solid and provides great relief from the Austin heat. Well built.',
+  'https://placeholder.civicforge.org/validations/riverside-garden-shade.jpg',
+  now() - interval '56 days'
+),
+(
+  '00000000-0000-0000-0011-000000000058',
+  '00000000-0000-0000-0010-000000000049',
+  '00000000-0000-0000-0002-000000000072',
+  true,
+  'Tested the structure in wind and it held up perfectly. Great reclaimed wood joinery.',
+  NULL,
+  now() - interval '55 days'
+),
+
+-- Q50 (spark): no validations needed
+
+-- Q51 (ember): 1 validation
+(
+  '00000000-0000-0000-0011-000000000059',
+  '00000000-0000-0000-0010-000000000051',
+  '00000000-0000-0000-0002-000000000067',
+  true,
+  'All four deliveries completed. Mrs. Chen was especially grateful for the fresh produce.',
+  NULL,
+  now() - interval '35 days'
+),
+
+-- Q52 (flame): 2 validations (1 with photo)
+(
+  '00000000-0000-0000-0011-000000000060',
+  '00000000-0000-0000-0010-000000000052',
+  '00000000-0000-0000-0002-000000000063',
+  true,
+  'App is live and working great. Already 25 residents signed up in the first week.',
+  'https://placeholder.civicforge.org/validations/riverside-bulletin-board-app.jpg',
+  now() - interval '28 days'
+),
+(
+  '00000000-0000-0000-0011-000000000061',
+  '00000000-0000-0000-0010-000000000052',
+  '00000000-0000-0000-0002-000000000014',
+  true,
+  'Checked the app on both Android and iPhone. Works smoothly on both. Nice onboarding flow.',
+  NULL,
+  now() - interval '27 days'
+),
+
+-- Q53 (ember): 1 validation
+(
+  '00000000-0000-0000-0011-000000000062',
+  '00000000-0000-0000-0010-000000000053',
+  '00000000-0000-0000-0002-000000000064',
+  true,
+  'Potluck was fantastic. Over 20 families brought dishes and cleanup was done by 8pm.',
+  NULL,
+  now() - interval '21 days'
+),
+
+-- Q54 (spark): no validations needed
+
+-- Q55 (blaze): 3 validations
+(
+  '00000000-0000-0000-0011-000000000063',
+  '00000000-0000-0000-0010-000000000055',
+  '00000000-0000-0000-0002-000000000063',
+  true,
+  'Phase 2 is complete. Eight new raised beds built and drip irrigation installed. Soil looks great.',
+  NULL,
+  now() - interval '7 days'
+),
+(
+  '00000000-0000-0000-0011-000000000064',
+  '00000000-0000-0000-0010-000000000055',
+  '00000000-0000-0000-0002-000000000066',
+  true,
+  'Walked the new plots today. Excellent construction quality and the irrigation is already working.',
+  NULL,
+  now() - interval '6 days'
+),
+(
+  '00000000-0000-0000-0011-000000000065',
+  '00000000-0000-0000-0010-000000000055',
+  '00000000-0000-0000-0002-000000000072',
+  true,
+  'Amazing expansion. The garden has basically doubled in capacity. Great leadership on this project.',
+  NULL,
+  now() - interval '6 days'
+),
+
+-- --------------------------------------------------------------------------
+-- Harbor Point Validations
+-- --------------------------------------------------------------------------
+
+-- Q60 (ember): 1 validation
+(
+  '00000000-0000-0000-0011-000000000066',
+  '00000000-0000-0000-0010-000000000060',
+  '00000000-0000-0000-0002-000000000079',
+  true,
+  'Both window frames replaced and sealed tight. No more drafts coming through.',
+  NULL,
+  now() - interval '70 days'
+),
+
+-- Q61 (flame): 2 validations (1 with photo)
+(
+  '00000000-0000-0000-0011-000000000067',
+  '00000000-0000-0000-0010-000000000061',
+  '00000000-0000-0000-0002-000000000076',
+  true,
+  'Garden is ready for spring. All beds cleared, soil turned, and the tool station is stocked.',
+  'https://placeholder.civicforge.org/validations/harbor-garden-spring-prep.jpg',
+  now() - interval '63 days'
+),
+(
+  '00000000-0000-0000-0011-000000000068',
+  '00000000-0000-0000-0010-000000000061',
+  '00000000-0000-0000-0002-000000000081',
+  true,
+  'Everything looks great. Raised bed frames are repaired and the soil is perfectly turned.',
+  NULL,
+  now() - interval '62 days'
+),
+
+-- Q62 (spark): no validations needed
+
+-- Q63 (ember): 1 validation
+(
+  '00000000-0000-0000-0011-000000000069',
+  '00000000-0000-0000-0010-000000000063',
+  '00000000-0000-0000-0002-000000000080',
+  true,
+  'All three grocery deliveries completed on time. Neighbors were very appreciative.',
+  NULL,
+  now() - interval '42 days'
+),
+
+-- Q64 (flame): 2 validations (1 with photo)
+(
+  '00000000-0000-0000-0011-000000000070',
+  '00000000-0000-0000-0010-000000000064',
+  '00000000-0000-0000-0002-000000000078',
+  true,
+  'Fish fry was packed! Over 100 people came and we raised $850 for the youth scholarship fund.',
+  'https://placeholder.civicforge.org/validations/harbor-fish-fry-fundraiser.jpg',
+  now() - interval '35 days'
+),
+(
+  '00000000-0000-0000-0011-000000000071',
+  '00000000-0000-0000-0010-000000000064',
+  '00000000-0000-0000-0002-000000000084',
+  true,
+  'Great event. Food was delicious and the fundraising goal was exceeded. Well organized.',
+  NULL,
+  now() - interval '34 days'
+),
+
+-- Q65 (ember): 1 validation
+(
+  '00000000-0000-0000-0011-000000000072',
+  '00000000-0000-0000-0010-000000000065',
+  '00000000-0000-0000-0002-000000000081',
+  true,
+  'All four cameras installed and recording. Remote access working perfectly for the center manager.',
+  NULL,
+  now() - interval '28 days'
+),
+
+-- Q66 (spark): no validations needed
+
+-- Q67 (blaze): 3 validations
+(
+  '00000000-0000-0000-0011-000000000073',
+  '00000000-0000-0000-0010-000000000067',
+  '00000000-0000-0000-0002-000000000076',
+  true,
+  'New stage is solid and level. The ADA ramp is well integrated. Huge improvement over the old one.',
+  NULL,
+  now() - interval '14 days'
+),
+(
+  '00000000-0000-0000-0011-000000000074',
+  '00000000-0000-0000-0010-000000000067',
+  '00000000-0000-0000-0002-000000000084',
+  true,
+  'Tested the stage with a full band setup. Sturdy construction and great finish work.',
+  NULL,
+  now() - interval '13 days'
+),
+(
+  '00000000-0000-0000-0011-000000000075',
+  '00000000-0000-0000-0010-000000000067',
+  '00000000-0000-0000-0002-000000000079',
+  true,
+  'The ramp access is perfect. My grandmother in her wheelchair can now easily get on stage for choir performances.',
+  NULL,
+  now() - interval '13 days'
+),
+
+-- Q68 (flame): 2 validations (1 with photo)
+(
+  '00000000-0000-0000-0011-000000000076',
+  '00000000-0000-0000-0010-000000000068',
+  '00000000-0000-0000-0002-000000000078',
+  true,
+  'Toy drive was a success. Over 200 toys collected, sorted, wrapped, and distributed to Harbor kids.',
+  'https://placeholder.civicforge.org/validations/harbor-toy-drive.jpg',
+  now() - interval '7 days'
+),
+(
+  '00000000-0000-0000-0011-000000000077',
+  '00000000-0000-0000-0010-000000000068',
+  '00000000-0000-0000-0002-000000000081',
+  true,
+  'The distribution event was heartwarming. Every kid left with a smile and a toy.',
+  NULL,
+  now() - interval '6 days'
+),
+
+-- --------------------------------------------------------------------------
+-- Sunrise on the Monon Validations
+-- --------------------------------------------------------------------------
+
+-- Q72 (ember): 1 validation
+(
+  '00000000-0000-0000-0011-000000000078',
+  '00000000-0000-0000-0010-000000000072',
+  '00000000-0000-0000-0002-000000000094',
+  true,
+  'Wildflowers are planted and the temporary fencing is secure. Should be blooming by late spring.',
+  NULL,
+  now() - interval '77 days'
+),
+
+-- Q73 (flame): 2 validations (1 with photo)
+(
+  '00000000-0000-0000-0011-000000000079',
+  '00000000-0000-0000-0010-000000000073',
+  '00000000-0000-0000-0002-000000000091',
+  true,
+  'Bench is beautiful and sturdy. Perfect height and the reclaimed wood gives it real character.',
+  'https://placeholder.civicforge.org/validations/sunrise-trailside-bench.jpg',
+  now() - interval '70 days'
+),
+(
+  '00000000-0000-0000-0011-000000000080',
+  '00000000-0000-0000-0010-000000000073',
+  '00000000-0000-0000-0002-000000000087',
+  true,
+  'Sat on the bench this morning during my trail walk. Great craftsmanship and very comfortable.',
+  NULL,
+  now() - interval '69 days'
+),
+
+-- Q74 (spark): no validations needed
+
+-- Q75 (ember): 1 validation
+(
+  '00000000-0000-0000-0011-000000000081',
+  '00000000-0000-0000-0010-000000000075',
+  '00000000-0000-0000-0002-000000000093',
+  true,
+  'Potluck series is off to a great start. Ten families signed up and the first dinner was wonderful.',
+  NULL,
+  now() - interval '56 days'
+),
+
+-- Q76 (flame): 2 validations (1 with photo)
+(
+  '00000000-0000-0000-0011-000000000082',
+  '00000000-0000-0000-0010-000000000076',
+  '00000000-0000-0000-0002-000000000087',
+  true,
+  'Trail safety app is live and already has 15 hazard reports. Clean interface and easy to use.',
+  'https://placeholder.civicforge.org/validations/monon-trail-safety-app.jpg',
+  now() - interval '42 days'
+),
+(
+  '00000000-0000-0000-0011-000000000083',
+  '00000000-0000-0000-0010-000000000076',
+  '00000000-0000-0000-0002-000000000096',
+  true,
+  'Tested the escort walk request feature last night. Got matched with a walking buddy in under an hour.',
+  NULL,
+  now() - interval '41 days'
+),
+
+-- Q77 (ember): 1 validation
+(
+  '00000000-0000-0000-0011-000000000084',
+  '00000000-0000-0000-0010-000000000077',
+  '00000000-0000-0000-0002-000000000089',
+  true,
+  'Committee is formed with six block captains. Charter looks thorough and the PD liaison meeting went well.',
+  NULL,
+  now() - interval '35 days'
+),
+
+-- Q78 (spark): no validations needed
+
+-- Q79 (blaze): 3 validations
+(
+  '00000000-0000-0000-0011-000000000085',
+  '00000000-0000-0000-0010-000000000079',
+  '00000000-0000-0000-0002-000000000088',
+  true,
+  'Rain garden is installed and functioning. The native plantings look great and stormwater is being captured effectively.',
+  NULL,
+  now() - interval '21 days'
+),
+(
+  '00000000-0000-0000-0011-000000000086',
+  '00000000-0000-0000-0010-000000000079',
+  '00000000-0000-0000-0002-000000000091',
+  true,
+  'Educational sign is well designed and informative. The rain garden itself is a beautiful addition to the entrance.',
+  NULL,
+  now() - interval '20 days'
+),
+(
+  '00000000-0000-0000-0011-000000000087',
+  '00000000-0000-0000-0010-000000000079',
+  '00000000-0000-0000-0002-000000000093',
+  true,
+  'Excellent bioretention design. Already handling runoff from the last rain event.',
+  NULL,
+  now() - interval '20 days'
+),
+
+-- Q80 (flame): 2 validations (1 with photo)
+(
+  '00000000-0000-0000-0011-000000000088',
+  '00000000-0000-0000-0010-000000000080',
+  '00000000-0000-0000-0002-000000000094',
+  true,
+  'Hot cocoa stand was a hit with the Saturday morning runners! Long line of happy faces.',
+  'https://placeholder.civicforge.org/validations/monon-hot-cocoa-stand.jpg',
+  now() - interval '5 days'
+),
+(
+  '00000000-0000-0000-0011-000000000089',
+  '00000000-0000-0000-0010-000000000080',
+  '00000000-0000-0000-0002-000000000087',
+  true,
+  'Great community event. Volunteers were organized and cleanup was done by noon.',
+  NULL,
+  now() - interval '4 days'
+),
+
+-- --------------------------------------------------------------------------
+-- Sunset Ridge Validations
+-- --------------------------------------------------------------------------
+
+-- Q84 (ember): 1 validation
+(
+  '00000000-0000-0000-0011-000000000090',
+  '00000000-0000-0000-0010-000000000084',
+  '00000000-0000-0000-0002-000000000101',
+  true,
+  'All five check-ins completed this week. Mrs. Ramirez needs a grocery run but otherwise everyone is doing well.',
+  NULL,
+  now() - interval '70 days'
+),
+
+-- Q85 (flame): 2 validations (1 with photo)
+(
+  '00000000-0000-0000-0011-000000000091',
+  '00000000-0000-0000-0010-000000000085',
+  '00000000-0000-0000-0002-000000000102',
+  true,
+  'Raised beds are beautiful and accessible. My neighbor in a wheelchair was able to garden for the first time.',
+  'https://placeholder.civicforge.org/validations/sunset-accessible-garden-beds.jpg',
+  now() - interval '63 days'
+),
+(
+  '00000000-0000-0000-0011-000000000092',
+  '00000000-0000-0000-0010-000000000085',
+  '00000000-0000-0000-0002-000000000108',
+  true,
+  'Heat-resistant materials were a smart choice. Beds are holding up perfectly in this Tucson heat.',
+  NULL,
+  now() - interval '62 days'
+),
+
+-- Q86 (spark): no validations needed
+
+-- Q87 (ember): 1 validation
+(
+  '00000000-0000-0000-0011-000000000093',
+  '00000000-0000-0000-0010-000000000087',
+  '00000000-0000-0000-0002-000000000099',
+  true,
+  'Ten seniors attended and all left able to make video calls. Several were in tears connecting with grandkids.',
+  NULL,
+  now() - interval '49 days'
+),
+
+-- Q88 (flame): 2 validations (1 with photo)
+(
+  '00000000-0000-0000-0011-000000000094',
+  '00000000-0000-0000-0010-000000000088',
+  '00000000-0000-0000-0002-000000000105',
+  true,
+  'Shuttle service is running smoothly. Eight riders on the first Thursday trip.',
+  'https://placeholder.civicforge.org/validations/sunset-grocery-shuttle.jpg',
+  now() - interval '42 days'
+),
+(
+  '00000000-0000-0000-0011-000000000095',
+  '00000000-0000-0000-0010-000000000088',
+  '00000000-0000-0000-0002-000000000099',
+  true,
+  'Route is efficient and drivers are reliable. Residents are already asking about adding a second day.',
+  NULL,
+  now() - interval '41 days'
+),
+
+-- Q89 (ember): 1 validation
+(
+  '00000000-0000-0000-0011-000000000096',
+  '00000000-0000-0000-0010-000000000089',
+  '00000000-0000-0000-0002-000000000103',
+  true,
+  'Cooking night was magical. Three generations sharing Sonoran recipes. Everyone left with full bellies and recipe cards.',
+  NULL,
+  now() - interval '35 days'
+),
+
+-- Q90 (spark): no validations needed
+
+-- Q91 (blaze): 3 validations
+(
+  '00000000-0000-0000-0011-000000000097',
+  '00000000-0000-0000-0010-000000000091',
+  '00000000-0000-0000-0002-000000000100',
+  true,
+  'Health screening day was a success. Over 60 residents got blood pressure, glucose, and vision checks.',
+  NULL,
+  now() - interval '21 days'
+),
+(
+  '00000000-0000-0000-0011-000000000098',
+  '00000000-0000-0000-0010-000000000091',
+  '00000000-0000-0000-0002-000000000103',
+  true,
+  'Volunteer coordination was excellent. Three clinic nurses praised how well organized everything was.',
+  NULL,
+  now() - interval '20 days'
+),
+(
+  '00000000-0000-0000-0011-000000000099',
+  '00000000-0000-0000-0010-000000000091',
+  '00000000-0000-0000-0002-000000000108',
+  true,
+  'This was exactly what our community needed. Several residents discovered health issues they can now address early.',
+  NULL,
+  now() - interval '20 days'
+),
+
+-- Q92 (flame): 2 validations (1 with photo)
+(
+  '00000000-0000-0000-0011-000000000100',
+  '00000000-0000-0000-0010-000000000092',
+  '00000000-0000-0000-0002-000000000099',
+  true,
+  'Alert system is live and tested. Received a test heat warning on my phone within seconds.',
+  'https://placeholder.civicforge.org/validations/sunset-heat-alert-system.jpg',
+  now() - interval '14 days'
+),
+(
+  '00000000-0000-0000-0011-000000000101',
+  '00000000-0000-0000-0010-000000000092',
+  '00000000-0000-0000-0002-000000000102',
+  true,
+  'Checked with five neighbors and all confirmed receiving the test alert. Great setup.',
+  NULL,
+  now() - interval '13 days'
+),
+
+-- Q93 (ember): 1 validation
+(
+  '00000000-0000-0000-0011-000000000102',
+  '00000000-0000-0000-0010-000000000093',
+  '00000000-0000-0000-0002-000000000100',
+  true,
+  'Workshop was informative and hands-on. Twelve residents attended and several are already planning xeriscaping projects.',
+  NULL,
+  now() - interval '7 days'
+)
+
+ON CONFLICT (quest_id, validator_id) DO NOTHING;
+
+-- ============================================================================
+-- CivicForge Seed Expansion 3: Guilds, Guild Members, Endorsements,
+-- Governance Proposals, Governance Votes, Sunset Rules
+-- ============================================================================
+
+-- ============================================================================
+-- SECTION 1: NEW GUILDS (8 guilds, IDs 11-18)
+-- ============================================================================
+
+INSERT INTO guilds (id, community_id, name, domain, description, charter, charter_sunset_at, created_by, member_count, active, created_at) VALUES
+  ('00000000-0000-0000-0015-000000000011', '00000000-0000-0000-0001-000000000001', 'Maplewood Care Circle', 'care', 'Caregiving network for Maplewood Heights — childcare, eldercare, first aid.', 'We look after each other. Training, coordination, mutual support.', now() + interval '280 days', '00000000-0000-0000-0002-000000000052', 0, true, now() - interval '48 days'),
+  ('00000000-0000-0000-0015-000000000012', '00000000-0000-0000-0001-000000000001', 'Maplewood Signal Hub', 'signal', 'Tech support and digital literacy for all ages in Maplewood.', 'Free tech help, workshops, community communications.', now() + interval '260 days', '00000000-0000-0000-0002-000000000053', 0, true, now() - interval '44 days'),
+  ('00000000-0000-0000-0015-000000000013', '00000000-0000-0000-0001-000000000002', 'Riverside Hearth Kitchen', 'hearth', 'Community cooking and gathering space for Riverside Commons.', 'Potlucks, cooking classes, meal trains, food preservation.', now() + interval '270 days', '00000000-0000-0000-0002-000000000018', 0, true, now() - interval '42 days'),
+  ('00000000-0000-0000-0015-000000000014', '00000000-0000-0000-0001-000000000002', 'Riverside Bridge Runners', 'bridge', 'Delivery and transportation network for Riverside Commons.', 'Bike deliveries, ride sharing, moving help, errand running.', now() + interval '240 days', '00000000-0000-0000-0002-000000000066', 0, true, now() - interval '38 days'),
+  ('00000000-0000-0000-0015-000000000015', '00000000-0000-0000-0001-000000000003', 'Harbor Signals', 'signal', 'Tech support and communications for Harbor Point.', 'Security systems, phone help, internet setup, community alerts.', now() + interval '250 days', '00000000-0000-0000-0002-000000000075', 0, true, now() - interval '40 days'),
+  ('00000000-0000-0000-0015-000000000016', '00000000-0000-0000-0001-000000000003', 'Harbor Weavers', 'weave', 'Community organizing and governance for Harbor Point.', 'Block parties, mutual aid coordination, neighborhood watch.', now() + interval '230 days', '00000000-0000-0000-0002-000000000081', 0, true, now() - interval '35 days'),
+  ('00000000-0000-0000-0015-000000000017', '00000000-0000-0000-0001-000000000004', 'Monon Green Trails', 'green', 'Trail maintenance and environmental stewardship for the Monon.', 'Trail cleanup, native planting, rain gardens, composting.', now() + interval '300 days', '00000000-0000-0000-0002-000000000091', 0, true, now() - interval '45 days'),
+  ('00000000-0000-0000-0015-000000000018', '00000000-0000-0000-0001-000000000004', 'Monon Hearth & Home', 'hearth', 'Food and fellowship along the Monon trail.', 'Porch potlucks, trail cookouts, baking exchanges, dinner parties.', now() + interval '260 days', '00000000-0000-0000-0002-000000000089', 0, true, now() - interval '40 days')
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================================
+-- SECTION 2: NEW GUILD MEMBERS (53 members, IDs 36-88)
+-- ============================================================================
+
+INSERT INTO guild_members (id, guild_id, user_id, role, steward_term_start, consecutive_terms, joined_at) VALUES
+  -- Guild 11: Maplewood Care Circle (5 members)
+  ('00000000-0000-0000-0016-000000000036', '00000000-0000-0000-0015-000000000011', '00000000-0000-0000-0002-000000000052', 'steward', now() - interval '48 days', 1, now() - interval '48 days'),
+  ('00000000-0000-0000-0016-000000000037', '00000000-0000-0000-0015-000000000011', '00000000-0000-0000-0002-000000000056', 'member', null, 0, now() - interval '46 days'),
+  ('00000000-0000-0000-0016-000000000038', '00000000-0000-0000-0015-000000000011', '00000000-0000-0000-0002-000000000003', 'member', null, 0, now() - interval '44 days'),
+  ('00000000-0000-0000-0016-000000000039', '00000000-0000-0000-0015-000000000011', '00000000-0000-0000-0002-000000000005', 'member', null, 0, now() - interval '40 days'),
+  ('00000000-0000-0000-0016-000000000040', '00000000-0000-0000-0015-000000000011', '00000000-0000-0000-0002-000000000059', 'member', null, 0, now() - interval '36 days'),
+
+  -- Guild 12: Maplewood Signal Hub (5 members)
+  ('00000000-0000-0000-0016-000000000041', '00000000-0000-0000-0015-000000000012', '00000000-0000-0000-0002-000000000053', 'steward', now() - interval '44 days', 1, now() - interval '44 days'),
+  ('00000000-0000-0000-0016-000000000042', '00000000-0000-0000-0015-000000000012', '00000000-0000-0000-0002-000000000002', 'member', null, 0, now() - interval '42 days'),
+  ('00000000-0000-0000-0016-000000000043', '00000000-0000-0000-0015-000000000012', '00000000-0000-0000-0002-000000000009', 'member', null, 0, now() - interval '38 days'),
+  ('00000000-0000-0000-0016-000000000044', '00000000-0000-0000-0015-000000000012', '00000000-0000-0000-0002-000000000060', 'member', null, 0, now() - interval '35 days'),
+  ('00000000-0000-0000-0016-000000000045', '00000000-0000-0000-0015-000000000012', '00000000-0000-0000-0002-000000000054', 'member', null, 0, now() - interval '30 days'),
+
+  -- Guild 13: Riverside Hearth Kitchen (5 members)
+  ('00000000-0000-0000-0016-000000000046', '00000000-0000-0000-0015-000000000013', '00000000-0000-0000-0002-000000000018', 'steward', now() - interval '42 days', 1, now() - interval '42 days'),
+  ('00000000-0000-0000-0016-000000000047', '00000000-0000-0000-0015-000000000013', '00000000-0000-0000-0002-000000000022', 'member', null, 0, now() - interval '40 days'),
+  ('00000000-0000-0000-0016-000000000048', '00000000-0000-0000-0015-000000000013', '00000000-0000-0000-0002-000000000072', 'member', null, 0, now() - interval '38 days'),
+  ('00000000-0000-0000-0016-000000000049', '00000000-0000-0000-0015-000000000013', '00000000-0000-0000-0002-000000000067', 'member', null, 0, now() - interval '35 days'),
+  ('00000000-0000-0000-0016-000000000050', '00000000-0000-0000-0015-000000000013', '00000000-0000-0000-0002-000000000064', 'member', null, 0, now() - interval '30 days'),
+
+  -- Guild 14: Riverside Bridge Runners (4 members)
+  ('00000000-0000-0000-0016-000000000051', '00000000-0000-0000-0015-000000000014', '00000000-0000-0000-0002-000000000066', 'steward', now() - interval '38 days', 1, now() - interval '38 days'),
+  ('00000000-0000-0000-0016-000000000052', '00000000-0000-0000-0015-000000000014', '00000000-0000-0000-0002-000000000070', 'member', null, 0, now() - interval '36 days'),
+  ('00000000-0000-0000-0016-000000000053', '00000000-0000-0000-0015-000000000014', '00000000-0000-0000-0002-000000000019', 'member', null, 0, now() - interval '33 days'),
+  ('00000000-0000-0000-0016-000000000054', '00000000-0000-0000-0015-000000000014', '00000000-0000-0000-0002-000000000064', 'member', null, 0, now() - interval '28 days'),
+
+  -- Guild 15: Harbor Signals (5 members)
+  ('00000000-0000-0000-0016-000000000055', '00000000-0000-0000-0015-000000000015', '00000000-0000-0000-0002-000000000075', 'steward', now() - interval '40 days', 1, now() - interval '40 days'),
+  ('00000000-0000-0000-0016-000000000056', '00000000-0000-0000-0015-000000000015', '00000000-0000-0000-0002-000000000078', 'member', null, 0, now() - interval '38 days'),
+  ('00000000-0000-0000-0016-000000000057', '00000000-0000-0000-0015-000000000015', '00000000-0000-0000-0002-000000000081', 'member', null, 0, now() - interval '35 days'),
+  ('00000000-0000-0000-0016-000000000058', '00000000-0000-0000-0015-000000000015', '00000000-0000-0000-0002-000000000032', 'member', null, 0, now() - interval '30 days'),
+  ('00000000-0000-0000-0016-000000000059', '00000000-0000-0000-0015-000000000015', '00000000-0000-0000-0002-000000000083', 'member', null, 0, now() - interval '25 days'),
+
+  -- Guild 16: Harbor Weavers (4 members)
+  ('00000000-0000-0000-0016-000000000060', '00000000-0000-0000-0015-000000000016', '00000000-0000-0000-0002-000000000081', 'steward', now() - interval '35 days', 1, now() - interval '35 days'),
+  ('00000000-0000-0000-0016-000000000061', '00000000-0000-0000-0015-000000000016', '00000000-0000-0000-0002-000000000024', 'member', null, 0, now() - interval '33 days'),
+  ('00000000-0000-0000-0016-000000000062', '00000000-0000-0000-0015-000000000016', '00000000-0000-0000-0002-000000000075', 'member', null, 0, now() - interval '30 days'),
+  ('00000000-0000-0000-0016-000000000063', '00000000-0000-0000-0015-000000000016', '00000000-0000-0000-0002-000000000076', 'member', null, 0, now() - interval '28 days'),
+
+  -- Guild 17: Monon Green Trails (5 members)
+  ('00000000-0000-0000-0016-000000000064', '00000000-0000-0000-0015-000000000017', '00000000-0000-0000-0002-000000000091', 'steward', now() - interval '45 days', 1, now() - interval '45 days'),
+  ('00000000-0000-0000-0016-000000000065', '00000000-0000-0000-0015-000000000017', '00000000-0000-0000-0002-000000000094', 'member', null, 0, now() - interval '42 days'),
+  ('00000000-0000-0000-0016-000000000066', '00000000-0000-0000-0015-000000000017', '00000000-0000-0000-0002-000000000088', 'member', null, 0, now() - interval '40 days'),
+  ('00000000-0000-0000-0016-000000000067', '00000000-0000-0000-0015-000000000017', '00000000-0000-0000-0002-000000000035', 'member', null, 0, now() - interval '36 days'),
+  ('00000000-0000-0000-0016-000000000068', '00000000-0000-0000-0015-000000000017', '00000000-0000-0000-0002-000000000042', 'member', null, 0, now() - interval '30 days'),
+
+  -- Guild 18: Monon Hearth & Home (5 members)
+  ('00000000-0000-0000-0016-000000000069', '00000000-0000-0000-0015-000000000018', '00000000-0000-0000-0002-000000000089', 'steward', now() - interval '40 days', 1, now() - interval '40 days'),
+  ('00000000-0000-0000-0016-000000000070', '00000000-0000-0000-0015-000000000018', '00000000-0000-0000-0002-000000000093', 'member', null, 0, now() - interval '38 days'),
+  ('00000000-0000-0000-0016-000000000071', '00000000-0000-0000-0015-000000000018', '00000000-0000-0000-0002-000000000037', 'member', null, 0, now() - interval '35 days'),
+  ('00000000-0000-0000-0016-000000000072', '00000000-0000-0000-0015-000000000018', '00000000-0000-0000-0002-000000000035', 'member', null, 0, now() - interval '30 days'),
+  ('00000000-0000-0000-0016-000000000073', '00000000-0000-0000-0015-000000000018', '00000000-0000-0000-0002-000000000087', 'member', null, 0, now() - interval '25 days'),
+
+  -- Guild 8 (Sunset Bridge): add 3 more members
+  ('00000000-0000-0000-0016-000000000074', '00000000-0000-0000-0015-000000000008', '00000000-0000-0000-0002-000000000102', 'member', null, 0, now() - interval '30 days'),
+  ('00000000-0000-0000-0016-000000000075', '00000000-0000-0000-0015-000000000008', '00000000-0000-0000-0002-000000000106', 'member', null, 0, now() - interval '25 days'),
+  ('00000000-0000-0000-0016-000000000076', '00000000-0000-0000-0015-000000000008', '00000000-0000-0000-0002-000000000043', 'member', null, 0, now() - interval '20 days'),
+
+  -- Guild 6 (Harbor Hearts): add 2 more members
+  ('00000000-0000-0000-0016-000000000077', '00000000-0000-0000-0015-000000000006', '00000000-0000-0000-0002-000000000078', 'member', null, 0, now() - interval '35 days'),
+  ('00000000-0000-0000-0016-000000000078', '00000000-0000-0000-0015-000000000006', '00000000-0000-0000-0002-000000000082', 'member', null, 0, now() - interval '30 days'),
+
+  -- Guild 1 (Maplewood Green Thumbs): add 1 member
+  ('00000000-0000-0000-0016-000000000079', '00000000-0000-0000-0015-000000000001', '00000000-0000-0000-0002-000000000054', 'member', null, 0, now() - interval '40 days'),
+
+  -- Guild 9 (Sunset Hearth): add 2 more members
+  ('00000000-0000-0000-0016-000000000080', '00000000-0000-0000-0015-000000000009', '00000000-0000-0000-0002-000000000101', 'member', null, 0, now() - interval '22 days'),
+  ('00000000-0000-0000-0016-000000000081', '00000000-0000-0000-0015-000000000009', '00000000-0000-0000-0002-000000000109', 'member', null, 0, now() - interval '18 days')
+ON CONFLICT (guild_id, user_id) DO NOTHING;
+
+-- ============================================================================
+-- SECTION 3: ENDORSEMENTS (80 rows, IDs 26-105)
+-- ============================================================================
+
+INSERT INTO endorsements (id, from_user, to_user, domain, skill, message, quest_id, created_at) VALUES
+  -- ========================================
+  -- craft → green flow (5 endorsements)
+  -- ========================================
+  ('00000000-0000-0000-0017-000000000026', '00000000-0000-0000-0002-000000000051', '00000000-0000-0000-0002-000000000054', 'green', 'composting', 'Anna turned our backyard waste into the richest compost I have ever seen.', null, now() - interval '30 days'),
+  ('00000000-0000-0000-0017-000000000027', '00000000-0000-0000-0002-000000000088', '00000000-0000-0000-0002-000000000091', 'green', 'gardening', 'Stephanie organized the rain garden install and it looks incredible.', '00000000-0000-0000-0010-000000000072', now() - interval '28 days'),
+  ('00000000-0000-0000-0017-000000000028', '00000000-0000-0000-0002-000000000075', '00000000-0000-0000-0002-000000000084', 'green', 'gardening', 'Dependable and knowledgeable about native harbor plants.', null, now() - interval '26 days'),
+  ('00000000-0000-0000-0017-000000000029', '00000000-0000-0000-0002-000000000100', '00000000-0000-0000-0002-000000000108', 'green', 'xeriscaping', 'Led the drought-resistant garden redesign for the community center.', null, now() - interval '24 days'),
+  ('00000000-0000-0000-0017-000000000030', '00000000-0000-0000-0002-000000000004', '00000000-0000-0000-0002-000000000006', 'green', 'landscaping', 'Marcus redesigned the whole front bed and it looks amazing.', '00000000-0000-0000-0010-000000000038', now() - interval '22 days'),
+
+  -- ========================================
+  -- green → craft flow (5 endorsements)
+  -- ========================================
+  ('00000000-0000-0000-0017-000000000031', '00000000-0000-0000-0002-000000000013', '00000000-0000-0000-0002-000000000015', 'craft', 'bike repair', 'Mike fixed three bikes at the community repair day like it was nothing.', null, now() - interval '29 days'),
+  ('00000000-0000-0000-0017-000000000032', '00000000-0000-0000-0002-000000000054', '00000000-0000-0000-0002-000000000051', 'craft', 'carpentry', 'Built new raised bed frames that will last for years.', null, now() - interval '27 days'),
+  ('00000000-0000-0000-0017-000000000033', '00000000-0000-0000-0002-000000000064', '00000000-0000-0000-0002-000000000066', 'craft', 'bike repair', 'Liam keeps the community bike fleet in perfect shape.', null, now() - interval '25 days'),
+  ('00000000-0000-0000-0017-000000000034', '00000000-0000-0000-0002-000000000091', '00000000-0000-0000-0002-000000000088', 'craft', 'carpentry', 'Marcus built the trail kiosk almost single-handedly.', '00000000-0000-0000-0010-000000000074', now() - interval '23 days'),
+  ('00000000-0000-0000-0017-000000000035', '00000000-0000-0000-0002-000000000108', '00000000-0000-0000-0002-000000000100', 'craft', 'woodworking', 'Crafted beautiful benches for the community garden entrance.', null, now() - interval '21 days'),
+
+  -- ========================================
+  -- care → hearth flow (5 endorsements)
+  -- ========================================
+  ('00000000-0000-0000-0017-000000000036', '00000000-0000-0000-0002-000000000003', '00000000-0000-0000-0002-000000000058', 'hearth', 'baking', 'Her sourdough for the block party was the first thing to disappear.', null, now() - interval '32 days'),
+  ('00000000-0000-0000-0017-000000000037', '00000000-0000-0000-0002-000000000052', '00000000-0000-0000-0002-000000000001', 'hearth', 'cooking', 'Tom organized meals for three families during the ice storm.', null, now() - interval '30 days'),
+  ('00000000-0000-0000-0017-000000000038', '00000000-0000-0000-0002-000000000076', '00000000-0000-0000-0002-000000000080', 'hearth', 'baking', 'Her pies at the harbor festival were legendary.', null, now() - interval '28 days'),
+  ('00000000-0000-0000-0017-000000000039', '00000000-0000-0000-0002-000000000099', '00000000-0000-0000-0002-000000000101', 'hearth', 'cooking', 'Margaret hosted the welcome dinner and made everyone feel at home.', null, now() - interval '26 days'),
+  ('00000000-0000-0000-0017-000000000040', '00000000-0000-0000-0002-000000000067', '00000000-0000-0000-0002-000000000072', 'hearth', 'baking', 'Ruby taught the kids bread-making at the community kitchen.', '00000000-0000-0000-0010-000000000062', now() - interval '24 days'),
+
+  -- ========================================
+  -- hearth → care flow (4 endorsements)
+  -- ========================================
+  ('00000000-0000-0000-0017-000000000041', '00000000-0000-0000-0002-000000000001', '00000000-0000-0000-0002-000000000052', 'care', 'eldercare', 'Dorothy checks on every senior on our block without being asked.', null, now() - interval '31 days'),
+  ('00000000-0000-0000-0017-000000000042', '00000000-0000-0000-0002-000000000089', '00000000-0000-0000-0002-000000000093', 'care', 'childcare', 'Anita ran the summer kids program with so much patience and energy.', null, now() - interval '29 days'),
+  ('00000000-0000-0000-0017-000000000043', '00000000-0000-0000-0002-000000000080', '00000000-0000-0000-0002-000000000076', 'care', 'eldercare', 'Mary coordinated the medication reminder network for the whole block.', null, now() - interval '27 days'),
+  ('00000000-0000-0000-0017-000000000044', '00000000-0000-0000-0002-000000000101', '00000000-0000-0000-0002-000000000099', 'care', 'counseling', 'Always the first to notice when a neighbor is struggling.', null, now() - interval '25 days'),
+
+  -- ========================================
+  -- signal → weave flow (4 endorsements)
+  -- ========================================
+  ('00000000-0000-0000-0017-000000000045', '00000000-0000-0000-0002-000000000053', '00000000-0000-0000-0002-000000000057', 'weave', 'organizing', 'Coordinated the tech drive with impressive logistics.', null, now() - interval '28 days'),
+  ('00000000-0000-0000-0017-000000000046', '00000000-0000-0000-0002-000000000065', '00000000-0000-0000-0002-000000000063', 'weave', 'governance', 'Drafted the neighborhood charter revision that everyone agreed on.', null, now() - interval '26 days'),
+  ('00000000-0000-0000-0017-000000000047', '00000000-0000-0000-0002-000000000090', '00000000-0000-0000-0002-000000000087', 'weave', 'governance', 'Eleanor facilitated our most productive community meeting ever.', null, now() - interval '24 days'),
+  ('00000000-0000-0000-0017-000000000048', '00000000-0000-0000-0002-000000000103', '00000000-0000-0000-0002-000000000099', 'weave', 'organizing', 'Pulled together the emergency preparedness plan in record time.', null, now() - interval '22 days'),
+
+  -- ========================================
+  -- weave → signal flow (5 endorsements)
+  -- ========================================
+  ('00000000-0000-0000-0017-000000000049', '00000000-0000-0000-0002-000000000034', '00000000-0000-0000-0002-000000000090', 'signal', 'tech help', 'Set up the whole community alert system by himself.', null, now() - interval '27 days'),
+  ('00000000-0000-0000-0017-000000000050', '00000000-0000-0000-0002-000000000043', '00000000-0000-0000-0002-000000000103', 'signal', 'teaching', 'Taught our seniors group how to use video calls with endless patience.', null, now() - interval '25 days'),
+  ('00000000-0000-0000-0017-000000000051', '00000000-0000-0000-0002-000000000063', '00000000-0000-0000-0002-000000000065', 'signal', 'coding', 'Built the neighborhood resource tracker website from scratch.', null, now() - interval '23 days'),
+  ('00000000-0000-0000-0017-000000000052', '00000000-0000-0000-0002-000000000087', '00000000-0000-0000-0002-000000000095', 'signal', 'tech help', 'Fixed the community center WiFi when nobody else could figure it out.', null, now() - interval '21 days'),
+  ('00000000-0000-0000-0017-000000000053', '00000000-0000-0000-0002-000000000081', '00000000-0000-0000-0002-000000000078', 'signal', 'teaching', 'Kim ran a fantastic phone skills workshop for the harbor seniors.', null, now() - interval '19 days'),
+
+  -- ========================================
+  -- craft → care flow (4 endorsements)
+  -- ========================================
+  ('00000000-0000-0000-0017-000000000054', '00000000-0000-0000-0002-000000000004', '00000000-0000-0000-0002-000000000056', 'care', 'first aid', 'Grace handled the playground injury calmly and got everyone bandaged up.', null, now() - interval '26 days'),
+  ('00000000-0000-0000-0017-000000000055', '00000000-0000-0000-0002-000000000077', '00000000-0000-0000-0002-000000000078', 'care', 'eldercare', 'Kim visits the homebound residents every week without fail.', null, now() - interval '24 days'),
+  ('00000000-0000-0000-0017-000000000056', '00000000-0000-0000-0002-000000000092', '00000000-0000-0000-0002-000000000093', 'care', 'childcare', 'Anita keeps the after-school program running smoothly.', null, now() - interval '22 days'),
+  ('00000000-0000-0000-0017-000000000057', '00000000-0000-0000-0002-000000000104', '00000000-0000-0000-0002-000000000107', 'care', 'eldercare', 'Organized the neighborhood wellness check rotation for winter.', null, now() - interval '20 days'),
+
+  -- ========================================
+  -- bridge → hearth flow (4 endorsements)
+  -- ========================================
+  ('00000000-0000-0000-0017-000000000058', '00000000-0000-0000-0002-000000000055', '00000000-0000-0000-0002-000000000058', 'hearth', 'baking', 'Her cinnamon rolls at the fundraiser raised more than the silent auction.', null, now() - interval '25 days'),
+  ('00000000-0000-0000-0017-000000000059', '00000000-0000-0000-0002-000000000079', '00000000-0000-0000-0002-000000000027', 'hearth', 'baking', 'Those harbor clam chowder nights are the highlight of my month.', null, now() - interval '23 days'),
+  ('00000000-0000-0000-0017-000000000060', '00000000-0000-0000-0002-000000000102', '00000000-0000-0000-0002-000000000101', 'hearth', 'cooking', 'Margaret put together the whole holiday feast for thirty people.', null, now() - interval '21 days'),
+  ('00000000-0000-0000-0017-000000000061', '00000000-0000-0000-0002-000000000096', '00000000-0000-0000-0002-000000000089', 'hearth', 'cooking', 'Patricia turned the trail cookout into a real neighborhood tradition.', null, now() - interval '19 days'),
+
+  -- ========================================
+  -- Additional Maplewood endorsements (9)
+  -- ========================================
+  ('00000000-0000-0000-0017-000000000062', '00000000-0000-0000-0002-000000000006', '00000000-0000-0000-0002-000000000057', 'green', 'native plants', 'Identified every invasive species on the block and showed us replacements.', null, now() - interval '33 days'),
+  ('00000000-0000-0000-0017-000000000063', '00000000-0000-0000-0002-000000000051', '00000000-0000-0000-0002-000000000002', 'craft', 'woodworking', 'James built the community tool shed over a single weekend.', null, now() - interval '31 days'),
+  ('00000000-0000-0000-0017-000000000064', '00000000-0000-0000-0002-000000000052', '00000000-0000-0000-0002-000000000003', 'care', 'childcare', 'Priya organized the emergency childcare network for snow days.', null, now() - interval '29 days'),
+  ('00000000-0000-0000-0017-000000000065', '00000000-0000-0000-0002-000000000054', '00000000-0000-0000-0002-000000000006', 'green', 'gardening', 'Marcus keeps the community garden thriving through every season.', null, now() - interval '27 days'),
+  ('00000000-0000-0000-0017-000000000066', '00000000-0000-0000-0002-000000000053', '00000000-0000-0000-0002-000000000009', 'signal', 'design', 'Emily designed our new community newsletter template beautifully.', null, now() - interval '25 days'),
+  ('00000000-0000-0000-0017-000000000067', '00000000-0000-0000-0002-000000000008', '00000000-0000-0000-0002-000000000051', 'craft', 'carpentry', 'Replaced the rotting porch steps for Mrs. Henderson in one afternoon.', '00000000-0000-0000-0010-000000000039', now() - interval '23 days'),
+  ('00000000-0000-0000-0017-000000000068', '00000000-0000-0000-0002-000000000007', '00000000-0000-0000-0002-000000000052', 'care', 'eldercare', 'Dorothy drives seniors to appointments every single Tuesday.', null, now() - interval '21 days'),
+  ('00000000-0000-0000-0017-000000000069', '00000000-0000-0000-0002-000000000057', '00000000-0000-0000-0002-000000000054', 'green', 'composting', 'Anna taught the whole block how to maintain a worm bin.', null, now() - interval '19 days'),
+  ('00000000-0000-0000-0017-000000000070', '00000000-0000-0000-0002-000000000056', '00000000-0000-0000-0002-000000000052', 'care', 'eldercare', 'Dorothy is the reason our eldercare network actually works.', null, now() - interval '17 days'),
+
+  -- ========================================
+  -- Additional Riverside endorsements (9)
+  -- ========================================
+  ('00000000-0000-0000-0017-000000000071', '00000000-0000-0000-0002-000000000014', '00000000-0000-0000-0002-000000000064', 'green', 'urban farming', 'Carlos turned the vacant lot into a productive urban farm.', null, now() - interval '32 days'),
+  ('00000000-0000-0000-0017-000000000072', '00000000-0000-0000-0002-000000000063', '00000000-0000-0000-0002-000000000013', 'weave', 'organizing', 'Rosa rallied the whole block for the flood cleanup in hours.', null, now() - interval '30 days'),
+  ('00000000-0000-0000-0017-000000000073', '00000000-0000-0000-0002-000000000066', '00000000-0000-0000-0002-000000000019', 'craft', 'mechanical', 'Alex repaired the community lawnmower that everyone had given up on.', null, now() - interval '28 days'),
+  ('00000000-0000-0000-0017-000000000074', '00000000-0000-0000-0002-000000000065', '00000000-0000-0000-0002-000000000069', 'signal', 'tech help', 'Set up the mesh network that gives the whole park WiFi.', null, now() - interval '26 days'),
+  ('00000000-0000-0000-0017-000000000075', '00000000-0000-0000-0002-000000000068', '00000000-0000-0000-0002-000000000014', 'green', 'composting', 'Taught composting at the farmers market and converted dozens of skeptics.', null, now() - interval '24 days'),
+  ('00000000-0000-0000-0017-000000000076', '00000000-0000-0000-0002-000000000069', '00000000-0000-0000-0002-000000000063', 'weave', 'mediation', 'Mediated the parking dispute so well both sides left smiling.', null, now() - interval '22 days'),
+  ('00000000-0000-0000-0017-000000000077', '00000000-0000-0000-0002-000000000072', '00000000-0000-0000-0002-000000000018', 'hearth', 'cooking', 'Sofia''s tamale night brought out neighbors who never come to anything.', null, now() - interval '20 days'),
+  ('00000000-0000-0000-0017-000000000078', '00000000-0000-0000-0002-000000000064', '00000000-0000-0000-0002-000000000068', 'green', 'restoration', 'Restored the creek bank with willows and it actually held through spring.', null, now() - interval '18 days'),
+  ('00000000-0000-0000-0017-000000000079', '00000000-0000-0000-0002-000000000067', '00000000-0000-0000-0002-000000000020', 'care', 'childcare', 'Watched four kids during the emergency meeting and they all had fun.', null, now() - interval '16 days'),
+
+  -- ========================================
+  -- Additional Harbor endorsements (9)
+  -- ========================================
+  ('00000000-0000-0000-0017-000000000080', '00000000-0000-0000-0002-000000000024', '00000000-0000-0000-0002-000000000075', 'craft', 'electrical', 'Reggie rewired the community center stage lighting in a single day.', null, now() - interval '31 days'),
+  ('00000000-0000-0000-0017-000000000081', '00000000-0000-0000-0002-000000000075', '00000000-0000-0000-0002-000000000024', 'craft', 'carpentry', 'Frank rebuilt the harbor boardwalk railing better than the original.', null, now() - interval '29 days'),
+  ('00000000-0000-0000-0017-000000000082', '00000000-0000-0000-0002-000000000076', '00000000-0000-0000-0002-000000000025', 'care', 'childcare', 'Ran the harbor kids summer camp with incredible creativity.', null, now() - interval '27 days'),
+  ('00000000-0000-0000-0017-000000000083', '00000000-0000-0000-0002-000000000078', '00000000-0000-0000-0002-000000000029', 'care', 'nursing', 'Organized the flu shot clinic and made it actually run on time.', null, now() - interval '25 days'),
+  ('00000000-0000-0000-0017-000000000084', '00000000-0000-0000-0002-000000000077', '00000000-0000-0000-0002-000000000028', 'craft', 'construction', 'Led the gazebo rebuild after the storm with zero waste.', '00000000-0000-0000-0010-000000000068', now() - interval '23 days'),
+  ('00000000-0000-0000-0017-000000000085', '00000000-0000-0000-0002-000000000079', '00000000-0000-0000-0002-000000000080', 'hearth', 'baking', 'Her bread at the harbor market sells out in fifteen minutes.', null, now() - interval '21 days'),
+  ('00000000-0000-0000-0017-000000000086', '00000000-0000-0000-0002-000000000080', '00000000-0000-0000-0002-000000000027', 'hearth', 'baking', 'The clam bake he organized was the best harbor event this year.', null, now() - interval '19 days'),
+  ('00000000-0000-0000-0017-000000000087', '00000000-0000-0000-0002-000000000081', '00000000-0000-0000-0002-000000000024', 'weave', 'mentoring', 'Frank mentors new volunteers and everyone he trains stays involved.', null, now() - interval '17 days'),
+  ('00000000-0000-0000-0017-000000000088', '00000000-0000-0000-0002-000000000084', '00000000-0000-0000-0002-000000000077', 'green', 'gardening', 'Transformed the harborside planter boxes into a pollinator paradise.', null, now() - interval '15 days'),
+
+  -- ========================================
+  -- Additional Sunrise endorsements (10)
+  -- ========================================
+  ('00000000-0000-0000-0017-000000000089', '00000000-0000-0000-0002-000000000034', '00000000-0000-0000-0002-000000000088', 'craft', 'carpentry', 'Marcus framed the new trail shelter in a weekend with three volunteers.', null, now() - interval '30 days'),
+  ('00000000-0000-0000-0017-000000000090', '00000000-0000-0000-0002-000000000088', '00000000-0000-0000-0002-000000000092', 'craft', 'carpentry', 'Built custom bike racks for every trailhead.', null, now() - interval '28 days'),
+  ('00000000-0000-0000-0017-000000000091', '00000000-0000-0000-0002-000000000087', '00000000-0000-0000-0002-000000000034', 'weave', 'governance', 'Drafted the trail sharing agreement that all four neighborhoods signed.', null, now() - interval '26 days'),
+  ('00000000-0000-0000-0017-000000000092', '00000000-0000-0000-0002-000000000091', '00000000-0000-0000-0002-000000000094', 'green', 'beekeeping', 'Will started the community apiary and it produced 40 pounds of honey.', null, now() - interval '24 days'),
+  ('00000000-0000-0000-0017-000000000093', '00000000-0000-0000-0002-000000000089', '00000000-0000-0000-0002-000000000093', 'care', 'childcare', 'Anita organized trail storytime for toddlers every Thursday morning.', null, now() - interval '22 days'),
+  ('00000000-0000-0000-0017-000000000094', '00000000-0000-0000-0002-000000000092', '00000000-0000-0000-0002-000000000088', 'craft', 'woodworking', 'The hand-carved trail markers Marcus made are works of art.', null, now() - interval '20 days'),
+  ('00000000-0000-0000-0017-000000000095', '00000000-0000-0000-0002-000000000093', '00000000-0000-0000-0002-000000000089', 'hearth', 'cooking', 'Patricia''s trail cookouts bring the whole neighborhood together.', null, now() - interval '18 days'),
+  ('00000000-0000-0000-0017-000000000096', '00000000-0000-0000-0002-000000000094', '00000000-0000-0000-0002-000000000091', 'green', 'gardening', 'Stephanie turned a muddy slope into a gorgeous wildflower meadow.', null, now() - interval '16 days'),
+  ('00000000-0000-0000-0017-000000000097', '00000000-0000-0000-0002-000000000090', '00000000-0000-0000-0002-000000000034', 'weave', 'governance', 'Led the trail usage survey and presented findings to the city council.', null, now() - interval '14 days'),
+  ('00000000-0000-0000-0017-000000000098', '00000000-0000-0000-0002-000000000095', '00000000-0000-0000-0002-000000000090', 'signal', 'cybersecurity', 'Secured the community network and taught safe internet practices.', null, now() - interval '12 days'),
+
+  -- ========================================
+  -- Additional Sunset endorsements (9)
+  -- ========================================
+  ('00000000-0000-0000-0017-000000000099', '00000000-0000-0000-0002-000000000099', '00000000-0000-0000-0002-000000000043', 'weave', 'governance', 'Gloria mediated the zoning discussion and found common ground.', null, now() - interval '29 days'),
+  ('00000000-0000-0000-0017-000000000100', '00000000-0000-0000-0002-000000000100', '00000000-0000-0000-0002-000000000104', 'craft', 'plumbing', 'Fixed three burst pipes on the coldest night of the year.', null, now() - interval '27 days'),
+  ('00000000-0000-0000-0017-000000000101', '00000000-0000-0000-0002-000000000101', '00000000-0000-0000-0002-000000000109', 'hearth', 'cooking', 'Samantha made the best chili at the neighborhood cook-off.', null, now() - interval '25 days'),
+  ('00000000-0000-0000-0017-000000000102', '00000000-0000-0000-0002-000000000103', '00000000-0000-0000-0002-000000000105', 'signal', 'tech help', 'Set up tablets for every senior who wanted one and taught them all.', null, now() - interval '23 days'),
+  ('00000000-0000-0000-0017-000000000103', '00000000-0000-0000-0002-000000000102', '00000000-0000-0000-0002-000000000101', 'hearth', 'cooking', 'Margaret''s Sunday soup kitchen feeds twenty people every week.', null, now() - interval '21 days'),
+  ('00000000-0000-0000-0017-000000000104', '00000000-0000-0000-0002-000000000104', '00000000-0000-0000-0002-000000000100', 'craft', 'woodworking', 'Built the little free library that the whole ridge uses.', null, now() - interval '19 days'),
+  ('00000000-0000-0000-0017-000000000105', '00000000-0000-0000-0002-000000000105', '00000000-0000-0000-0002-000000000103', 'signal', 'tutoring', 'Tutors three high schoolers in math every week and they all passed.', null, now() - interval '17 days'),
+  ('00000000-0000-0000-0017-000000000106', '00000000-0000-0000-0002-000000000106', '00000000-0000-0000-0002-000000000102', 'bridge', 'transportation', 'Drives the carpool route so reliably you could set a clock by him.', null, now() - interval '15 days'),
+  ('00000000-0000-0000-0017-000000000107', '00000000-0000-0000-0002-000000000108', '00000000-0000-0000-0002-000000000100', 'craft', 'woodworking', 'Repaired every broken fence on the block after the windstorm.', null, now() - interval '13 days')
+ON CONFLICT (from_user, to_user, domain) DO NOTHING;
+
+-- ============================================================================
+-- SECTION 4: GOVERNANCE PROPOSALS (12 proposals, IDs 9-20)
+-- ============================================================================
+
+INSERT INTO governance_proposals (id, community_id, guild_id, author_id, title, description, category, status, vote_type, votes_for, votes_against, quorum, deliberation_ends_at, voting_ends_at, created_at) VALUES
+  ('00000000-0000-0000-0018-000000000009', '00000000-0000-0000-0001-000000000001', '00000000-0000-0000-0015-000000000012', '00000000-0000-0000-0002-000000000053', 'Digital Inclusion Policy', 'Establish free WiFi zones and device lending library at community center.', 'rule_change', 'passed', 'quadratic', 6, 1, 3, now() - interval '12 days', now() - interval '5 days', now() - interval '18 days'),
+  ('00000000-0000-0000-0018-000000000010', '00000000-0000-0000-0001-000000000001', null, '00000000-0000-0000-0002-000000000001', 'Spring Planting Quest Series', 'Template for recurring spring garden quests each year.', 'seasonal_quest', 'voting', 'approval', 3, 0, 3, now() - interval '3 days', now() + interval '7 days', now() - interval '10 days'),
+  ('00000000-0000-0000-0018-000000000011', '00000000-0000-0000-0001-000000000002', '00000000-0000-0000-0015-000000000014', '00000000-0000-0000-0002-000000000066', 'Riverside Delivery Co-op Charter', 'Establish a formal bike delivery cooperative with shared equipment.', 'guild_charter', 'passed', 'quadratic', 7, 1, 3, now() - interval '18 days', now() - interval '10 days', now() - interval '25 days'),
+  ('00000000-0000-0000-0018-000000000012', '00000000-0000-0000-0001-000000000002', null, '00000000-0000-0000-0002-000000000063', 'Lower Pillar Threshold to 40 Renown', 'Make Pillar tier more accessible for active newcomers.', 'threshold_change', 'deliberation', 'quadratic', 0, 0, 3, now() + interval '10 days', now() + interval '24 days', now() - interval '8 days'),
+  ('00000000-0000-0000-0018-000000000013', '00000000-0000-0000-0001-000000000003', '00000000-0000-0000-0015-000000000016', '00000000-0000-0000-0002-000000000081', 'Harbor Youth Mentorship Program', 'Create structured mentorship pairing between veterans and young adults.', 'charter_amendment', 'passed', 'quadratic', 6, 0, 3, now() - interval '15 days', now() - interval '8 days', now() - interval '22 days'),
+  ('00000000-0000-0000-0018-000000000014', '00000000-0000-0000-0001-000000000003', null, '00000000-0000-0000-0002-000000000075', 'Emergency Repair Response Protocol', 'Establish rapid-response protocol for storm and emergency home repairs.', 'rule_change', 'voting', 'approval', 3, 0, 3, now() - interval '5 days', now() + interval '5 days', now() - interval '12 days'),
+  ('00000000-0000-0000-0018-000000000015', '00000000-0000-0000-0001-000000000003', null, '00000000-0000-0000-0002-000000000076', 'Harbor Point Seasonal Feast Quest', 'Create annual neighborhood feast as a recurring quest template.', 'seasonal_quest', 'draft', 'quadratic', 0, 0, 3, null, null, now() - interval '3 days'),
+  ('00000000-0000-0000-0018-000000000016', '00000000-0000-0000-0001-000000000004', '00000000-0000-0000-0015-000000000017', '00000000-0000-0000-0002-000000000091', 'Monon Trail Stewardship Accord', 'Formal agreement for trail maintenance responsibilities and seasonal schedules.', 'charter_amendment', 'passed', 'quadratic', 6, 1, 3, now() - interval '20 days', now() - interval '12 days', now() - interval '28 days'),
+  ('00000000-0000-0000-0018-000000000017', '00000000-0000-0000-0001-000000000004', null, '00000000-0000-0000-0002-000000000087', 'Monon Newcomer Welcome Protocol', 'Structured welcome process for new trail neighborhood residents.', 'rule_change', 'voting', 'approval', 4, 0, 3, now() - interval '6 days', now() + interval '4 days', now() - interval '14 days'),
+  ('00000000-0000-0000-0018-000000000018', '00000000-0000-0000-0001-000000000005', '00000000-0000-0000-0015-000000000009', '00000000-0000-0000-0002-000000000101', 'Intergenerational Dinner Charter', 'Formalize monthly cross-generational dinner program.', 'guild_charter', 'passed', 'quadratic', 3, 0, 3, now() - interval '22 days', now() - interval '14 days', now() - interval '30 days'),
+  ('00000000-0000-0000-0018-000000000019', '00000000-0000-0000-0001-000000000005', null, '00000000-0000-0000-0002-000000000099', 'Heat Safety Quest Template', 'Create seasonal quests for summer heat wave preparedness and neighbor check-ins.', 'seasonal_quest', 'deliberation', 'quadratic', 0, 0, 3, now() + interval '8 days', now() + interval '22 days', now() - interval '6 days'),
+  ('00000000-0000-0000-0018-000000000020', '00000000-0000-0000-0001-000000000005', null, '00000000-0000-0000-0002-000000000103', 'Sunset Ridge Digital Literacy Standards', 'Establish minimum tech support standards for elder assistance.', 'rule_change', 'rejected', 'quadratic', 1, 3, 3, now() - interval '16 days', now() - interval '8 days', now() - interval '24 days')
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================================
+-- SECTION 5: GOVERNANCE VOTES (40 votes, IDs 26-65)
+-- ============================================================================
+
+INSERT INTO governance_votes (id, proposal_id, voter_id, vote_type, credits_spent, vote_weight, delegate_to_id, in_favor, created_at) VALUES
+  -- Proposal 9: Digital Inclusion Policy (passed, quadratic, for=6, against=1)
+  ('00000000-0000-0000-0019-000000000026', '00000000-0000-0000-0018-000000000009', '00000000-0000-0000-0002-000000000001', 'quadratic', 4, 2.0, null, true, now() - interval '8 days'),
+  ('00000000-0000-0000-0019-000000000027', '00000000-0000-0000-0018-000000000009', '00000000-0000-0000-0002-000000000052', 'quadratic', 1, 1.0, null, true, now() - interval '7 days'),
+  ('00000000-0000-0000-0019-000000000028', '00000000-0000-0000-0018-000000000009', '00000000-0000-0000-0002-000000000002', 'quadratic', 1, 1.0, null, true, now() - interval '7 days'),
+  ('00000000-0000-0000-0019-000000000029', '00000000-0000-0000-0018-000000000009', '00000000-0000-0000-0002-000000000004', 'quadratic', 1, 1.0, null, false, now() - interval '6 days'),
+  ('00000000-0000-0000-0019-000000000058', '00000000-0000-0000-0018-000000000009', '00000000-0000-0000-0002-000000000053', 'quadratic', 1, 1.0, null, true, now() - interval '6 days'),
+  ('00000000-0000-0000-0019-000000000059', '00000000-0000-0000-0018-000000000009', '00000000-0000-0000-0002-000000000051', 'quadratic', 1, 1.0, null, true, now() - interval '6 days'),
+
+  -- Proposal 10: Spring Planting Quest Series (voting, approval, for=3)
+  ('00000000-0000-0000-0019-000000000030', '00000000-0000-0000-0018-000000000010', '00000000-0000-0000-0002-000000000052', 'approval', 1, 1.0, null, true, now() - interval '5 days'),
+  ('00000000-0000-0000-0019-000000000031', '00000000-0000-0000-0018-000000000010', '00000000-0000-0000-0002-000000000003', 'approval', 1, 1.0, null, true, now() - interval '4 days'),
+  ('00000000-0000-0000-0019-000000000032', '00000000-0000-0000-0018-000000000010', '00000000-0000-0000-0002-000000000054', 'approval', 1, 1.0, null, true, now() - interval '4 days'),
+
+  -- Proposal 11: Riverside Delivery Co-op Charter (passed, quadratic, for=7, against=1)
+  ('00000000-0000-0000-0019-000000000033', '00000000-0000-0000-0018-000000000011', '00000000-0000-0000-0002-000000000063', 'quadratic', 4, 2.0, null, true, now() - interval '12 days'),
+  ('00000000-0000-0000-0019-000000000034', '00000000-0000-0000-0018-000000000011', '00000000-0000-0000-0002-000000000064', 'quadratic', 1, 1.0, null, true, now() - interval '12 days'),
+  ('00000000-0000-0000-0019-000000000035', '00000000-0000-0000-0018-000000000011', '00000000-0000-0000-0002-000000000013', 'quadratic', 1, 1.0, null, true, now() - interval '11 days'),
+  ('00000000-0000-0000-0019-000000000036', '00000000-0000-0000-0018-000000000011', '00000000-0000-0000-0002-000000000014', 'quadratic', 1, 1.0, null, true, now() - interval '11 days'),
+  ('00000000-0000-0000-0019-000000000037', '00000000-0000-0000-0018-000000000011', '00000000-0000-0000-0002-000000000019', 'quadratic', 1, 1.0, null, false, now() - interval '11 days'),
+  ('00000000-0000-0000-0019-000000000060', '00000000-0000-0000-0018-000000000011', '00000000-0000-0000-0002-000000000065', 'quadratic', 1, 1.0, null, true, now() - interval '11 days'),
+  ('00000000-0000-0000-0019-000000000061', '00000000-0000-0000-0018-000000000011', '00000000-0000-0000-0002-000000000067', 'quadratic', 1, 1.0, null, true, now() - interval '10 days'),
+
+  -- Proposal 13: Harbor Youth Mentorship Program (passed, quadratic, for=6, against=0)
+  ('00000000-0000-0000-0019-000000000038', '00000000-0000-0000-0018-000000000013', '00000000-0000-0000-0002-000000000024', 'quadratic', 4, 2.0, null, true, now() - interval '10 days'),
+  ('00000000-0000-0000-0019-000000000039', '00000000-0000-0000-0018-000000000013', '00000000-0000-0000-0002-000000000075', 'quadratic', 1, 1.0, null, true, now() - interval '10 days'),
+  ('00000000-0000-0000-0019-000000000040', '00000000-0000-0000-0018-000000000013', '00000000-0000-0000-0002-000000000076', 'quadratic', 1, 1.0, null, true, now() - interval '9 days'),
+  ('00000000-0000-0000-0019-000000000062', '00000000-0000-0000-0018-000000000013', '00000000-0000-0000-0002-000000000077', 'quadratic', 1, 1.0, null, true, now() - interval '9 days'),
+  ('00000000-0000-0000-0019-000000000063', '00000000-0000-0000-0018-000000000013', '00000000-0000-0000-0002-000000000081', 'quadratic', 1, 1.0, null, true, now() - interval '9 days'),
+
+  -- Proposal 14: Emergency Repair Response Protocol (voting, approval, for=3)
+  ('00000000-0000-0000-0019-000000000041', '00000000-0000-0000-0018-000000000014', '00000000-0000-0000-0002-000000000024', 'approval', 1, 1.0, null, true, now() - interval '4 days'),
+  ('00000000-0000-0000-0019-000000000042', '00000000-0000-0000-0018-000000000014', '00000000-0000-0000-0002-000000000075', 'approval', 1, 1.0, null, true, now() - interval '3 days'),
+  ('00000000-0000-0000-0019-000000000043', '00000000-0000-0000-0018-000000000014', '00000000-0000-0000-0002-000000000077', 'approval', 1, 1.0, null, true, now() - interval '3 days'),
+
+  -- Proposal 16: Monon Trail Stewardship Accord (passed, quadratic, for=6, against=1)
+  ('00000000-0000-0000-0019-000000000044', '00000000-0000-0000-0018-000000000016', '00000000-0000-0000-0002-000000000034', 'quadratic', 4, 2.0, null, true, now() - interval '14 days'),
+  ('00000000-0000-0000-0019-000000000045', '00000000-0000-0000-0018-000000000016', '00000000-0000-0000-0002-000000000087', 'quadratic', 1, 1.0, null, true, now() - interval '14 days'),
+  ('00000000-0000-0000-0019-000000000046', '00000000-0000-0000-0018-000000000016', '00000000-0000-0000-0002-000000000088', 'quadratic', 1, 1.0, null, true, now() - interval '13 days'),
+  ('00000000-0000-0000-0019-000000000047', '00000000-0000-0000-0018-000000000016', '00000000-0000-0000-0002-000000000039', 'quadratic', 1, 1.0, null, false, now() - interval '13 days'),
+  ('00000000-0000-0000-0019-000000000064', '00000000-0000-0000-0018-000000000016', '00000000-0000-0000-0002-000000000091', 'quadratic', 1, 1.0, null, true, now() - interval '13 days'),
+  ('00000000-0000-0000-0019-000000000065', '00000000-0000-0000-0018-000000000016', '00000000-0000-0000-0002-000000000089', 'quadratic', 1, 1.0, null, true, now() - interval '12 days'),
+
+  -- Proposal 17: Monon Newcomer Welcome Protocol (voting, approval, for=4)
+  ('00000000-0000-0000-0019-000000000048', '00000000-0000-0000-0018-000000000017', '00000000-0000-0000-0002-000000000034', 'approval', 1, 1.0, null, true, now() - interval '5 days'),
+  ('00000000-0000-0000-0019-000000000049', '00000000-0000-0000-0018-000000000017', '00000000-0000-0000-0002-000000000087', 'approval', 1, 1.0, null, true, now() - interval '4 days'),
+  ('00000000-0000-0000-0019-000000000050', '00000000-0000-0000-0018-000000000017', '00000000-0000-0000-0002-000000000088', 'approval', 1, 1.0, null, true, now() - interval '4 days'),
+  ('00000000-0000-0000-0019-000000000051', '00000000-0000-0000-0018-000000000017', '00000000-0000-0000-0002-000000000035', 'approval', 1, 1.0, null, true, now() - interval '3 days'),
+
+  -- Proposal 18: Intergenerational Dinner Charter (passed, quadratic, for=3)
+  ('00000000-0000-0000-0019-000000000052', '00000000-0000-0000-0018-000000000018', '00000000-0000-0000-0002-000000000043', 'quadratic', 1, 1.0, null, true, now() - interval '16 days'),
+  ('00000000-0000-0000-0019-000000000053', '00000000-0000-0000-0018-000000000018', '00000000-0000-0000-0002-000000000044', 'quadratic', 1, 1.0, null, true, now() - interval '16 days'),
+  ('00000000-0000-0000-0019-000000000054', '00000000-0000-0000-0018-000000000018', '00000000-0000-0000-0002-000000000099', 'quadratic', 1, 1.0, null, true, now() - interval '15 days'),
+
+  -- Proposal 20: Sunset Ridge Digital Literacy Standards (rejected, quadratic, for=1, against=3)
+  ('00000000-0000-0000-0019-000000000055', '00000000-0000-0000-0018-000000000020', '00000000-0000-0000-0002-000000000103', 'quadratic', 1, 1.0, null, true, now() - interval '10 days'),
+  ('00000000-0000-0000-0019-000000000056', '00000000-0000-0000-0018-000000000020', '00000000-0000-0000-0002-000000000043', 'quadratic', 4, 2.0, null, false, now() - interval '10 days'),
+  ('00000000-0000-0000-0019-000000000057', '00000000-0000-0000-0018-000000000020', '00000000-0000-0000-0002-000000000044', 'quadratic', 1, 1.0, null, false, now() - interval '9 days')
+ON CONFLICT (proposal_id, voter_id) DO NOTHING;
+
+-- ============================================================================
+-- SECTION 6: SUNSET RULES (6 rules, IDs 13-18)
+-- ============================================================================
+
+INSERT INTO sunset_rules (id, community_id, rule_type, resource_id, description, enacted_at, expires_at, renewal_count, last_renewed_at, renewal_proposal_id, active, created_at) VALUES
+  ('00000000-0000-0000-001a-000000000013', '00000000-0000-0000-0001-000000000001', 'guild_charter', '00000000-0000-0000-0015-000000000011', 'Maplewood Care Circle guild charter.', now() - interval '48 days', now() + interval '280 days', 0, null, null, true, now() - interval '48 days'),
+  ('00000000-0000-0000-001a-000000000014', '00000000-0000-0000-0001-000000000001', 'guild_charter', '00000000-0000-0000-0015-000000000012', 'Maplewood Signal Hub guild charter.', now() - interval '44 days', now() + interval '260 days', 0, null, null, true, now() - interval '44 days'),
+  ('00000000-0000-0000-001a-000000000015', '00000000-0000-0000-0001-000000000002', 'guild_charter', '00000000-0000-0000-0015-000000000013', 'Riverside Hearth Kitchen guild charter.', now() - interval '42 days', now() + interval '270 days', 0, null, null, true, now() - interval '42 days'),
+  ('00000000-0000-0000-001a-000000000016', '00000000-0000-0000-0001-000000000003', 'guild_charter', '00000000-0000-0000-0015-000000000016', 'Harbor Weavers guild charter.', now() - interval '35 days', now() + interval '230 days', 0, null, null, true, now() - interval '35 days'),
+  ('00000000-0000-0000-001a-000000000017', '00000000-0000-0000-0001-000000000004', 'guild_charter', '00000000-0000-0000-0015-000000000017', 'Monon Green Trails guild charter.', now() - interval '45 days', now() + interval '300 days', 0, null, null, true, now() - interval '45 days'),
+  ('00000000-0000-0000-001a-000000000018', '00000000-0000-0000-0001-000000000004', 'guild_charter', '00000000-0000-0000-0015-000000000018', 'Monon Hearth & Home guild charter.', now() - interval '40 days', now() + interval '260 days', 0, null, null, true, now() - interval '40 days')
 ON CONFLICT (id) DO NOTHING;
 
 -- Re-enable FK checks

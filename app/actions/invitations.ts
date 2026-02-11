@@ -147,10 +147,13 @@ export async function redeemInvitation(code: string) {
     return { success: false as const, error: "Profile not found" };
   }
 
-  if (profile.community_id) {
+  const isJoinPath = profile.community_id === null;
+  const isSameCommunityPath = profile.community_id === invitation.community_id;
+
+  if (!isJoinPath && !isSameCommunityPath) {
     return {
       success: false as const,
-      error: "You already belong to a community",
+      error: "This invitation is for a different community",
     };
   }
 
@@ -168,20 +171,33 @@ export async function redeemInvitation(code: string) {
     return { success: false as const, error: "Failed to redeem invitation" };
   }
 
-  // Update user's profile: set community and upgrade renown tier to 2
+  // Update profile with a conditional community predicate:
+  // - join path: only when user still has no community
+  // - same-community path: only when user still belongs to invite community
   const newRenownTier = Math.max(profile.renown_tier, 2);
-  const { data: updatedProfile, error: updateProfileError } = await admin
+  let profileUpdateQuery = admin
     .from("profiles")
     .update({
       community_id: claimedInvitation.community_id,
       renown_tier: newRenownTier,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", user.id)
+    .eq("id", user.id);
+
+  if (isJoinPath) {
+    profileUpdateQuery = profileUpdateQuery.is("community_id", null);
+  } else {
+    profileUpdateQuery = profileUpdateQuery.eq(
+      "community_id",
+      claimedInvitation.community_id
+    );
+  }
+
+  const { data: updatedProfile, error: updateProfileError } = await profileUpdateQuery
     .select()
     .single();
 
-  if (updateProfileError) {
+  if (updateProfileError || !updatedProfile) {
     // Best-effort rollback so a failed profile update doesn't permanently consume the code.
     await admin
       .from("invitations")
@@ -191,7 +207,7 @@ export async function redeemInvitation(code: string) {
 
     return {
       success: false as const,
-      error: "Failed to update profile with community",
+      error: "Failed to update profile with invitation upgrade. Please try again.",
     };
   }
 

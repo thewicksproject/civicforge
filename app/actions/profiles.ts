@@ -18,7 +18,6 @@ const UpdateProfileSchema = z.object({
     .max(1000, "Skills text is too long")
     .optional()
     .default(""),
-  community_id: z.string().uuid("Invalid community ID").optional(),
 });
 
 export async function updateProfile(formData: FormData) {
@@ -35,7 +34,6 @@ export async function updateProfile(formData: FormData) {
     display_name: formData.get("display_name"),
     bio: formData.get("bio") || "",
     skills: formData.get("skills") || "",
-    community_id: formData.get("community_id") || undefined,
   };
 
   const parsed = UpdateProfileSchema.safeParse(raw);
@@ -57,38 +55,12 @@ export async function updateProfile(formData: FormData) {
 
   const { data: existingProfile, error: existingProfileError } = await admin
     .from("profiles")
-    .select("id, community_id")
+    .select("id")
     .eq("id", user.id)
     .single();
 
   if (existingProfileError || !existingProfile) {
     return { success: false as const, error: "Profile not found" };
-  }
-
-  const requestedCommunityId = parsed.data.community_id;
-  const currentCommunityId = existingProfile.community_id;
-
-  if (
-    requestedCommunityId &&
-    currentCommunityId &&
-    requestedCommunityId !== currentCommunityId
-  ) {
-    return {
-      success: false as const,
-      error: "Community can only be changed through community workflows",
-    };
-  }
-
-  if (requestedCommunityId && !currentCommunityId) {
-    const { data: community, error: communityError } = await admin
-      .from("communities")
-      .select("id")
-      .eq("id", requestedCommunityId)
-      .single();
-
-    if (communityError || !community) {
-      return { success: false as const, error: "Community not found" };
-    }
   }
 
   const updateData: Record<string, unknown> = {
@@ -97,10 +69,6 @@ export async function updateProfile(formData: FormData) {
     skills: skillsArray,
     updated_at: new Date().toISOString(),
   };
-
-  if (requestedCommunityId && !currentCommunityId) {
-    updateData.community_id = requestedCommunityId;
-  }
 
   const { data: profile, error: updateError } = await admin
     .from("profiles")

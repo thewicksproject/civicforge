@@ -369,6 +369,21 @@ export async function getCommunityPosts(communityId: string) {
   }
 
   const admin = createServiceClient();
+
+  const { data: userProfile, error: profileError } = await admin
+    .from("profiles")
+    .select("community_id")
+    .eq("id", user.id)
+    .single();
+
+  if (profileError || !userProfile?.community_id) {
+    return { success: false as const, error: "Profile not found" };
+  }
+
+  if (userProfile.community_id !== communityId) {
+    return { success: false as const, error: "Not your community" };
+  }
+
   const { data: posts, error } = await admin
     .from("posts")
     .select(

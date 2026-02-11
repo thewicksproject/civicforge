@@ -3,9 +3,9 @@ import Link from "next/link";
 import { ChevronLeft, Clock, MapPin, TriangleAlert } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { cn, formatRelativeTime } from "@/lib/utils";
-import type { RenownLegacyTier } from "@/lib/types";
+import { toRenownTier } from "@/lib/types";
 import { CATEGORY_ICON_MAP } from "@/components/category-icons";
-import { RenownLegacyTierBadge } from "@/components/trust-tier-badge";
+import { RenownTierBadge } from "@/components/trust-tier-badge";
 import { ReputationBadge } from "@/components/reputation-badge";
 import { ResponseList } from "@/components/response-list";
 import { ThanksButton } from "@/components/thanks-button";
@@ -209,7 +209,7 @@ export default async function PostDetailPage({
               <span className="font-medium text-sm block">
                 {author?.display_name}
               </span>
-              <RenownLegacyTierBadge tier={(author?.renown_tier ?? 1) as RenownLegacyTier} />
+              <RenownTierBadge tier={toRenownTier(author?.renown_tier)} />
             </div>
           </Link>
           <div className="flex items-center gap-3">

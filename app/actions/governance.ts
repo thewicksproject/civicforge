@@ -71,6 +71,22 @@ export async function createProposal(data: {
     };
   }
 
+  if (parsed.data.guild_id) {
+    const { data: guild, error: guildError } = await admin
+      .from("guilds")
+      .select("id, community_id, active")
+      .eq("id", parsed.data.guild_id)
+      .single();
+
+    if (guildError || !guild || !guild.active) {
+      return { success: false as const, error: "Guild not found or inactive" };
+    }
+
+    if (guild.community_id !== profile.community_id) {
+      return { success: false as const, error: "Guild is not in your community" };
+    }
+  }
+
   const now = new Date();
   const deliberationEnd = new Date(now);
   deliberationEnd.setDate(

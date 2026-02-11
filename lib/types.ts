@@ -70,6 +70,22 @@ export const RENOWN_TIERS: Record<RenownTier, RenownTierConfig> = {
   },
 };
 
+export function toRenownTier(value: number | null | undefined): RenownTier {
+  switch (value) {
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+      return value;
+    default:
+      return 1;
+  }
+}
+
+export function getRenownTierName(value: number | null | undefined): string {
+  return RENOWN_TIERS[toRenownTier(value)].name;
+}
+
 // ---------------------------------------------------------------------------
 // Ascendant: Quest Difficulty Tiers
 // ---------------------------------------------------------------------------

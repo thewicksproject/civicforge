@@ -1,6 +1,12 @@
 "use server";
 
 import { createServiceClient } from "@/lib/supabase/server";
+import {
+  COMMONS_K_THRESHOLD,
+  getCommonsPrivacyFlags,
+  sanitizeCommunityGrowthSeries,
+  suppressCount,
+} from "@/lib/commons/privacy";
 import type { SkillDomain } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
@@ -88,6 +94,11 @@ export interface CommonsData {
   graphNodes: GraphNode[];
   graphEdges: GraphEdge[];
   communityGrowth: WeeklyPoint[];
+  privacy: {
+    kThreshold: number;
+    growthHidden: boolean;
+    smallGroupSuppressed: boolean;
+  };
   generatedAt: string;
 }
 
@@ -95,10 +106,10 @@ export interface CommonsData {
 // K-anonymity threshold
 // ---------------------------------------------------------------------------
 
-const K_THRESHOLD = 3;
+const K_THRESHOLD = COMMONS_K_THRESHOLD;
 
 function suppress(count: number): number {
-  return count >= K_THRESHOLD ? count : 0;
+  return suppressCount(count);
 }
 
 // ---------------------------------------------------------------------------
@@ -179,6 +190,10 @@ export async function getCommonsData(
     }
   }
 
+  const rawCommunityMemberCount = community?.memberCount ?? null;
+  const { smallGroupSuppressed, growthHidden } =
+    getCommonsPrivacyFlags(rawCommunityMemberCount);
+
   // Fetch all data in parallel
   const [
     domainDistribution,
@@ -189,7 +204,6 @@ export async function getCommonsData(
     governanceMetrics,
     endorsementFlows,
     communityGrowth,
-    totalMembers,
   ] = await Promise.all([
     fetchDomainDistribution(admin, communityFilter),
     fetchRenownPyramid(admin, communityFilter),
@@ -199,41 +213,108 @@ export async function getCommonsData(
     fetchGovernanceMetrics(admin, communityFilter),
     fetchEndorsementFlows(admin, communityFilter),
     fetchCommunityGrowth(admin, communityFilter),
-    fetchTotalMembers(admin, communityFilter),
   ]);
+
+  const safeCommunity =
+    community === null
+      ? null
+      : {
+          ...community,
+          memberCount: suppress(community.memberCount),
+        };
+
+  const safeDomainDistribution = smallGroupSuppressed
+    ? []
+    : domainDistribution.filter((item) => item.practitioners > 0);
+
+  const safeRenownPyramid = renownPyramid.map((tier) => ({
+    ...tier,
+    count: suppress(tier.count),
+  }));
+
+  const safeQuestActivity = smallGroupSuppressed
+    ? []
+    : questActivity.map((point) => {
+        const safeValue = suppress(point.value);
+        return {
+          week: point.week,
+          value: safeValue,
+          secondary: safeValue > 0 ? point.secondary ?? 0 : 0,
+        };
+      });
+
+  const safeQuestDifficultyBreakdown = smallGroupSuppressed
+    ? []
+    : questDifficultyBreakdown
+        .map((item) => ({
+          ...item,
+          count: suppress(item.count),
+        }))
+        .filter((item) => item.count > 0);
+
+  const safeGuildEcosystem = smallGroupSuppressed
+    ? []
+    : guildEcosystem.filter((guild) => guild.memberCount > 0);
+
+  const safeGovernanceMetrics = smallGroupSuppressed
+    ? { totalProposals: 0, byStatus: [], avgParticipation: 0 }
+    : {
+        totalProposals: suppress(governanceMetrics.totalProposals),
+        byStatus: governanceMetrics.byStatus
+          .map((status) => ({
+            status: status.status,
+            count: suppress(status.count),
+          }))
+          .filter((status) => status.count > 0),
+        avgParticipation:
+          suppress(governanceMetrics.totalProposals) > 0
+            ? governanceMetrics.avgParticipation
+            : 0,
+      };
+
+  const safeEndorsementFlows = smallGroupSuppressed ? [] : endorsementFlows;
+
+  const safeCommunityGrowth =
+    smallGroupSuppressed || growthHidden
+      ? []
+      : sanitizeCommunityGrowthSeries(communityGrowth);
 
   // Build graph
   const { graphNodes, graphEdges } = buildGraph(
-    domainDistribution,
-    guildEcosystem,
-    questDifficultyBreakdown,
-    endorsementFlows
+    safeDomainDistribution,
+    safeGuildEcosystem,
+    safeQuestDifficultyBreakdown,
+    safeEndorsementFlows
   );
 
   // Compute health score
   const healthScore = computeHealthScore(
-    questActivity,
-    guildEcosystem,
-    endorsementFlows,
-    governanceMetrics,
-    communityGrowth,
-    totalMembers
+    safeQuestActivity,
+    safeGuildEcosystem,
+    safeEndorsementFlows,
+    safeGovernanceMetrics,
+    safeCommunityGrowth
   );
 
   return {
-    community,
+    community: safeCommunity,
     communities,
     healthScore,
-    domainDistribution,
-    renownPyramid,
-    questActivity,
-    questDifficultyBreakdown,
-    guildEcosystem,
-    governanceMetrics,
-    endorsementFlows,
+    domainDistribution: safeDomainDistribution,
+    renownPyramid: safeRenownPyramid,
+    questActivity: safeQuestActivity,
+    questDifficultyBreakdown: safeQuestDifficultyBreakdown,
+    guildEcosystem: safeGuildEcosystem,
+    governanceMetrics: safeGovernanceMetrics,
+    endorsementFlows: safeEndorsementFlows,
     graphNodes,
     graphEdges,
-    communityGrowth,
+    communityGrowth: safeCommunityGrowth,
+    privacy: {
+      kThreshold: K_THRESHOLD,
+      growthHidden,
+      smallGroupSuppressed,
+    },
     generatedAt: new Date().toISOString(),
   };
 }
@@ -244,16 +325,6 @@ export async function getCommonsData(
 
 type AdminClient = ReturnType<typeof createServiceClient>;
 type Filter = { column: string; value: string } | null;
-
-async function fetchTotalMembers(
-  admin: AdminClient,
-  filter: Filter
-): Promise<number> {
-  let q = admin.from("profiles").select("id", { count: "exact", head: true });
-  if (filter) q = q.eq(filter.column, filter.value);
-  const { count } = await q;
-  return count ?? 0;
-}
 
 async function fetchDomainDistribution(
   admin: AdminClient,
@@ -726,8 +797,7 @@ function computeHealthScore(
   guilds: GuildStat[],
   endorsementFlows: DomainEdge[],
   governance: GovStats,
-  growth: WeeklyPoint[],
-  totalMembers: number
+  growth: WeeklyPoint[]
 ): number {
   let score = 0;
 

@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { RENOWN_TIER_LABELS, type RenownLegacyTier } from "@/lib/types";
+import { getRenownTierName } from "@/lib/types";
 import { ReputationBadge } from "@/components/reputation-badge";
 
 export const metadata = { title: "Community Members" };
@@ -149,11 +149,7 @@ export default async function MembersPage({
                     {member.display_name}
                   </span>
                   <span className="text-xs text-muted-foreground ml-2">
-                    {
-                      RENOWN_TIER_LABELS[
-                        (member.renown_tier ?? 1) as RenownLegacyTier
-                      ]
-                    }
+                    {getRenownTierName(member.renown_tier)}
                   </span>
                 </div>
               </div>

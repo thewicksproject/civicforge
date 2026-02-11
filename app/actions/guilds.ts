@@ -99,7 +99,7 @@ export async function createGuild(data: {
       charter: parsed.data.charter ?? null,
       charter_sunset_at: sunsetDate.toISOString(),
       created_by: user.id,
-      member_count: 1,
+      member_count: 0,
     })
     .select("id")
     .single();

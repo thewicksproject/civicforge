@@ -3,7 +3,7 @@ import { updateSession } from "@/lib/supabase/middleware";
 
 const PUBLIC_ROUTES = ["/", "/login", "/privacy", "/terms", "/commons"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Update Supabase auth session
   const response = await updateSession(request);
 

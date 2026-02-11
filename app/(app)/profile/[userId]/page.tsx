@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { RENOWN_TIER_LABELS, type RenownLegacyTier, type RenownTier } from "@/lib/types";
+import { getRenownTierName, toRenownTier } from "@/lib/types";
 import { ReputationBadge } from "@/components/reputation-badge";
 import { RenownTierBadge } from "@/components/trust-tier-badge";
 import { ThanksButton } from "@/components/thanks-button";
@@ -90,10 +90,10 @@ export default async function UserProfilePage({
                 {profile.display_name}
               </h1>
               <div className="flex items-center gap-3 mt-1 flex-wrap">
-                <RenownTierBadge tier={(profile.renown_tier ?? 1) as RenownTier} />
+                <RenownTierBadge tier={toRenownTier(profile.renown_tier)} />
                 {showBio && (
                   <span className="text-sm text-muted-foreground">
-                    {RENOWN_TIER_LABELS[(profile.renown_tier ?? 1) as RenownLegacyTier]}
+                    {getRenownTierName(profile.renown_tier)}
                   </span>
                 )}
                 {showBio && (

@@ -128,7 +128,7 @@ export function CommonsDashboard({ data }: CommonsDashboardProps) {
           <GovernanceGauge metrics={data.governanceMetrics} />
           <CommunityGrowth
             weeks={data.communityGrowth}
-            hiddenForPrivacy={memberCount < 10 && !!data.community}
+            hiddenForPrivacy={data.privacy.growthHidden}
           />
         </div>
       </div>

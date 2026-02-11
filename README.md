@@ -28,7 +28,7 @@ A [Wicks LLC](https://thewicksproject.org) project.
 npm install
 
 # Copy environment template and fill in values
-cp .env .env.local
+cp .env.example .env.local
 # Edit .env.local with your Supabase, Anthropic, and Upstash credentials
 
 # Run the initial database migration
@@ -50,6 +50,11 @@ Open [http://localhost:3000](http://localhost:3000).
 | `ANTHROPIC_API_KEY` | Yes | Claude API key for AI features |
 | `UPSTASH_REDIS_REST_URL` | No | Upstash Redis URL for rate limiting |
 | `UPSTASH_REDIS_REST_TOKEN` | No | Upstash Redis token |
+| `SIGHTENGINE_API_USER` | No | Sightengine API user (if external moderation is enabled) |
+| `SIGHTENGINE_API_SECRET` | No | Sightengine API secret |
+| `TWILIO_ACCOUNT_SID` | No | Twilio account SID for phone verification |
+| `TWILIO_AUTH_TOKEN` | No | Twilio auth token |
+| `TWILIO_VERIFY_SERVICE_SID` | No | Twilio Verify service SID |
 | `NEXT_PUBLIC_APP_URL` | No | App URL (defaults to http://localhost:3000) |
 | `CRON_SECRET` | Recommended | Shared secret for scheduled jobs (e.g., deletion processing) |
 

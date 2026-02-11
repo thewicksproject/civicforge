@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { PostCard } from "@/components/post-card";
-import type { RenownLegacyTier } from "@/lib/types";
+import { toRenownTier } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type PostType = "need" | "offer";
@@ -72,7 +72,7 @@ export function BoardContent({ posts }: { posts: BoardPost[] }) {
                 category={post.category}
                 authorName={author?.display_name ?? "Anonymous"}
                 authorReputation={author?.reputation_score ?? 0}
-                authorRenownTier={(author?.renown_tier ?? 1) as RenownLegacyTier}
+                authorRenownTier={toRenownTier(author?.renown_tier)}
                 responseCount={post.responses?.length ?? 0}
                 photoCount={post.post_photos?.length ?? 0}
                 createdAt={post.created_at}

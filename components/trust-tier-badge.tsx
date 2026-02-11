@@ -6,7 +6,7 @@ import {
   Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { RenownLegacyTier, RenownTier } from "@/lib/types";
+import { toRenownTier, type RenownLegacyTier, type RenownTier } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
 // V2 Renown Tier Badge (backward-compatible, legacy 3-tier)
@@ -19,12 +19,13 @@ const TIER_CONFIG: Record<RenownLegacyTier, { icon: typeof Sprout; label: string
 };
 
 interface RenownLegacyTierBadgeProps {
-  tier: RenownLegacyTier;
+  tier: number;
   className?: string;
 }
 
 export function RenownLegacyTierBadge({ tier, className }: RenownLegacyTierBadgeProps) {
-  const config = TIER_CONFIG[tier];
+  const normalizedTier: RenownLegacyTier = tier >= 3 ? 3 : tier === 2 ? 2 : 1;
+  const config = TIER_CONFIG[normalizedTier];
   const Icon = config.icon;
 
   return (
@@ -51,7 +52,7 @@ const RENOWN_CONFIG: Record<
 };
 
 interface RenownTierBadgeProps {
-  tier: RenownTier;
+  tier: number;
   showLabel?: boolean;
   className?: string;
 }
@@ -61,7 +62,8 @@ export function RenownTierBadge({
   showLabel = true,
   className,
 }: RenownTierBadgeProps) {
-  const config = RENOWN_CONFIG[tier];
+  const safeTier: RenownTier = toRenownTier(tier);
+  const config = RENOWN_CONFIG[safeTier];
   const Icon = config.icon;
 
   return (

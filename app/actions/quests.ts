@@ -78,11 +78,35 @@ export async function createQuest(data: {
     };
   }
 
+  let safePostId: string | null = null;
+  if (data.post_id) {
+    const postIdParsed = z.string().uuid().safeParse(data.post_id);
+    if (!postIdParsed.success) {
+      return { success: false as const, error: "Invalid post ID" };
+    }
+
+    const { data: post, error: postError } = await admin
+      .from("posts")
+      .select("id, community_id, hidden")
+      .eq("id", postIdParsed.data)
+      .single();
+
+    if (postError || !post || post.hidden) {
+      return { success: false as const, error: "Post not found" };
+    }
+
+    if (post.community_id !== profile.community_id) {
+      return { success: false as const, error: "Post is not in your community" };
+    }
+
+    safePostId = post.id;
+  }
+
   const difficulty = parsed.data.difficulty as QuestDifficulty;
   const diffConfig = QUEST_DIFFICULTY_TIERS[difficulty];
 
   const { data: quest, error } = await admin.from("quests").insert({
-    post_id: data.post_id ?? null,
+    post_id: safePostId,
     community_id: profile.community_id,
     created_by: user.id,
     title: parsed.data.title,
@@ -93,7 +117,7 @@ export async function createQuest(data: {
     xp_reward: diffConfig.baseXp,
     max_party_size: parsed.data.max_party_size,
     is_emergency: parsed.data.is_emergency,
-    requested_by_other: !!data.post_id,
+    requested_by_other: safePostId !== null,
     validation_threshold:
       difficulty === "spark"
         ? 0
@@ -138,13 +162,28 @@ export async function createQuestFromPost(postId: string) {
 
   const admin = createServiceClient();
 
+  const postIdParsed = z.string().uuid().safeParse(postId);
+  if (!postIdParsed.success) {
+    return { success: false as const, error: "Invalid post ID" };
+  }
+
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("community_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.community_id) {
+    return { success: false as const, error: "Profile not found" };
+  }
+
   const { data: post } = await admin
     .from("posts")
     .select("id, title, description, category, skills_relevant, urgency, author_id, community_id")
-    .eq("id", postId)
+    .eq("id", postIdParsed.data)
     .single();
 
-  if (!post) {
+  if (!post || post.community_id !== profile.community_id) {
     return { success: false as const, error: "Post not found" };
   }
 

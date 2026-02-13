@@ -146,48 +146,85 @@ const TIER_NAMES: Record<number, string> = {
 // Main data fetcher
 // ---------------------------------------------------------------------------
 
+function buildEmptyCommonsData(generatedAt: string): CommonsData {
+  return {
+    community: null,
+    communities: [],
+    healthScore: 0,
+    domainDistribution: [],
+    renownPyramid: [],
+    questActivity: [],
+    questDifficultyBreakdown: [],
+    guildEcosystem: [],
+    governanceMetrics: {
+      totalProposals: 0,
+      byStatus: [],
+      avgParticipation: 0,
+    },
+    endorsementFlows: [],
+    graphNodes: [],
+    graphEdges: [],
+    communityGrowth: [],
+    privacy: {
+      kThreshold: K_THRESHOLD,
+      growthHidden: true,
+      smallGroupSuppressed: true,
+    },
+    generatedAt,
+  };
+}
+
 export async function getCommonsData(
+  viewerUserId: string,
   communityId?: string
 ): Promise<CommonsData> {
   const admin = createServiceClient();
 
-  // Fetch communities list for picker
-  const { data: allCommunities } = await admin
-    .from("communities")
-    .select("id, name")
-    .order("name");
+  const generatedAt = new Date().toISOString();
+  const { data: viewerProfile } = await admin
+    .from("profiles")
+    .select("community_id")
+    .eq("id", viewerUserId)
+    .single();
 
-  const communities = (allCommunities ?? []).map((c) => ({
-    id: c.id,
-    name: c.name,
-  }));
+  const viewerCommunityId = viewerProfile?.community_id ?? null;
+  if (!viewerCommunityId) {
+    return buildEmptyCommonsData(generatedAt);
+  }
 
-  // If a specific community is requested, fetch its info
+  // Community scope is always limited to the viewer's own community.
+  if (communityId && communityId !== viewerCommunityId) {
+    return buildEmptyCommonsData(generatedAt);
+  }
+
+  const communities: { id: string; name: string }[] = [];
+
+  // Fetch scoped community info
   let community: CommonsData["community"] = null;
   let communityFilter: { column: string; value: string } | null = null;
+  const { data: comm } = await admin
+    .from("communities")
+    .select("id, name, city, state")
+    .eq("id", viewerCommunityId)
+    .single();
 
-  if (communityId) {
-    const { data: comm } = await admin
-      .from("communities")
-      .select("id, name, city, state")
-      .eq("id", communityId)
-      .single();
+  if (comm) {
+    const { count: memberCount } = await admin
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("community_id", viewerCommunityId);
 
-    if (comm) {
-      const { count: memberCount } = await admin
-        .from("profiles")
-        .select("id", { count: "exact", head: true })
-        .eq("community_id", communityId);
-
-      community = {
-        id: comm.id,
-        name: comm.name,
-        city: comm.city ?? "",
-        state: comm.state ?? "",
-        memberCount: memberCount ?? 0,
-      };
-      communityFilter = { column: "community_id", value: communityId };
-    }
+    community = {
+      id: comm.id,
+      name: comm.name,
+      city: comm.city ?? "",
+      state: comm.state ?? "",
+      memberCount: memberCount ?? 0,
+    };
+    communities.push({ id: comm.id, name: comm.name });
+    communityFilter = { column: "community_id", value: viewerCommunityId };
+  } else {
+    return buildEmptyCommonsData(generatedAt);
   }
 
   const rawCommunityMemberCount = community?.memberCount ?? null;
@@ -315,7 +352,7 @@ export async function getCommonsData(
       growthHidden,
       smallGroupSuppressed,
     },
-    generatedAt: new Date().toISOString(),
+    generatedAt,
   };
 }
 

@@ -6,9 +6,14 @@
  * - Production: Fails CLOSED (safe: false) when credentials are missing.
  * - Development: Fails open with console warnings to allow local dev without credentials.
  *
- * API errors and network errors fail open (safe: true) so transient issues
- * don't block uploads.
+ * API/network failures are controlled by runtime policy:
+ * - local: fail open by default
+ * - dev/preprod/prod: fail closed by default
  */
+import {
+  resolveAppEnv,
+  shouldFailClosedOnSafetyFailure,
+} from "@/lib/security/runtime-policy";
 
 interface ModerationResult {
   safe: boolean;
@@ -20,13 +25,20 @@ export async function moderatePhoto(
 ): Promise<ModerationResult> {
   const apiUser = process.env.SIGHTENGINE_API_USER;
   const apiSecret = process.env.SIGHTENGINE_API_SECRET;
-  const isProduction = process.env.NODE_ENV === "production";
+  const appEnv = resolveAppEnv();
+  const failClosed = shouldFailClosedOnSafetyFailure();
 
   if (!apiUser || !apiSecret) {
-    if (isProduction) {
+    if (failClosed) {
       console.error(
-        "[photo-moderation] SIGHTENGINE credentials are not configured in production. " +
-        "Failing closed — all photos will be rejected until credentials are set."
+        JSON.stringify({
+          event: "safety_provider_unavailable",
+          endpoint: "lib/photos/moderatePhoto",
+          provider: "sightengine",
+          appEnv,
+          failMode: "closed",
+          reason: "missing_credentials",
+        })
       );
       return { safe: false, rating: null };
     }
@@ -53,7 +65,18 @@ export async function moderatePhoto(
     );
 
     if (!response.ok) {
-      return { safe: true, rating: null };
+      console.error(
+        JSON.stringify({
+          event: "safety_provider_unavailable",
+          endpoint: "lib/photos/moderatePhoto",
+          provider: "sightengine",
+          appEnv,
+          failMode: failClosed ? "closed" : "open",
+          reason: "http_error",
+          status: response.status,
+        })
+      );
+      return { safe: !failClosed, rating: null };
     }
 
     const data = await response.json();
@@ -78,7 +101,18 @@ export async function moderatePhoto(
     }
 
     return { safe: rating !== "adult", rating };
-  } catch {
-    return { safe: true, rating: null };
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        event: "safety_provider_unavailable",
+        endpoint: "lib/photos/moderatePhoto",
+        provider: "sightengine",
+        appEnv,
+        failMode: failClosed ? "closed" : "open",
+        reason: "network_or_runtime_error",
+        message: error instanceof Error ? error.message : "unknown",
+      })
+    );
+    return { safe: !failClosed, rating: null };
   }
 }

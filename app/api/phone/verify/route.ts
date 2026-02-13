@@ -4,6 +4,7 @@ import { checkVerificationCode } from "@/lib/phone/twilio";
 import { recordConsent } from "@/lib/privacy/consent";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { parseJsonBody } from "@/lib/http/json";
 
 const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
 const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -51,8 +52,14 @@ export async function POST(request: Request) {
     }
   }
 
-  const body = await request.json();
-  const { phone, code } = body;
+  const parsedBody = await parseJsonBody<{
+    phone?: unknown;
+    code?: unknown;
+  }>(request);
+  if (!parsedBody.ok) {
+    return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+  }
+  const { phone, code } = parsedBody.data;
 
   if (!phone || typeof phone !== "string") {
     return NextResponse.json(

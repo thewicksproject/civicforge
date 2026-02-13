@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { extractPost } from "@/lib/ai/client";
+import { parseJsonBody } from "@/lib/http/json";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { AI_RATE_LIMIT_PER_MINUTE } from "@/lib/types";
@@ -52,8 +53,11 @@ export async function POST(request: Request) {
     }
   }
 
-  const body = await request.json();
-  const text = body.text;
+  const parsedBody = await parseJsonBody<{ text?: unknown }>(request);
+  if (!parsedBody.ok) {
+    return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+  }
+  const text = parsedBody.data.text;
 
   if (!text || typeof text !== "string" || text.length > 2000) {
     return NextResponse.json(

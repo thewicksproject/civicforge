@@ -50,6 +50,13 @@ export async function POST() {
     }
   }
 
-  await requestDeletion(user.id);
-  return NextResponse.json({ success: true, message: "Deletion requested. Your data will be removed within 30 days." });
+  const result = await requestDeletion(user.id);
+  return NextResponse.json({
+    success: true,
+    alreadyPending: result.alreadyPending,
+    requestedAt: result.requestedAt,
+    message: result.alreadyPending
+      ? "Deletion is already requested and pending processing."
+      : "Deletion requested. Your data will be removed within 30 days.",
+  });
 }

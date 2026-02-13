@@ -44,6 +44,8 @@ Open [http://localhost:3000](http://localhost:3000).
 
 | Variable | Required | Description |
 |----------|----------|-------------|
+| `APP_ENV` | Recommended | Runtime environment (`local`, `dev`, `preprod`, `prod`) |
+| `SAFETY_FAIL_MODE` | Recommended | Safety dependency behavior (`closed` or `open`) |
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anonymous key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role key (server only) |

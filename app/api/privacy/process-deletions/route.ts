@@ -23,13 +23,20 @@ async function runDeletionJob(request: Request) {
   try {
     const results = await processPendingDeletions();
     const completed = results.filter((r) => r.status === "completed").length;
-    const failed = results.filter((r) => r.status === "error").length;
+    const failures = results
+      .filter((r) => r.status === "failed")
+      .map((r) => ({
+        requestId: r.requestId,
+        subjectUserId: r.subjectUserId,
+        reason: r.reason ?? "unknown_failure",
+      }));
 
     return NextResponse.json({
       ok: true,
       processed: results.length,
       completed,
-      failed,
+      failed: failures.length,
+      failures,
       timestamp: new Date().toISOString(),
     });
   } catch {

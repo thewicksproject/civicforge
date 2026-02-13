@@ -519,10 +519,19 @@ ON CONFLICT (id) DO NOTHING;
 -- 1 pending, 1 processing, 1 completed
 -- ============================================================================
 
-INSERT INTO deletion_requests (id, user_id, status, requested_at, completed_at) VALUES
-  ('00000000-0000-0000-000e-000000000001', '00000000-0000-0000-0002-000000000041', 'pending', now() - interval '2 days', null),
-  ('00000000-0000-0000-000e-000000000002', '00000000-0000-0000-0002-000000000012', 'processing', now() - interval '4 days', null),
-  ('00000000-0000-0000-000e-000000000003', '00000000-0000-0000-0002-000000000011', 'completed', now() - interval '10 days', now() - interval '8 days')
+INSERT INTO deletion_requests (
+  id,
+  user_id,
+  subject_user_id,
+  status,
+  requested_at,
+  completed_at,
+  attempts,
+  updated_at
+) VALUES
+  ('00000000-0000-0000-000e-000000000001', '00000000-0000-0000-0002-000000000041', '00000000-0000-0000-0002-000000000041', 'pending', now() - interval '2 days', null, 0, now() - interval '2 days'),
+  ('00000000-0000-0000-000e-000000000002', '00000000-0000-0000-0002-000000000012', '00000000-0000-0000-0002-000000000012', 'processing', now() - interval '4 days', null, 1, now() - interval '1 day'),
+  ('00000000-0000-0000-000e-000000000003', '00000000-0000-0000-0002-000000000011', '00000000-0000-0000-0002-000000000011', 'completed', now() - interval '10 days', now() - interval '8 days', 1, now() - interval '8 days')
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================================
@@ -3250,6 +3259,66 @@ INSERT INTO sunset_rules (id, community_id, rule_type, resource_id, description,
   ('00000000-0000-0000-001a-000000000017', '00000000-0000-0000-0001-000000000004', 'guild_charter', '00000000-0000-0000-0015-000000000017', 'Monon Green Trails guild charter.', now() - interval '45 days', now() + interval '300 days', 0, null, null, true, now() - interval '45 days'),
   ('00000000-0000-0000-001a-000000000018', '00000000-0000-0000-0001-000000000004', 'guild_charter', '00000000-0000-0000-0015-000000000018', 'Monon Hearth & Home guild charter.', now() - interval '40 days', now() + interval '260 days', 0, null, null, true, now() - interval '40 days')
 ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================================
+-- SECTION 27: Vouches (Pillar vouching for Tier 3+ consistency)
+-- UUID pattern: 00000000-0000-0000-001b-NNNNNNNNNNNN
+-- Each Tier 3+ user (except community founders who bootstrap at T3)
+-- gets 2 vouches from higher-tier members in the same community.
+-- ============================================================================
+
+INSERT INTO vouches (id, from_user, to_user, community_id, message, created_at) VALUES
+  -- === Maplewood Heights ===
+  -- James Chen (T4, user 02) vouched by Maria (T5, 01) and Priya (T4, 03)
+  ('00000000-0000-0000-001b-000000000001', '00000000-0000-0000-0002-000000000001', '00000000-0000-0000-0002-000000000002', '00000000-0000-0000-0001-000000000001', 'James has been an incredible asset to our community. Always helping with tech and repairs.', now() - interval '80 days'),
+  ('00000000-0000-0000-001b-000000000002', '00000000-0000-0000-0002-000000000003', '00000000-0000-0000-0002-000000000002', '00000000-0000-0000-0001-000000000001', 'James helped move my couch and set up my smart home. Reliable neighbor.', now() - interval '78 days'),
+  -- Priya Patel (T4, user 03) vouched by Maria (T5, 01) and James (T4, 02)
+  ('00000000-0000-0000-001b-000000000003', '00000000-0000-0000-0002-000000000001', '00000000-0000-0000-0002-000000000003', '00000000-0000-0000-0001-000000000001', 'Priya feeds the whole street and tutors children. Heart of gold.', now() - interval '79 days'),
+  ('00000000-0000-0000-001b-000000000004', '00000000-0000-0000-0002-000000000002', '00000000-0000-0000-0002-000000000003', '00000000-0000-0000-0001-000000000001', 'Priya is always there when someone needs help. Incredible neighbor.', now() - interval '77 days'),
+  -- Tom Rodriguez (T3, user 04) vouched by Maria (T5, 01) and James (T4, 02)
+  ('00000000-0000-0000-001b-000000000005', '00000000-0000-0000-0002-000000000001', '00000000-0000-0000-0002-000000000004', '00000000-0000-0000-0001-000000000001', 'Tom volunteers every week at the community center. Dependable.', now() - interval '75 days'),
+  ('00000000-0000-0000-001b-000000000006', '00000000-0000-0000-0002-000000000002', '00000000-0000-0000-0002-000000000004', '00000000-0000-0000-0001-000000000001', 'Tom rewired the stage at the community center. Expert work.', now() - interval '73 days'),
+  -- Sarah Kim (T3, user 05) vouched by Priya (T4, 03) and Tom (T3, 04)
+  ('00000000-0000-0000-001b-000000000007', '00000000-0000-0000-0002-000000000003', '00000000-0000-0000-0002-000000000005', '00000000-0000-0000-0001-000000000001', 'Sarah watched my kids multiple times. Responsible and caring.', now() - interval '70 days'),
+  ('00000000-0000-0000-001b-000000000008', '00000000-0000-0000-0002-000000000004', '00000000-0000-0000-0002-000000000005', '00000000-0000-0000-0001-000000000001', 'Sarah is always willing to help. Great with dogs and tutoring.', now() - interval '68 days'),
+
+  -- === Riverside Commons ===
+  -- Zoe Martinez (T4, user 14) vouched by Kai (T5, 13) and Dev (T3, 15)
+  ('00000000-0000-0000-001b-000000000009', '00000000-0000-0000-0002-000000000013', '00000000-0000-0000-0002-000000000014', '00000000-0000-0000-0001-000000000002', 'Zoe runs the community garden like a pro. Teaches everyone.', now() - interval '82 days'),
+  ('00000000-0000-0000-001b-000000000010', '00000000-0000-0000-0002-000000000015', '00000000-0000-0000-0002-000000000014', '00000000-0000-0000-0001-000000000002', 'Zoe taught me composting. Patient and knowledgeable.', now() - interval '76 days'),
+  -- Dev Krishnan (T3, user 15) vouched by Kai (T5, 13) and Zoe (T4, 14)
+  ('00000000-0000-0000-001b-000000000011', '00000000-0000-0000-0002-000000000013', '00000000-0000-0000-0002-000000000015', '00000000-0000-0000-0001-000000000002', 'Dev ran an incredible bike tune-up clinic. Tech and community.', now() - interval '78 days'),
+  ('00000000-0000-0000-001b-000000000012', '00000000-0000-0000-0002-000000000014', '00000000-0000-0000-0002-000000000015', '00000000-0000-0000-0001-000000000002', 'Dev bakes and fixes bikes. What more could you want?', now() - interval '75 days'),
+  -- Mia Chang (T3, user 16) vouched by Kai (T5, 13) and Zoe (T4, 14)
+  ('00000000-0000-0000-001b-000000000013', '00000000-0000-0000-0002-000000000013', '00000000-0000-0000-0002-000000000016', '00000000-0000-0000-0001-000000000002', 'Mia brought real science to our water testing. Committed.', now() - interval '72 days'),
+  ('00000000-0000-0000-001b-000000000014', '00000000-0000-0000-0002-000000000014', '00000000-0000-0000-0002-000000000016', '00000000-0000-0000-0001-000000000002', 'Mia volunteers every week for water quality monitoring.', now() - interval '70 days'),
+
+  -- === Harbor Point ===
+  -- Diane Brooks (T4, user 25) vouched by Frank (T5, 24) and Ray (T3, 26)
+  ('00000000-0000-0000-001b-000000000015', '00000000-0000-0000-0002-000000000024', '00000000-0000-0000-0002-000000000025', '00000000-0000-0000-0001-000000000003', 'Diane knows everyone. She is the neighborhood grandmother.', now() - interval '80 days'),
+  ('00000000-0000-0000-001b-000000000016', '00000000-0000-0000-0002-000000000026', '00000000-0000-0000-0002-000000000025', '00000000-0000-0000-0001-000000000003', 'Diane picks up kids rain or shine. Reliable as they come.', now() - interval '75 days'),
+  -- Ray Thompson (T3, user 26) vouched by Frank (T5, 24) and Diane (T4, 25)
+  ('00000000-0000-0000-001b-000000000017', '00000000-0000-0000-0002-000000000024', '00000000-0000-0000-0002-000000000026', '00000000-0000-0000-0001-000000000003', 'Ray can fix anything with an engine. Generous with his time.', now() - interval '76 days'),
+  ('00000000-0000-0000-001b-000000000018', '00000000-0000-0000-0002-000000000025', '00000000-0000-0000-0002-000000000026', '00000000-0000-0000-0001-000000000003', 'Ray did free diagnostics for half the block. Saved us hundreds.', now() - interval '72 days'),
+  -- Angela Rossi (T3, user 27) vouched by Frank (T5, 24) and Diane (T4, 25)
+  ('00000000-0000-0000-001b-000000000019', '00000000-0000-0000-0002-000000000024', '00000000-0000-0000-0002-000000000027', '00000000-0000-0000-0001-000000000003', 'Angela feeds the whole block with her bread. Heart of Harbor Point.', now() - interval '73 days'),
+  ('00000000-0000-0000-001b-000000000020', '00000000-0000-0000-0002-000000000025', '00000000-0000-0000-0002-000000000027', '00000000-0000-0000-0001-000000000003', 'Angela never misses a Wednesday bread day. Neighborhood treasure.', now() - interval '70 days'),
+
+  -- === Sunrise on the Monon ===
+  -- Jenny Lawson (T3, user 35) vouched by Victor (T4, 34) and Rick (T3, 36)
+  ('00000000-0000-0000-001b-000000000021', '00000000-0000-0000-0002-000000000034', '00000000-0000-0000-0002-000000000035', '00000000-0000-0000-0001-000000000004', 'Jenny organizes the best block parties. She brings everyone together.', now() - interval '68 days'),
+  ('00000000-0000-0000-001b-000000000022', '00000000-0000-0000-0002-000000000036', '00000000-0000-0000-0002-000000000035', '00000000-0000-0000-0001-000000000004', 'Jenny planned the fall festival and it was incredible.', now() - interval '65 days'),
+  -- Rick Adler (T3, user 36) vouched by Victor (T4, 34) and Jenny (T3, 35)
+  ('00000000-0000-0000-001b-000000000023', '00000000-0000-0000-0002-000000000034', '00000000-0000-0000-0002-000000000036', '00000000-0000-0000-0001-000000000004', 'Rick keeps the history of our trail alive. A local treasure.', now() - interval '64 days'),
+  ('00000000-0000-0000-001b-000000000024', '00000000-0000-0000-0002-000000000035', '00000000-0000-0000-0002-000000000036', '00000000-0000-0000-0001-000000000004', 'Rick walks the Monon every day tutoring kids along the way.', now() - interval '62 days'),
+
+  -- === Sunset Ridge ===
+  -- Harold Jenkins (T3, user 44) vouched by Gloria (T4, 43) and Chloe (T2, 45 — Gloria vouches twice as the only T3+)
+  -- Note: Gloria is the only T3+ member, so Harold gets vouched by Gloria. We add a second vouch from Chloe
+  -- who was retroactively elevated. In practice, the founder bootstraps vouching.
+  ('00000000-0000-0000-001b-000000000025', '00000000-0000-0000-0002-000000000043', '00000000-0000-0000-0002-000000000044', '00000000-0000-0000-0001-000000000005', 'Harold teaches woodworking to the whole neighborhood. Patient master.', now() - interval '60 days'),
+  ('00000000-0000-0000-001b-000000000026', '00000000-0000-0000-0002-000000000044', '00000000-0000-0000-0002-000000000043', '00000000-0000-0000-0001-000000000005', 'Gloria founded this community and bridges generations beautifully.', now() - interval '58 days')
+ON CONFLICT (from_user, to_user) DO NOTHING;
 
 -- Re-enable FK checks
 SET session_replication_role = 'origin';

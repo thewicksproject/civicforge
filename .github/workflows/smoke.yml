@@ -1,0 +1,46 @@
+name: Nightly Smoke
+
+on:
+  schedule:
+    - cron: "15 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check Domain DNS
+        run: |
+          set -euo pipefail
+          getent hosts civicforge.org >/dev/null
+          getent hosts dev.civicforge.org >/dev/null
+
+      - name: Check Root Availability
+        run: |
+          set -euo pipefail
+          for domain in civicforge.org dev.civicforge.org; do
+            code="$(curl -sS -o /dev/null -w "%{http_code}" "https://${domain}")"
+            case "$code" in
+              200|301|302|307|308) ;;
+              *)
+                echo "Unexpected status for ${domain}: ${code}"
+                exit 1
+                ;;
+            esac
+          done
+
+      - name: Check Protected Endpoint Behavior
+        run: |
+          set -euo pipefail
+          code_export="$(curl -sS -o /tmp/export.json -w "%{http_code}" https://civicforge.org/api/privacy/export)"
+          [[ "$code_export" == "401" ]]
+          grep -q '"error":"Unauthorized"' /tmp/export.json
+
+          code_extract="$(curl -sS -X POST -H 'content-type: application/json' -d '{"text":"hello"}' -o /tmp/extract.json -w "%{http_code}" https://civicforge.org/api/ai/extract)"
+          [[ "$code_extract" == "401" ]]
+          grep -q '"error":"Unauthorized"' /tmp/extract.json
+

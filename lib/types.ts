@@ -52,7 +52,7 @@ export const RENOWN_TIERS: Record<RenownTier, RenownTierConfig> = {
   },
   3: {
     name: "Pillar",
-    description: "Create guilds, moderate, propose seasonal quests",
+    description: "Create guilds, moderate, propose seasonal quests (requires 2 Pillar vouches)",
     renownRequired: 50,
     color: "golden-hour",
   },

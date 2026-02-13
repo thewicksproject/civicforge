@@ -117,12 +117,12 @@ export async function createCommunity(formData: FormData) {
     return { success: false as const, error: "Failed to create community" };
   }
 
-  // Auto-promote user to Tier 2 and assign to the new community
+  // Auto-promote founder to Tier 3 (Pillar) so they can moderate from day one
   const { error: profileUpdateError } = await admin
     .from("profiles")
     .update({
       community_id: community.id,
-      renown_tier: 2,
+      renown_tier: 3,
       updated_at: new Date().toISOString(),
     })
     .eq("id", user.id);

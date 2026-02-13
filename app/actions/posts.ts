@@ -8,6 +8,10 @@ import {
   MAX_PHOTOS_PER_POST,
 } from "@/lib/types";
 import { moderateContent } from "@/lib/ai/client";
+import {
+  resolveAppEnv,
+  shouldFailClosedOnSafetyFailure,
+} from "@/lib/security/runtime-policy";
 
 const validCategories = POST_CATEGORIES.map((c) => c.value);
 
@@ -81,7 +85,10 @@ export async function createPost(formData: FormData) {
     };
   }
 
-  // Content moderation — fail open on API errors
+  const appEnv = resolveAppEnv();
+  const failClosedOnSafetyFailure = shouldFailClosedOnSafetyFailure();
+
+  // Content moderation.
   try {
     const moderation = await moderateContent(
       `${parsed.data.title} ${parsed.data.description}`
@@ -92,8 +99,25 @@ export async function createPost(formData: FormData) {
         error: `Content flagged: ${moderation.reason ?? "Violates community guidelines"}`,
       };
     }
-  } catch {
-    // Fail open — don't block users if moderation API is down
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        event: "safety_provider_unavailable",
+        endpoint: "app/actions/posts#createPost",
+        provider: "anthropic_moderation",
+        appEnv,
+        failMode: failClosedOnSafetyFailure ? "closed" : "open",
+        reason: "moderation_error",
+        message: error instanceof Error ? error.message : "unknown",
+      })
+    );
+    if (failClosedOnSafetyFailure) {
+      return {
+        success: false as const,
+        error:
+          "Safety service unavailable. Please try again in a few minutes.",
+      };
+    }
   }
 
   // Check if AI-assisted
@@ -268,7 +292,10 @@ export async function updatePost(postId: string, formData: FormData) {
     return { success: false as const, error: "You can only edit your own posts" };
   }
 
-  // Content moderation — fail open on API errors
+  const appEnv = resolveAppEnv();
+  const failClosedOnSafetyFailure = shouldFailClosedOnSafetyFailure();
+
+  // Content moderation.
   try {
     const moderation = await moderateContent(
       `${parsed.data.title} ${parsed.data.description}`
@@ -279,8 +306,25 @@ export async function updatePost(postId: string, formData: FormData) {
         error: `Content flagged: ${moderation.reason ?? "Violates community guidelines"}`,
       };
     }
-  } catch {
-    // Fail open — don't block users if moderation API is down
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        event: "safety_provider_unavailable",
+        endpoint: "app/actions/posts#updatePost",
+        provider: "anthropic_moderation",
+        appEnv,
+        failMode: failClosedOnSafetyFailure ? "closed" : "open",
+        reason: "moderation_error",
+        message: error instanceof Error ? error.message : "unknown",
+      })
+    );
+    if (failClosedOnSafetyFailure) {
+      return {
+        success: false as const,
+        error:
+          "Safety service unavailable. Please try again in a few minutes.",
+      };
+    }
   }
 
   const { data: post, error: updateError } = await admin

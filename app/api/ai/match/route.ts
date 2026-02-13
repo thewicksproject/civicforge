@@ -5,6 +5,7 @@ import { findMatches } from "@/lib/ai/client";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { AI_RATE_LIMIT_PER_MINUTE } from "@/lib/types";
+import { parseJsonBody } from "@/lib/http/json";
 
 const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
 const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -52,8 +53,11 @@ export async function POST(request: Request) {
     }
   }
 
-  const body = await request.json();
-  const { postId } = body;
+  const parsedBody = await parseJsonBody<{ postId?: unknown }>(request);
+  if (!parsedBody.ok) {
+    return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+  }
+  const { postId } = parsedBody.data;
 
   if (!postId || !z.string().uuid().safeParse(postId).success) {
     return NextResponse.json({ error: "Valid post ID required" }, { status: 400 });

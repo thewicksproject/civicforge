@@ -4,6 +4,7 @@ import { advocateChat } from "@/lib/ai/client";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { AI_RATE_LIMIT_PER_MINUTE } from "@/lib/types";
+import { parseJsonBody } from "@/lib/http/json";
 
 const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
 const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -51,11 +52,22 @@ export async function POST(request: Request) {
     }
   }
 
-  const body = await request.json();
+  const parsedBody = await parseJsonBody<{
+    message?: unknown;
+    messages?: unknown;
+  }>(request);
+  if (!parsedBody.ok) {
+    return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+  }
+  const body = parsedBody.data;
 
   // W12: Accept both single message (backward compat) and messages array (history)
-  const message = body.message;
-  const messages: Array<{ role: string; content: string }> = body.messages ?? [];
+  const message = typeof body.message === "string" ? body.message : undefined;
+  const messages: Array<{ role: string; content: string }> = Array.isArray(
+    body.messages
+  )
+    ? (body.messages as Array<{ role: string; content: string }>)
+    : [];
 
   // Validate: need either a message string or a non-empty messages array
   if (messages.length > 0) {
@@ -74,7 +86,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-  } else if (!message || typeof message !== "string" || message.length > 1000) {
+  } else if (!message || message.length > 1000) {
     return NextResponse.json(
       { error: "Invalid message" },
       { status: 400 }
@@ -85,7 +97,7 @@ export async function POST(request: Request) {
   const currentMessage =
     messages.length > 0
       ? messages[messages.length - 1].content
-      : message;
+      : (message as string);
 
   // Build conversation history for context (excluding the current message)
   const history = messages.length > 1

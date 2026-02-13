@@ -4,9 +4,12 @@ import { getRenownTierName, toRenownTier } from "@/lib/types";
 import { ReputationBadge } from "@/components/reputation-badge";
 import { RenownTierBadge } from "@/components/trust-tier-badge";
 import { ThanksButton } from "@/components/thanks-button";
+import { VouchButton } from "@/components/vouch-button";
 import { SkillProgressCard } from "@/components/skill-progress-card";
 import { EndorsementSection } from "@/components/endorsement-section";
+import { VouchSection } from "@/components/vouch-section";
 import { getSkillSummary } from "@/app/actions/skills";
+import { canUserVouch } from "@/app/actions/vouches";
 
 export async function generateMetadata({
   params: _params,
@@ -67,6 +70,11 @@ export default async function UserProfilePage({
     const summary = await getSkillSummary(userId);
     domainSummary = summary.domains;
   }
+
+  // Check if viewer can vouch for this user
+  const vouchEligibility = !isOwnProfile
+    ? await canUserVouch(userId)
+    : { canVouch: false, reason: "" };
 
   // Get their recent posts (public)
   const { data: posts } = await admin
@@ -136,7 +144,12 @@ export default async function UserProfilePage({
             </div>
           </div>
           {!isOwnProfile && (
-            <ThanksButton toUserId={profile.id} postId={null} />
+            <div className="flex flex-col gap-2 items-end flex-shrink-0">
+              <ThanksButton toUserId={profile.id} postId={null} />
+              {vouchEligibility.canVouch && (
+                <VouchButton toUserId={profile.id} />
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -152,6 +165,13 @@ export default async function UserProfilePage({
       {showEndorsements && (
         <div className="mb-6">
           <EndorsementSection userId={userId} isOwnProfile={isOwnProfile} />
+        </div>
+      )}
+
+      {/* Vouches (visible to same-community members, same privacy as endorsements) */}
+      {showEndorsements && (
+        <div className="mb-6">
+          <VouchSection userId={userId} />
         </div>
       )}
 

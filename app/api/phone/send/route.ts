@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { sendVerificationCode } from "@/lib/phone/twilio";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { parseJsonBody } from "@/lib/http/json";
 
 const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
 const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -54,8 +55,11 @@ export async function POST(request: Request) {
     }
   }
 
-  const body = await request.json();
-  const phone = body.phone;
+  const parsedBody = await parseJsonBody<{ phone?: unknown }>(request);
+  if (!parsedBody.ok) {
+    return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+  }
+  const phone = parsedBody.data.phone;
 
   if (!phone || typeof phone !== "string" || !PHONE_REGEX.test(phone)) {
     return NextResponse.json(

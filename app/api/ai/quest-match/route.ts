@@ -4,6 +4,7 @@ import { matchQuests } from "@/lib/ai/client";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { AI_RATE_LIMIT_PER_MINUTE } from "@/lib/types";
+import { parseJsonBody } from "@/lib/http/json";
 
 const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
 const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -51,8 +52,14 @@ export async function POST(request: Request) {
     }
   }
 
-  const body = await request.json();
-  const availability = body.availability ?? null;
+  const parsedBody = await parseJsonBody<{ availability?: unknown }>(request);
+  if (!parsedBody.ok) {
+    return NextResponse.json({ error: parsedBody.error }, { status: 400 });
+  }
+  const availability =
+    typeof parsedBody.data.availability === "string"
+      ? parsedBody.data.availability
+      : null;
 
   const admin = createServiceClient();
 

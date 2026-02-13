@@ -81,7 +81,7 @@ export async function exportUserData(userId: string) {
     supabase
       .from("deletion_requests")
       .select("*")
-      .eq("user_id", userId)
+      .eq("subject_user_id", userId)
       .order("requested_at", { ascending: false }),
     supabase
       .from("invitations")

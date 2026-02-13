@@ -19,6 +19,17 @@ jobs:
   lint-build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      APP_ENV: preprod
+      SAFETY_FAIL_MODE: closed
+      NEXT_PUBLIC_APP_URL: https://preprod.civicforge.org
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: test-service-role-key
+      ANTHROPIC_API_KEY: test-anthropic-key
+      UPSTASH_REDIS_REST_URL: https://us1-upstash.example.com
+      UPSTASH_REDIS_REST_TOKEN: test-upstash-token
+      CRON_SECRET: test-cron-secret
 
     steps:
       - name: Checkout
@@ -38,6 +49,9 @@ jobs:
 
       - name: Test
         run: npm run test
+
+      - name: Verify Environment
+        run: npm run verify:env
 
       - name: Build
         run: npm run build

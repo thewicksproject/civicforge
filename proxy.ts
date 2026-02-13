@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
-const PUBLIC_ROUTES = ["/", "/login", "/privacy", "/terms", "/commons"];
+const PUBLIC_ROUTES = ["/", "/login", "/privacy", "/terms"];
 
 export async function proxy(request: NextRequest) {
   // Update Supabase auth session

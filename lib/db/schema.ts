@@ -13,6 +13,7 @@ import {
   uniqueIndex,
   index,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -49,6 +50,7 @@ export const deletionStatusEnum = pgEnum("deletion_status", [
   "pending",
   "processing",
   "completed",
+  "failed",
 ]);
 
 export const reviewStatusEnum = pgEnum("review_status", [
@@ -519,18 +521,29 @@ export const deletionRequests = pgTable(
   "deletion_requests",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => profiles.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => profiles.id, { onDelete: "set null" }),
+    subjectUserId: uuid("subject_user_id").notNull(),
     status: deletionStatusEnum("status").notNull().default("pending"),
     requestedAt: timestamp("requested_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
     completedAt: timestamp("completed_at", { withTimezone: true }),
+    failureReason: text("failure_reason"),
+    attempts: integer("attempts").notNull().default(0),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
   },
   (table) => [
     index("deletion_requests_user_idx").on(table.userId),
+    index("deletion_requests_subject_user_idx").on(table.subjectUserId),
     index("deletion_requests_status_idx").on(table.status),
+    uniqueIndex("deletion_requests_open_subject_user_uniq")
+      .on(table.subjectUserId)
+      .where(
+        sql`${table.status} IN ('pending', 'processing')`
+      ),
   ],
 );
 
@@ -816,7 +829,56 @@ export const endorsements = pgTable(
 );
 
 // ---------------------------------------------------------------------------
-// 22. Governance Proposals
+// 22. Vouches (Pillar vouching for Tier 3 promotion)
+// ---------------------------------------------------------------------------
+
+export const vouches = pgTable(
+  "vouches",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    fromUser: uuid("from_user")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    toUser: uuid("to_user")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    communityId: uuid("community_id")
+      .notNull()
+      .references(() => communities.id, { onDelete: "cascade" }),
+    message: text("message"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("vouches_from_to_uniq").on(table.fromUser, table.toUser),
+    index("vouches_from_user_idx").on(table.fromUser),
+    index("vouches_to_user_idx").on(table.toUser),
+    index("vouches_community_idx").on(table.communityId),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// 23. Vouch Usage (rate limiting: 10/month per Pillar)
+// ---------------------------------------------------------------------------
+
+export const vouchUsage = pgTable(
+  "vouch_usage",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    month: date("month").notNull(),
+    count: integer("count").notNull().default(0),
+  },
+  (table) => [
+    // Composite PK via unique index (Drizzle pgTable uses single PK column)
+    uniqueIndex("vouch_usage_user_month_pk").on(table.userId, table.month),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// 24. Governance Proposals
 // ---------------------------------------------------------------------------
 
 export const governanceProposals = pgTable(
@@ -1033,6 +1095,12 @@ export type NewGuildMember = typeof guildMembers.$inferInsert;
 
 export type Endorsement = typeof endorsements.$inferSelect;
 export type NewEndorsement = typeof endorsements.$inferInsert;
+
+export type Vouch = typeof vouches.$inferSelect;
+export type NewVouch = typeof vouches.$inferInsert;
+
+export type VouchUsage = typeof vouchUsage.$inferSelect;
+export type NewVouchUsage = typeof vouchUsage.$inferInsert;
 
 export type GovernanceProposal = typeof governanceProposals.$inferSelect;
 export type NewGovernanceProposal = typeof governanceProposals.$inferInsert;

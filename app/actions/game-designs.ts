@@ -177,7 +177,8 @@ export async function createFromTemplate(templateId: string) {
   const keeper = await requireKeeper(auth.user.id);
   if (keeper.error) return { success: false as const, error: keeper.error };
 
-  if (!z.string().uuid().safeParse(templateId).success) {
+  const uuidFormat = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidFormat.test(templateId)) {
     return { success: false as const, error: "Invalid template ID" };
   }
 

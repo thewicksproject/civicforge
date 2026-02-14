@@ -132,6 +132,58 @@ export const sunsetRuleTypeEnum = pgEnum("sunset_rule_type", [
   "moderation_policy",
 ]);
 
+// Game Designer enums
+
+export const gameDesignStatusEnum = pgEnum("game_design_status", [
+  "draft",
+  "active",
+  "sunset",
+  "archived",
+]);
+
+export const recognitionTypeEnum = pgEnum("recognition_type", [
+  "xp",
+  "narrative",
+  "badge",
+  "endorsement_prompt",
+  "none",
+]);
+
+export const visibilityDefaultEnum = pgEnum("visibility_default", [
+  "private",
+  "opt_in",
+  "summary_only",
+]);
+
+export const thresholdTypeEnum = pgEnum("threshold_type", [
+  "points",
+  "quests_completed",
+  "endorsements",
+  "time_in_community",
+  "composite",
+]);
+
+export const recognitionSourceTypeEnum = pgEnum("recognition_source_type", [
+  "quest_completion",
+  "endorsement_given",
+  "endorsement_received",
+  "mentoring",
+]);
+
+export const ceremonyLevelEnum = pgEnum("ceremony_level", [
+  "minimal",
+  "low",
+  "medium",
+  "high",
+]);
+
+export const quantificationLevelEnum = pgEnum("quantification_level", [
+  "none",
+  "minimal",
+  "moderate",
+  "detailed",
+]);
+
 // ---------------------------------------------------------------------------
 // 1. Communities (defined before profiles because profiles references it)
 // ---------------------------------------------------------------------------
@@ -583,6 +635,9 @@ export const quests = pgTable(
     isEmergency: boolean("is_emergency").notNull().default(false),
     isSeasonal: boolean("is_seasonal").notNull().default(false),
     seasonalTemplateId: uuid("seasonal_template_id"),
+    // Game Designer FKs (nullable for backward compat — actual FK in migration)
+    gameDesignId: uuid("game_design_id"),
+    questTypeId: uuid("quest_type_id"),
     completedAt: timestamp("completed_at", { withTimezone: true }),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -646,6 +701,8 @@ export const skillProgress = pgTable(
       .notNull()
       .references(() => profiles.id, { onDelete: "cascade" }),
     domain: skillDomainEnum("domain").notNull(),
+    // Game Designer FK (nullable for backward compat — actual FK in migration)
+    gameDomainId: uuid("game_domain_id"),
     totalXp: integer("total_xp").notNull().default(0),
     level: integer("level").notNull().default(0),
     questsCompleted: integer("quests_completed").notNull().default(0),
@@ -806,6 +863,8 @@ export const endorsements = pgTable(
       .notNull()
       .references(() => profiles.id, { onDelete: "cascade" }),
     domain: skillDomainEnum("domain").notNull(),
+    // Game Designer FK (nullable for backward compat — actual FK in migration)
+    gameDomainId: uuid("game_domain_id"),
     skill: text("skill"),
     message: text("message"),
     questId: uuid("quest_id").references(() => quests.id, {
@@ -1024,6 +1083,228 @@ export const federationAgreements = pgTable(
   ],
 );
 
+// ===========================================================================
+// GAME DESIGNER TABLES (V2.5 — Community Game Configuration)
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// 26. Game Templates (pre-built starting points)
+// ---------------------------------------------------------------------------
+
+export const gameTemplates = pgTable(
+  "game_templates",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull().unique(),
+    description: text("description").notNull(),
+    valueStatement: text("value_statement").notNull(),
+    ceremonyLevel: ceremonyLevelEnum("ceremony_level").notNull().default("medium"),
+    quantificationLevel: quantificationLevelEnum("quantification_level")
+      .notNull()
+      .default("moderate"),
+    config: jsonb("config").notNull(), // Full config that seeds game_* tables
+    isSystem: boolean("is_system").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("game_templates_slug_uniq").on(table.slug),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// 27. Game Designs (central game document per community)
+// ---------------------------------------------------------------------------
+
+export const gameDesigns = pgTable(
+  "game_designs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    communityId: uuid("community_id")
+      .notNull()
+      .references(() => communities.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    valueStatement: text("value_statement").notNull(),
+    designRationale: text("design_rationale").notNull(),
+    status: gameDesignStatusEnum("status").notNull().default("draft"),
+    sunsetAt: timestamp("sunset_at", { withTimezone: true }).notNull(),
+    version: integer("version").notNull().default(1),
+    previousVersionId: uuid("previous_version_id"),
+    activatedByProposalId: uuid("activated_by_proposal_id").references(
+      () => governanceProposals.id,
+      { onDelete: "set null" },
+    ),
+    templateId: uuid("template_id").references(
+      () => gameTemplates.id,
+      { onDelete: "set null" },
+    ),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index("game_designs_community_idx").on(table.communityId),
+    index("game_designs_status_idx").on(table.status),
+    index("game_designs_template_idx").on(table.templateId),
+    // Only one active game design per community (enforced via partial unique index in migration)
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// 28. Game Quest Types (community-defined quest types)
+// ---------------------------------------------------------------------------
+
+export const gameQuestTypes = pgTable(
+  "game_quest_types",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    gameDesignId: uuid("game_design_id")
+      .notNull()
+      .references(() => gameDesigns.id, { onDelete: "cascade" }),
+    slug: text("slug").notNull(),
+    label: text("label").notNull(),
+    description: text("description"),
+    validationMethod: text("validation_method").notNull(), // free-form: communities combine building blocks
+    validationThreshold: integer("validation_threshold").notNull().default(1),
+    recognitionType: recognitionTypeEnum("recognition_type").notNull().default("xp"),
+    baseRecognition: integer("base_recognition").notNull().default(5),
+    narrativePrompt: text("narrative_prompt"), // For narrative recognition type
+    cooldownHours: integer("cooldown_hours").notNull().default(0),
+    maxPartySize: integer("max_party_size").notNull().default(1),
+    sortOrder: integer("sort_order").notNull().default(0),
+    color: text("color"),
+    icon: text("icon"),
+  },
+  (table) => [
+    index("game_quest_types_design_idx").on(table.gameDesignId),
+    uniqueIndex("game_quest_types_design_slug_uniq").on(
+      table.gameDesignId,
+      table.slug,
+    ),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// 29. Game Skill Domains (community-defined skill domains)
+// ---------------------------------------------------------------------------
+
+export const gameSkillDomains = pgTable(
+  "game_skill_domains",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    gameDesignId: uuid("game_design_id")
+      .notNull()
+      .references(() => gameDesigns.id, { onDelete: "cascade" }),
+    slug: text("slug").notNull(),
+    label: text("label").notNull(),
+    description: text("description"),
+    examples: text("examples").array().notNull().default([]),
+    color: text("color"),
+    icon: text("icon"),
+    visibilityDefault: visibilityDefaultEnum("visibility_default")
+      .notNull()
+      .default("private"),
+    sortOrder: integer("sort_order").notNull().default(0),
+  },
+  (table) => [
+    index("game_skill_domains_design_idx").on(table.gameDesignId),
+    uniqueIndex("game_skill_domains_design_slug_uniq").on(
+      table.gameDesignId,
+      table.slug,
+    ),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// 30. Game Recognition Tiers (community-defined reputation tiers)
+// ---------------------------------------------------------------------------
+
+export const gameRecognitionTiers = pgTable(
+  "game_recognition_tiers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    gameDesignId: uuid("game_design_id")
+      .notNull()
+      .references(() => gameDesigns.id, { onDelete: "cascade" }),
+    tierNumber: integer("tier_number").notNull(),
+    name: text("name").notNull(),
+    thresholdType: thresholdTypeEnum("threshold_type").notNull().default("points"),
+    thresholdValue: integer("threshold_value").notNull().default(0),
+    additionalRequirements: jsonb("additional_requirements"), // e.g. {"vouches_required": 2}
+    unlocks: text("unlocks").array().notNull().default([]),
+    color: text("color"),
+  },
+  (table) => [
+    index("game_recognition_tiers_design_idx").on(table.gameDesignId),
+    uniqueIndex("game_recognition_tiers_design_tier_uniq").on(
+      table.gameDesignId,
+      table.tierNumber,
+    ),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// 31. Game Recognition Sources (how recognition is earned)
+// ---------------------------------------------------------------------------
+
+export const gameRecognitionSources = pgTable(
+  "game_recognition_sources",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    gameDesignId: uuid("game_design_id")
+      .notNull()
+      .references(() => gameDesigns.id, { onDelete: "cascade" }),
+    sourceType: recognitionSourceTypeEnum("source_type").notNull(),
+    amount: real("amount").notNull(),
+    maxPerDay: integer("max_per_day"),
+  },
+  (table) => [
+    index("game_recognition_sources_design_idx").on(table.gameDesignId),
+    uniqueIndex("game_recognition_sources_design_type_uniq").on(
+      table.gameDesignId,
+      table.sourceType,
+    ),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// 32. Quest Narratives (stories instead of scores)
+// ---------------------------------------------------------------------------
+
+export const questNarratives = pgTable(
+  "quest_narratives",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    questId: uuid("quest_id")
+      .notNull()
+      .references(() => quests.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    narrativeText: text("narrative_text").notNull(),
+    promptUsed: text("prompt_used"),
+    private: boolean("private").notNull().default(true),
+    sharedAt: timestamp("shared_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("quest_narratives_quest_idx").on(table.questId),
+    index("quest_narratives_user_idx").on(table.userId),
+  ],
+);
+
 // ---------------------------------------------------------------------------
 // Type Inference Helpers
 // ---------------------------------------------------------------------------
@@ -1113,3 +1394,26 @@ export type NewSunsetRule = typeof sunsetRules.$inferInsert;
 
 export type FederationAgreement = typeof federationAgreements.$inferSelect;
 export type NewFederationAgreement = typeof federationAgreements.$inferInsert;
+
+// Game Designer types
+
+export type GameTemplate = typeof gameTemplates.$inferSelect;
+export type NewGameTemplate = typeof gameTemplates.$inferInsert;
+
+export type GameDesign = typeof gameDesigns.$inferSelect;
+export type NewGameDesign = typeof gameDesigns.$inferInsert;
+
+export type GameQuestType = typeof gameQuestTypes.$inferSelect;
+export type NewGameQuestType = typeof gameQuestTypes.$inferInsert;
+
+export type GameSkillDomain = typeof gameSkillDomains.$inferSelect;
+export type NewGameSkillDomain = typeof gameSkillDomains.$inferInsert;
+
+export type GameRecognitionTier = typeof gameRecognitionTiers.$inferSelect;
+export type NewGameRecognitionTier = typeof gameRecognitionTiers.$inferInsert;
+
+export type GameRecognitionSource = typeof gameRecognitionSources.$inferSelect;
+export type NewGameRecognitionSource = typeof gameRecognitionSources.$inferInsert;
+
+export type QuestNarrative = typeof questNarratives.$inferSelect;
+export type NewQuestNarrative = typeof questNarratives.$inferInsert;

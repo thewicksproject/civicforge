@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { resolveGameConfig } from "@/lib/game-config/resolver";
 
 const EndorsementSchema = z.object({
   to_user: z.string().uuid(),
@@ -98,12 +99,27 @@ export async function createEndorsement(data: {
     return { success: false as const, error: "Failed to create endorsement" };
   }
 
-  // Endorsements GIVEN also earn renown for the endorser (prosocial incentive)
-  // +0.5 renown for giving an endorsement, +1 renown for receiving
+  // Endorsements earn renown (amounts from community game config)
+  let giveAmount = 0.5;
+  let receiveAmount = 1;
+  try {
+    const config = await resolveGameConfig(fromProfile.community_id);
+    const giveSource = config.recognitionSources.find(
+      (s) => s.sourceType === "endorsement_given",
+    );
+    const receiveSource = config.recognitionSources.find(
+      (s) => s.sourceType === "endorsement_received",
+    );
+    if (giveSource) giveAmount = giveSource.amount;
+    if (receiveSource) receiveAmount = receiveSource.amount;
+  } catch {
+    // Fall back to defaults
+  }
+
   try {
     await admin.rpc("increment_renown", {
       p_user_id: user.id,
-      p_amount: 0.5,
+      p_amount: giveAmount,
     });
   } catch {
     // RPC may not exist yet
@@ -112,7 +128,7 @@ export async function createEndorsement(data: {
   try {
     await admin.rpc("increment_renown", {
       p_user_id: parsed.data.to_user,
-      p_amount: 1,
+      p_amount: receiveAmount,
     });
   } catch {
     // RPC may not exist yet

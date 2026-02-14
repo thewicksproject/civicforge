@@ -5,6 +5,7 @@ import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { AI_RATE_LIMIT_PER_MINUTE } from "@/lib/types";
 import { parseJsonBody } from "@/lib/http/json";
+import { resolveGameConfig } from "@/lib/game-config/resolver";
 
 const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
 const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -158,6 +159,36 @@ export async function POST(request: Request) {
     .join("; ") || "No active quests";
 
   try {
+    // Resolve community game config for advocate awareness
+    let gameConfigContext: {
+      name: string;
+      valueStatement: string;
+      questTypes: Array<{ slug: string; label: string; recognitionType: string; baseRecognition: number }>;
+      recognitionSources: Array<{ sourceType: string; amount: number }>;
+    } | undefined;
+
+    if (profile.community_id) {
+      try {
+        const gc = await resolveGameConfig(profile.community_id);
+        gameConfigContext = {
+          name: gc.name,
+          valueStatement: gc.valueStatement,
+          questTypes: gc.questTypes.map((qt) => ({
+            slug: qt.slug,
+            label: qt.label,
+            recognitionType: qt.recognitionType,
+            baseRecognition: qt.baseRecognition,
+          })),
+          recognitionSources: gc.recognitionSources.map((rs) => ({
+            sourceType: rs.sourceType,
+            amount: rs.amount,
+          })),
+        };
+      } catch {
+        // No game config available — advocate works without it
+      }
+    }
+
     // W12: Build conversation context string from history
     const historyContext = history && history.length > 0
       ? "\n\nCONVERSATION HISTORY:\n" +
@@ -185,6 +216,7 @@ export async function POST(request: Request) {
         },
         recentActivity: recentActivitySummary,
         activeQuests: activeQuestsSummary,
+        gameConfig: gameConfigContext,
       }
     );
 

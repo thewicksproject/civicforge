@@ -7,6 +7,7 @@ import {
   CATEGORY_TO_DOMAIN,
   type QuestDifficulty,
 } from "@/lib/types";
+import { resolveGameConfig } from "@/lib/game-config/resolver";
 
 const QuestSchema = z.object({
   title: z
@@ -103,7 +104,19 @@ export async function createQuest(data: {
   }
 
   const difficulty = parsed.data.difficulty as QuestDifficulty;
-  const diffConfig = QUEST_DIFFICULTY_TIERS[difficulty];
+
+  // Resolve game config for this community (dynamic quest types)
+  const gameConfig = await resolveGameConfig(profile.community_id);
+  const questType = gameConfig.questTypes.find(
+    (t) => t.slug === difficulty,
+  );
+
+  // Fall back to hardcoded constants if quest type not found in game config
+  const diffConfig = questType ?? {
+    validationMethod: QUEST_DIFFICULTY_TIERS[difficulty].validationMethod,
+    baseRecognition: QUEST_DIFFICULTY_TIERS[difficulty].baseXp,
+    validationThreshold: difficulty === "spark" ? 0 : difficulty === "ember" ? 1 : difficulty === "flame" ? 1 : difficulty === "blaze" ? 3 : 5,
+  };
 
   const { data: quest, error } = await admin.from("quests").insert({
     post_id: safePostId,
@@ -112,22 +125,16 @@ export async function createQuest(data: {
     title: parsed.data.title,
     description: parsed.data.description,
     difficulty: parsed.data.difficulty,
-    validation_method: diffConfig.validationMethod,
+    validation_method: questType?.validationMethod ?? QUEST_DIFFICULTY_TIERS[difficulty].validationMethod,
     skill_domains: parsed.data.skill_domains,
-    xp_reward: diffConfig.baseXp,
+    xp_reward: questType?.baseRecognition ?? QUEST_DIFFICULTY_TIERS[difficulty].baseXp,
     max_party_size: parsed.data.max_party_size,
     is_emergency: parsed.data.is_emergency,
     requested_by_other: safePostId !== null,
-    validation_threshold:
-      difficulty === "spark"
-        ? 0
-        : difficulty === "ember"
-          ? 1
-          : difficulty === "flame"
-            ? 1
-            : difficulty === "blaze"
-              ? 3
-              : 5,
+    validation_threshold: diffConfig.validationThreshold,
+    // Game Designer FKs
+    game_design_id: gameConfig.isClassicFallback ? null : gameConfig.gameDesignId,
+    quest_type_id: questType && !gameConfig.isClassicFallback ? questType.id : null,
   }).select("id").single();
 
   if (error) {
@@ -527,6 +534,7 @@ async function awardQuestXpToParticipants(
   quest: {
     skill_domains: string[];
     xp_reward: number;
+    community_id?: string;
   }
 ) {
   const participantIds = await getQuestParticipantIds(admin, questId);
@@ -544,6 +552,7 @@ async function awardQuestXp(
   quest: {
     skill_domains: string[];
     xp_reward: number;
+    community_id?: string;
   }
 ) {
   const xpPerDomain = Math.round(
@@ -584,11 +593,25 @@ async function awardQuestXp(
     }
   }
 
-  // Award renown: +1 per quest, +0.5 per endorsement received (handled elsewhere)
+  // Award renown using game config recognition sources
+  // Default: +1 per quest completion (configurable per community game design)
+  let renownAmount = 1;
+  if (quest.community_id) {
+    try {
+      const config = await resolveGameConfig(quest.community_id);
+      const questSource = config.recognitionSources.find(
+        (s) => s.sourceType === "quest_completion",
+      );
+      if (questSource) renownAmount = questSource.amount;
+    } catch {
+      // Fall back to default
+    }
+  }
+
   try {
     await admin.rpc("increment_renown", {
       p_user_id: userId,
-      p_amount: 1,
+      p_amount: renownAmount,
     });
   } catch {
     // RPC may not exist yet

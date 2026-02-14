@@ -563,8 +563,9 @@ UPDATE skill_progress sp
 SET game_domain_id = gsd.id
 FROM game_skill_domains gsd
 JOIN game_designs gd ON gd.id = gsd.game_design_id AND gd.status = 'active'
-JOIN profiles p ON p.community_id = gd.community_id AND p.id = sp.user_id
-WHERE gsd.slug = sp.domain::text
+JOIN profiles p ON p.community_id = gd.community_id
+WHERE p.id = sp.user_id
+  AND gsd.slug = sp.domain::text
   AND sp.game_domain_id IS NULL;
 
 -- Link existing endorsements to matching game skill domains
@@ -572,6 +573,7 @@ UPDATE endorsements e
 SET game_domain_id = gsd.id
 FROM game_skill_domains gsd
 JOIN game_designs gd ON gd.id = gsd.game_design_id AND gd.status = 'active'
-JOIN profiles p ON p.community_id = gd.community_id AND p.id = e.from_user
-WHERE gsd.slug = e.domain::text
+JOIN profiles p ON p.community_id = gd.community_id
+WHERE p.id = e.from_user
+  AND gsd.slug = e.domain::text
   AND e.game_domain_id IS NULL;

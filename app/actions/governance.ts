@@ -19,6 +19,7 @@ const ProposalSchema = z.object({
     "seasonal_quest",
     "rule_change",
     "guild_charter",
+    "game_design",
     "federation",
     "other",
   ] as const),

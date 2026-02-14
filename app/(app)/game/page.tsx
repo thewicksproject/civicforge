@@ -17,7 +17,7 @@ export default async function GamePage() {
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("community_id")
+    .select("community_id, renown_tier")
     .eq("id", user.id)
     .single();
 
@@ -276,6 +276,34 @@ export default async function GamePage() {
           a governance proposal approved by the community.
         </p>
       </section>
+
+      {/* Propose Changes (Keeper+) */}
+      {(profile.renown_tier ?? 1) >= 4 && (
+        <section className="rounded-xl bg-card p-6 shadow-sm">
+          <h2 className="font-serif text-xl font-semibold mb-3">
+            Propose Changes
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            As a Keeper, you can propose changes to your community&apos;s game design.
+            Create a draft from a template or fork the current design, then submit
+            it for a governance vote.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/game/design/new"
+              className="inline-flex rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
+            >
+              New from Template
+            </Link>
+            <Link
+              href="/game/design/new?fork=true"
+              className="inline-flex rounded-lg border border-border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-colors"
+            >
+              Fork Current Design
+            </Link>
+          </div>
+        </section>
+      )}
 
       {/* Platform Guardrails */}
       <section className="rounded-xl bg-muted/50 p-6">

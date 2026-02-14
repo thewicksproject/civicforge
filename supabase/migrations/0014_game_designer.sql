@@ -555,7 +555,7 @@ UPDATE quests q
 SET quest_type_id = gqt.id
 FROM game_quest_types gqt
 WHERE gqt.game_design_id = q.game_design_id
-  AND gqt.slug = q.difficulty
+  AND gqt.slug = q.difficulty::text
   AND q.quest_type_id IS NULL;
 
 -- Link existing skill_progress to matching game skill domains
@@ -564,7 +564,7 @@ SET game_domain_id = gsd.id
 FROM game_skill_domains gsd
 JOIN game_designs gd ON gd.id = gsd.game_design_id AND gd.status = 'active'
 JOIN profiles p ON p.community_id = gd.community_id AND p.id = sp.user_id
-WHERE gsd.slug = sp.domain
+WHERE gsd.slug = sp.domain::text
   AND sp.game_domain_id IS NULL;
 
 -- Link existing endorsements to matching game skill domains
@@ -573,5 +573,5 @@ SET game_domain_id = gsd.id
 FROM game_skill_domains gsd
 JOIN game_designs gd ON gd.id = gsd.game_design_id AND gd.status = 'active'
 JOIN profiles p ON p.community_id = gd.community_id AND p.id = e.from_user
-WHERE gsd.slug = e.domain
+WHERE gsd.slug = e.domain::text
   AND e.game_domain_id IS NULL;

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { createFromTemplate, forkActiveDesign } from "@/app/actions/game-designs";
 import { cn } from "@/lib/utils";
+import { displayLabel, CEREMONY_LEVEL_LABELS, QUANTIFICATION_LEVEL_LABELS } from "@/lib/game-config/display-labels";
 
 interface Template {
   id: string;
@@ -100,8 +101,8 @@ export function TemplatePicker({
               {t.description}
             </p>
             <div className="flex gap-3 text-xs text-muted-foreground">
-              <span>Ceremony: {t.ceremony_level}</span>
-              <span>Detail: {t.quantification_level}</span>
+              <span>Style: {displayLabel(CEREMONY_LEVEL_LABELS, t.ceremony_level)}</span>
+              <span>Tracking: {displayLabel(QUANTIFICATION_LEVEL_LABELS, t.quantification_level)}</span>
             </div>
           </button>
         ))}

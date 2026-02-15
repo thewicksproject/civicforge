@@ -1,5 +1,7 @@
 "use client";
 
+import { displayLabel, SOURCE_TYPE_LABELS } from "@/lib/game-config/display-labels";
+
 interface DiffProps {
   draft: {
     questTypes: Array<{ slug: string; label: string; base_recognition?: number; baseRecognition?: number }>;
@@ -58,10 +60,10 @@ export function GameDesignDiff({ draft, active }: DiffProps) {
   const activeQTSlugs = new Set(active.questTypes.map((qt) => qt.slug));
   const addedQT = draft.questTypes
     .filter((qt) => !activeQTSlugs.has(qt.slug))
-    .map((qt) => `${qt.label} (${qt.slug})`);
+    .map((qt) => qt.label);
   const removedQT = active.questTypes
     .filter((qt) => !draftQTSlugs.has(qt.slug))
-    .map((qt) => `${qt.label} (${qt.slug})`);
+    .map((qt) => qt.label);
   const unchangedQT = draft.questTypes.filter((qt) => activeQTSlugs.has(qt.slug));
 
   // Skill domains diff
@@ -91,10 +93,10 @@ export function GameDesignDiff({ draft, active }: DiffProps) {
   const activeSrcTypes = new Set(active.recognitionSources.map((rs) => rs.sourceType));
   const addedSrc = draft.recognitionSources
     .filter((rs) => !activeSrcTypes.has(rs.source_type ?? rs.sourceType ?? ""))
-    .map((rs) => (rs.source_type ?? rs.sourceType ?? "").replace(/_/g, " "));
+    .map((rs) => displayLabel(SOURCE_TYPE_LABELS, rs.source_type ?? rs.sourceType ?? ""));
   const removedSrc = active.recognitionSources
     .filter((rs) => !draftSrcTypes.has(rs.sourceType))
-    .map((rs) => rs.sourceType.replace(/_/g, " "));
+    .map((rs) => displayLabel(SOURCE_TYPE_LABELS, rs.sourceType));
   const unchangedSrc = draft.recognitionSources.filter((rs) =>
     activeSrcTypes.has(rs.source_type ?? rs.sourceType ?? ""),
   );
@@ -143,7 +145,7 @@ export function GameDesignDiff({ draft, active }: DiffProps) {
             added={addedSrc}
             removed={removedSrc}
             unchanged={unchangedSrc.map((rs) =>
-              (rs.source_type ?? rs.sourceType ?? "").replace(/_/g, " "),
+              displayLabel(SOURCE_TYPE_LABELS, rs.source_type ?? rs.sourceType ?? ""),
             )}
           />
         </div>

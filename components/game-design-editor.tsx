@@ -15,7 +15,8 @@ import {
   removeRecognitionTier,
   submitForGovernance,
 } from "@/app/actions/game-designs";
-import { cn } from "@/lib/utils";
+import { cn, slugify } from "@/lib/utils";
+import { displayLabel, SOURCE_TYPE_LABELS, THRESHOLD_TYPE_LABELS } from "@/lib/game-config/display-labels";
 
 interface EditorProps {
   designId: string;
@@ -101,10 +102,11 @@ export function GameDesignEditor({
   const [rtCount, setRtCount] = useState(initialRT.length);
 
   // New item forms
-  const [newQtSlug, setNewQtSlug] = useState("");
   const [newQtLabel, setNewQtLabel] = useState("");
-  const [newSdSlug, setNewSdSlug] = useState("");
+  const [newQtDesc, setNewQtDesc] = useState("");
   const [newSdLabel, setNewSdLabel] = useState("");
+  const [newSdDesc, setNewSdDesc] = useState("");
+  const [newSdExamples, setNewSdExamples] = useState("");
   const [newTierNumber, setNewTierNumber] = useState(rtCount + 1);
   const [newTierName, setNewTierName] = useState("");
 
@@ -132,10 +134,14 @@ export function GameDesignEditor({
   }
 
   async function handleAddQuestType() {
-    if (!newQtSlug || !newQtLabel) return flash("Slug and label required", true);
+    const label = newQtLabel.trim();
+    if (!label) return flash("Name is required", true);
+    const slug = slugify(label);
+    if (!slug) return flash("Name must contain at least one letter or number", true);
     const result = await addQuestType(designId, {
-      slug: newQtSlug,
-      label: newQtLabel,
+      slug,
+      label,
+      description: newQtDesc.trim() || null,
       validationMethod: "self_report",
       validationThreshold: 0,
       recognitionType: "xp",
@@ -146,11 +152,16 @@ export function GameDesignEditor({
     });
     if (result.success) {
       setQtCount((c) => c + 1);
-      setNewQtSlug("");
       setNewQtLabel("");
+      setNewQtDesc("");
       flash("Quest type added");
       startTransition(() => router.refresh());
-    } else flash(result.error, true);
+    } else {
+      const msg = result.error.includes("slug already exists")
+        ? "A quest type with this name already exists"
+        : result.error;
+      flash(msg, true);
+    }
   }
 
   async function handleRemoveQuestType(id: string) {
@@ -163,21 +174,35 @@ export function GameDesignEditor({
   }
 
   async function handleAddSkillDomain() {
-    if (!newSdSlug || !newSdLabel) return flash("Slug and label required", true);
+    const label = newSdLabel.trim();
+    if (!label) return flash("Name is required", true);
+    const slug = slugify(label);
+    if (!slug) return flash("Name must contain at least one letter or number", true);
+    const examples = newSdExamples
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
     const result = await addSkillDomain(designId, {
-      slug: newSdSlug,
-      label: newSdLabel,
-      examples: [],
+      slug,
+      label,
+      description: newSdDesc.trim() || null,
+      examples,
       visibilityDefault: "private",
       sortOrder: sdCount,
     });
     if (result.success) {
       setSdCount((c) => c + 1);
-      setNewSdSlug("");
       setNewSdLabel("");
+      setNewSdDesc("");
+      setNewSdExamples("");
       flash("Skill domain added");
       startTransition(() => router.refresh());
-    } else flash(result.error, true);
+    } else {
+      const msg = result.error.includes("slug already exists")
+        ? "A skill domain with this name already exists"
+        : result.error;
+      flash(msg, true);
+    }
   }
 
   async function handleRemoveSkillDomain(id: string) {
@@ -292,12 +317,14 @@ export function GameDesignEditor({
         {/* Quest Types */}
         {tab === "quests" && (
           <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Quest types define the kinds of contributions people can make in your community.
+            </p>
             <div className="space-y-2">
               {initialQT.map((qt) => (
                 <div key={qt.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/50 p-3">
                   <div className="flex-1 min-w-0">
                     <span className="font-medium text-sm">{qt.label}</span>
-                    <span className="text-xs text-muted-foreground ml-2">({qt.slug})</span>
                     <span className="text-xs text-muted-foreground ml-2">{qt.base_recognition} XP</span>
                   </div>
                   <button
@@ -310,13 +337,11 @@ export function GameDesignEditor({
                 </div>
               ))}
             </div>
-            <div className="border-t border-border pt-4">
-              <h3 className="text-sm font-medium mb-2">Add Quest Type</h3>
-              <div className="flex gap-2">
-                <Input placeholder="slug (e.g. spark)" value={newQtSlug} onChange={(e) => setNewQtSlug(e.target.value)} className="flex-1" />
-                <Input placeholder="Label (e.g. Spark)" value={newQtLabel} onChange={(e) => setNewQtLabel(e.target.value)} className="flex-1" />
-                <Button onClick={handleAddQuestType} disabled={isPending} variant="outline" className="shrink-0">Add</Button>
-              </div>
+            <div className="border-t border-border pt-4 space-y-3">
+              <h3 className="text-sm font-medium">Add Quest Type</h3>
+              <Input placeholder="Name (e.g. Spark)" value={newQtLabel} onChange={(e) => setNewQtLabel(e.target.value)} />
+              <Textarea placeholder="Description (optional)" value={newQtDesc} onChange={(e) => setNewQtDesc(e.target.value)} className="min-h-16" />
+              <Button onClick={handleAddQuestType} disabled={isPending} variant="outline">Add Quest Type</Button>
             </div>
           </div>
         )}
@@ -324,13 +349,17 @@ export function GameDesignEditor({
         {/* Skill Domains */}
         {tab === "skills" && (
           <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Skill domains are the areas of contribution your community values. Each domain represents a different way people can help.
+            </p>
             <div className="space-y-2">
               {initialSD.map((sd) => (
                 <div key={sd.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/50 p-3">
                   <div className="flex-1 min-w-0">
                     <span className="font-medium text-sm">{sd.label}</span>
-                    <span className="text-xs text-muted-foreground ml-2">({sd.slug})</span>
-                    <span className="text-xs text-muted-foreground ml-2">visibility: {sd.visibility_default}</span>
+                    {sd.description && (
+                      <span className="text-xs text-muted-foreground ml-2">&mdash; {sd.description.length > 60 ? sd.description.slice(0, 60) + "\u2026" : sd.description}</span>
+                    )}
                   </div>
                   <button
                     type="button"
@@ -342,13 +371,12 @@ export function GameDesignEditor({
                 </div>
               ))}
             </div>
-            <div className="border-t border-border pt-4">
-              <h3 className="text-sm font-medium mb-2">Add Skill Domain</h3>
-              <div className="flex gap-2">
-                <Input placeholder="slug (e.g. craft)" value={newSdSlug} onChange={(e) => setNewSdSlug(e.target.value)} className="flex-1" />
-                <Input placeholder="Label (e.g. Craft)" value={newSdLabel} onChange={(e) => setNewSdLabel(e.target.value)} className="flex-1" />
-                <Button onClick={handleAddSkillDomain} disabled={isPending} variant="outline" className="shrink-0">Add</Button>
-              </div>
+            <div className="border-t border-border pt-4 space-y-3">
+              <h3 className="text-sm font-medium">Add Skill Domain</h3>
+              <Input placeholder="Name (e.g. Craft)" value={newSdLabel} onChange={(e) => setNewSdLabel(e.target.value)} />
+              <Textarea placeholder="Description (optional)" value={newSdDesc} onChange={(e) => setNewSdDesc(e.target.value)} className="min-h-16" />
+              <Input placeholder="Examples, separated by commas (e.g. woodworking, home repair)" value={newSdExamples} onChange={(e) => setNewSdExamples(e.target.value)} />
+              <Button onClick={handleAddSkillDomain} disabled={isPending} variant="outline">Add Skill Domain</Button>
             </div>
           </div>
         )}
@@ -356,13 +384,16 @@ export function GameDesignEditor({
         {/* Recognition Tiers */}
         {tab === "tiers" && (
           <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Recognition tiers define the journey from newcomer to trusted community member. Each tier unlocks new capabilities.
+            </p>
             <div className="space-y-2">
               {initialRT.map((rt) => (
                 <div key={rt.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/50 p-3">
                   <div className="flex-1 min-w-0">
                     <span className="font-medium text-sm">Tier {rt.tier_number}: {rt.name}</span>
                     <span className="text-xs text-muted-foreground ml-2">
-                      {rt.threshold_value > 0 ? `${rt.threshold_value} ${rt.threshold_type}` : "No threshold"}
+                      {rt.threshold_value > 0 ? `${rt.threshold_value} ${displayLabel(THRESHOLD_TYPE_LABELS, rt.threshold_type)}` : "No threshold"}
                     </span>
                   </div>
                   <button
@@ -390,10 +421,13 @@ export function GameDesignEditor({
         {/* Recognition Sources */}
         {tab === "sources" && (
           <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Recognition sources define how community members earn renown through meaningful contributions.
+            </p>
             <div className="space-y-2">
               {initialRS.map((rs) => (
                 <div key={rs.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/50 p-3">
-                  <span className="text-sm">{rs.source_type.replace(/_/g, " ")}</span>
+                  <span className="text-sm">{displayLabel(SOURCE_TYPE_LABELS, rs.source_type)}</span>
                   <span className="text-sm font-medium">
                     +{rs.amount} renown
                     {rs.max_per_day && <span className="text-xs text-muted-foreground ml-1">(max {rs.max_per_day}/day)</span>}
@@ -401,9 +435,6 @@ export function GameDesignEditor({
                 </div>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Recognition source editing is available via the detail view.
-            </p>
           </div>
         )}
       </div>

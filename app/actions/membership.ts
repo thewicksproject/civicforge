@@ -2,9 +2,10 @@
 
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { UUID_FORMAT } from "@/lib/utils";
 
 const RequestMembershipSchema = z.object({
-  communityId: z.string().uuid("Invalid community ID"),
+  communityId: z.string().regex(UUID_FORMAT, "Invalid community ID"),
   message: z
     .string()
     .max(500, "Message must be at most 500 characters")
@@ -111,7 +112,7 @@ export async function reviewMembership(
     return { success: false as const, error: "You must be logged in" };
   }
 
-  const idParsed = z.string().uuid().safeParse(requestId);
+  const idParsed = z.string().regex(UUID_FORMAT).safeParse(requestId);
   if (!idParsed.success) {
     return { success: false as const, error: "Invalid request ID" };
   }

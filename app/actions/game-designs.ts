@@ -12,8 +12,7 @@ import {
 import { validateGameDesignGuardrails } from "@/lib/game-config/guardrails";
 import { seedFromTemplate, type TemplateConfig } from "@/lib/game-config/template-seeder";
 import { invalidateGameConfig } from "@/lib/game-config/resolver";
-
-const UUID_FORMAT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { UUID_FORMAT } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { canModerateCommunityResource } from "@/lib/security/authorization";
+import { UUID_FORMAT } from "@/lib/utils";
 
 async function requireTier3() {
   const supabase = await createClient();
@@ -43,7 +44,7 @@ export async function reviewPost(
     return { success: false as const, error: error ?? "Unauthorized" };
   }
 
-  const idParsed = z.string().uuid().safeParse(postId);
+  const idParsed = z.string().regex(UUID_FORMAT).safeParse(postId);
   if (!idParsed.success) {
     return { success: false as const, error: "Invalid post ID" };
   }
@@ -108,7 +109,7 @@ export async function unhidePost(postId: string) {
     return { success: false as const, error: error ?? "Unauthorized" };
   }
 
-  const idParsed = z.string().uuid().safeParse(postId);
+  const idParsed = z.string().regex(UUID_FORMAT).safeParse(postId);
   if (!idParsed.success) {
     return { success: false as const, error: "Invalid post ID" };
   }

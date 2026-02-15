@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { generateInviteCode } from "@/lib/utils";
+import { generateInviteCode, UUID_FORMAT } from "@/lib/utils";
 
 export async function createInvitation(communityId: string) {
   const supabase = await createClient();
@@ -14,7 +14,7 @@ export async function createInvitation(communityId: string) {
     return { success: false as const, error: "You must be logged in" };
   }
 
-  const idParsed = z.string().uuid().safeParse(communityId);
+  const idParsed = z.string().regex(UUID_FORMAT).safeParse(communityId);
   if (!idParsed.success) {
     return { success: false as const, error: "Invalid community ID" };
   }

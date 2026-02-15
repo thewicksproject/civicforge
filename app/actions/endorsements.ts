@@ -3,9 +3,10 @@
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { resolveGameConfig } from "@/lib/game-config/resolver";
+import { UUID_FORMAT } from "@/lib/utils";
 
 const EndorsementSchema = z.object({
-  to_user: z.string().uuid(),
+  to_user: z.string().regex(UUID_FORMAT),
   domain: z.enum([
     "craft",
     "green",
@@ -17,7 +18,7 @@ const EndorsementSchema = z.object({
   ] as const),
   skill: z.string().max(100).optional(),
   message: z.string().max(500).optional(),
-  quest_id: z.string().uuid().optional(),
+  quest_id: z.string().regex(UUID_FORMAT).optional(),
 });
 
 export async function createEndorsement(data: {

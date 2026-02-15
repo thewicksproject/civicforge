@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { UUID_FORMAT } from "@/lib/utils";
 
 const CreateCommunitySchema = z.object({
   name: z
@@ -148,7 +149,7 @@ export async function getCommunity(id: string) {
     return { success: false as const, error: "You must be logged in" };
   }
 
-  const idParsed = z.string().uuid().safeParse(id);
+  const idParsed = z.string().regex(UUID_FORMAT).safeParse(id);
   if (!idParsed.success) {
     return { success: false as const, error: "Invalid community ID" };
   }

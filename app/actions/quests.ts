@@ -8,6 +8,7 @@ import {
   type QuestDifficulty,
 } from "@/lib/types";
 import { resolveGameConfig } from "@/lib/game-config/resolver";
+import { UUID_FORMAT } from "@/lib/utils";
 
 const QuestSchema = z.object({
   title: z
@@ -81,7 +82,7 @@ export async function createQuest(data: {
 
   let safePostId: string | null = null;
   if (data.post_id) {
-    const postIdParsed = z.string().uuid().safeParse(data.post_id);
+    const postIdParsed = z.string().regex(UUID_FORMAT).safeParse(data.post_id);
     if (!postIdParsed.success) {
       return { success: false as const, error: "Invalid post ID" };
     }
@@ -169,7 +170,7 @@ export async function createQuestFromPost(postId: string) {
 
   const admin = createServiceClient();
 
-  const postIdParsed = z.string().uuid().safeParse(postId);
+  const postIdParsed = z.string().regex(UUID_FORMAT).safeParse(postId);
   if (!postIdParsed.success) {
     return { success: false as const, error: "Invalid post ID" };
   }

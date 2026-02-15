@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { UUID_FORMAT } from "@/lib/utils";
 
 const UpdateProfileSchema = z.object({
   display_name: z
@@ -94,7 +95,7 @@ export async function getProfile(userId: string) {
     return { success: false as const, error: "You must be logged in" };
   }
 
-  const idParsed = z.string().uuid().safeParse(userId);
+  const idParsed = z.string().regex(UUID_FORMAT).safeParse(userId);
   if (!idParsed.success) {
     return { success: false as const, error: "Invalid user ID" };
   }

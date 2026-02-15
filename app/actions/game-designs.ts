@@ -13,6 +13,8 @@ import { validateGameDesignGuardrails } from "@/lib/game-config/guardrails";
 import { seedFromTemplate, type TemplateConfig } from "@/lib/game-config/template-seeder";
 import { invalidateGameConfig } from "@/lib/game-config/resolver";
 
+const UUID_FORMAT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -119,11 +121,38 @@ export async function getCommunityDrafts(communityId: string) {
   return { success: true as const, drafts: drafts ?? [] };
 }
 
+export async function getUserDrafts() {
+  const auth = await requireAuth();
+  if (auth.error) return { success: false as const, error: auth.error };
+
+  const admin = createServiceClient();
+
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("community_id")
+    .eq("id", auth.user.id)
+    .single();
+
+  if (!profile?.community_id) {
+    return { success: false as const, error: "No community" };
+  }
+
+  const { data: drafts, error } = await admin
+    .from("game_designs")
+    .select("id, name, status, updated_at, submitted_proposal_id")
+    .eq("created_by", auth.user.id)
+    .eq("status", "draft")
+    .order("updated_at", { ascending: false });
+
+  if (error) return { success: false as const, error: "Failed to load drafts" };
+  return { success: true as const, drafts: drafts ?? [] };
+}
+
 export async function getGameDesignDraft(designId: string) {
   const auth = await requireAuth();
   if (auth.error) return { success: false as const, error: auth.error };
 
-  if (!z.string().uuid().safeParse(designId).success) {
+  if (!UUID_FORMAT.test(designId)) {
     return { success: false as const, error: "Invalid design ID" };
   }
 
@@ -177,8 +206,7 @@ export async function createFromTemplate(templateId: string) {
   const keeper = await requireKeeper(auth.user.id);
   if (keeper.error) return { success: false as const, error: keeper.error };
 
-  const uuidFormat = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!uuidFormat.test(templateId)) {
+  if (!UUID_FORMAT.test(templateId)) {
     return { success: false as const, error: "Invalid template ID" };
   }
 
@@ -836,10 +864,15 @@ export async function submitForGovernance(designId: string) {
   }
 
   // Lock the draft
-  await admin
+  const { error: lockError } = await admin
     .from("game_designs")
     .update({ submitted_proposal_id: proposal.id, updated_at: new Date().toISOString() })
     .eq("id", designId);
+
+  if (lockError) {
+    await admin.from("governance_proposals").delete().eq("id", proposal.id);
+    return { success: false as const, error: "Failed to lock draft — proposal rolled back" };
+  }
 
   return { success: true as const, proposalId: proposal.id };
 }
@@ -851,7 +884,7 @@ export async function activateGameDesign(proposalId: string) {
   const keeper = await requireKeeper(auth.user.id);
   if (keeper.error) return { success: false as const, error: keeper.error };
 
-  if (!z.string().uuid().safeParse(proposalId).success) {
+  if (!UUID_FORMAT.test(proposalId)) {
     return { success: false as const, error: "Invalid proposal ID" };
   }
 

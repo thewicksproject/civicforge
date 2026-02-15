@@ -110,6 +110,9 @@ export function TemplatePicker({
       <Button onClick={handleCreate} disabled={loading || !selected} className="w-full sm:w-auto">
         {loading ? "Creating Draft..." : "Create Draft from Template"}
       </Button>
+      {!selected && !loading && (
+        <p className="text-xs text-muted-foreground">Select a template above to continue</p>
+      )}
     </div>
   );
 }

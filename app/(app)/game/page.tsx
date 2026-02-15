@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { resolveGameConfig } from "@/lib/game-config/resolver";
+import { getUserDrafts } from "@/app/actions/game-designs";
 
 export const metadata = { title: "Your Community's Game" };
 
@@ -45,6 +46,10 @@ export default async function GamePage() {
     .single();
 
   const gameConfig = await resolveGameConfig(profile.community_id);
+
+  const isKeeper = (profile.renown_tier ?? 1) >= 4;
+  const draftsResult = isKeeper ? await getUserDrafts() : null;
+  const userDrafts = draftsResult?.success ? draftsResult.drafts : [];
 
   const sunsetDate = new Date(gameConfig.sunsetAt);
   const now = new Date();
@@ -277,8 +282,40 @@ export default async function GamePage() {
         </p>
       </section>
 
+      {/* Your Drafts (Keeper+) */}
+      {isKeeper && userDrafts.length > 0 && (
+        <section className="rounded-xl bg-card p-6 shadow-sm">
+          <h2 className="font-serif text-xl font-semibold mb-4">
+            Your Drafts
+          </h2>
+          <div className="space-y-3">
+            {userDrafts.map((draft) => (
+              <Link
+                key={draft.id}
+                href={`/game/design/${draft.id}`}
+                className="flex items-center justify-between rounded-lg border border-border/50 p-4 hover:bg-muted transition-colors"
+              >
+                <div>
+                  <h3 className="font-semibold text-sm">{draft.name}</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Updated {new Date(draft.updated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  </p>
+                </div>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                  draft.submitted_proposal_id
+                    ? "bg-primary/10 text-primary"
+                    : "bg-muted text-muted-foreground"
+                }`}>
+                  {draft.submitted_proposal_id ? "Submitted" : "Draft"}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Propose Changes (Keeper+) */}
-      {(profile.renown_tier ?? 1) >= 4 && (
+      {isKeeper && (
         <section className="rounded-xl bg-card p-6 shadow-sm">
           <h2 className="font-serif text-xl font-semibold mb-3">
             Propose Changes

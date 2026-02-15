@@ -3,6 +3,12 @@ import Link from "next/link";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { resolveGameConfig } from "@/lib/game-config/resolver";
 import { getUserDrafts } from "@/app/actions/game-designs";
+import {
+  displayLabel,
+  VALIDATION_METHOD_LABELS,
+  THRESHOLD_TYPE_LABELS,
+  SOURCE_TYPE_LABELS,
+} from "@/lib/game-config/display-labels";
 
 export const metadata = { title: "Your Community's Game" };
 
@@ -125,7 +131,7 @@ export default async function GamePage() {
                 )}
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                   <span>
-                    Validation: {qt.validationMethod.replace(/_/g, " ")}
+                    Validation: {displayLabel(VALIDATION_METHOD_LABELS, qt.validationMethod)}
                   </span>
                   {qt.validationThreshold > 0 && (
                     <span>
@@ -194,7 +200,7 @@ export default async function GamePage() {
                 <h3 className="font-semibold">{rt.name}</h3>
                 <p className="text-sm text-muted-foreground">
                   {rt.thresholdValue > 0
-                    ? `${rt.thresholdValue} ${rt.thresholdType.replace(/_/g, " ")} required`
+                    ? `${rt.thresholdValue} ${displayLabel(THRESHOLD_TYPE_LABELS, rt.thresholdType)} required`
                     : "No threshold"}
                   {rt.additionalRequirements &&
                     typeof rt.additionalRequirements === "object" &&
@@ -224,7 +230,7 @@ export default async function GamePage() {
               className="flex items-center justify-between rounded-lg border border-border/50 px-4 py-3"
             >
               <span className="text-sm">
-                {rs.sourceType.replace(/_/g, " ")}
+                {displayLabel(SOURCE_TYPE_LABELS, rs.sourceType)}
               </span>
               <span className="text-sm font-medium">
                 +{rs.amount} renown

@@ -4,28 +4,32 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { claimQuest, completeQuest, validateQuest } from "@/app/actions/quests";
+import { claimQuest, joinParty, completeQuest, validateQuest } from "@/app/actions/quests";
 
 interface QuestActionsProps {
   questId: string;
   questStatus: string;
   isAuthor: boolean;
-  isClaimer?: boolean;
+  isPartyMember?: boolean;
   hasValidated: boolean;
   validationMethod: string;
   validationCount: number;
   validationThreshold: number;
+  maxPartySize?: number;
+  currentPartySize?: number;
 }
 
 export function QuestActions({
   questId,
   questStatus,
   isAuthor,
-  isClaimer = false,
+  isPartyMember = false,
   hasValidated,
   validationMethod,
   validationCount,
   validationThreshold,
+  maxPartySize = 1,
+  currentPartySize = 0,
 }: QuestActionsProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -62,6 +66,23 @@ export function QuestActions({
       }
     } catch {
       setError("Failed to submit quest. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleJoin() {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await joinParty(questId);
+      if (result.success) {
+        router.refresh();
+      } else {
+        setError(result.error);
+      }
+    } catch {
+      setError("Failed to join quest. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -108,14 +129,34 @@ export function QuestActions({
         </div>
       )}
 
-      {/* Claimed / in progress: show complete button (claimer only) */}
-      {(questStatus === "claimed" || questStatus === "in_progress") && isClaimer && (
+      {/* Claimed party quest: show join button for non-members */}
+      {questStatus === "claimed" && !isAuthor && !isPartyMember && (
+        <div>
+          {currentPartySize >= maxPartySize ? (
+            <p className="text-sm text-muted-foreground">
+              This quest&apos;s party is full ({currentPartySize} of {maxPartySize} spots filled).
+            </p>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground mb-3">
+                {currentPartySize} of {maxPartySize} spots filled.
+              </p>
+              <Button onClick={handleJoin} disabled={loading}>
+                {loading ? "Joining..." : "Join This Quest"}
+              </Button>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Claimed / in progress: show complete button (party member only) */}
+      {(questStatus === "claimed" || questStatus === "in_progress") && isPartyMember && (
         <div>
           <p className="text-sm text-muted-foreground mb-3">
-            This quest is in progress.
+            {maxPartySize > 1 && "You\u2019ve joined this quest. "}
             {validationMethod === "self_report"
-              ? " Since it's a Spark quest, you can mark it complete directly."
-              : " When finished, submit it for peer validation."}
+              ? "Since it's a Spark quest, you can mark it complete directly."
+              : "When finished, submit it for peer validation."}
           </p>
           <Button onClick={handleComplete} disabled={loading}>
             {loading

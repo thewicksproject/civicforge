@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Zap, Users, Clock, CheckCircle } from "lucide-react";
+import { ChevronLeft, Zap, Users, Clock, CheckCircle, Calendar } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { formatRelativeTime } from "@/lib/utils";
 import { QUEST_DIFFICULTY_TIERS, type QuestDifficulty, type RenownTier, type SkillDomain } from "@/lib/types";
@@ -77,16 +77,22 @@ export default async function QuestDetailPage({
   }>;
   const hasValidated = validations.some((v) => v.validator_id === user.id);
 
-  // Determine if user is a claimer (party member or solo claimer)
-  const { data: claimMembership } = await admin
+  // Fetch party + all members for this quest
+  const { data: partyData } = await admin
     .from("parties")
-    .select("id, party_members!inner(user_id)")
+    .select("id, party_members(user_id, profiles!inner(display_name, avatar_url))")
     .eq("quest_id", questId)
-    .eq("party_members.user_id", user.id)
+    .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
 
-  const isClaimer = !!claimMembership;
+  type PartyMemberRow = {
+    user_id: string;
+    profiles: { display_name: string; avatar_url: string | null };
+  };
+  const partyMembers: PartyMemberRow[] = (partyData?.party_members as PartyMemberRow[] | undefined) ?? [];
+  const isPartyMember = partyMembers.some((m) => m.user_id === user.id);
+  const currentPartySize = partyMembers.length;
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -148,6 +154,18 @@ export default async function QuestDetailPage({
             <CheckCircle className="h-3.5 w-3.5" />
             {diffConfig?.validationMethod.replace(/_/g, " ")}
           </span>
+          {quest.scheduled_for && (
+            <span className="inline-flex items-center gap-1.5 bg-primary/10 text-primary rounded-lg px-3 py-1.5">
+              <Calendar className="h-3.5 w-3.5" />
+              {new Intl.DateTimeFormat("en-US", {
+                weekday: "long",
+                month: "short",
+                day: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+              }).format(new Date(quest.scheduled_for))}
+            </span>
+          )}
           {quest.expires_at && (
             <span className="inline-flex items-center gap-1.5 bg-muted rounded-lg px-3 py-1.5">
               <Clock className="h-3.5 w-3.5" />
@@ -177,16 +195,49 @@ export default async function QuestDetailPage({
         </div>
       </div>
 
+      {/* Party members */}
+      {quest.max_party_size > 1 && currentPartySize > 0 && (
+        <div className="rounded-xl border border-border bg-card p-4 mb-6">
+          <h2 className="text-sm font-semibold mb-3 flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Party Members ({currentPartySize} / {quest.max_party_size})
+          </h2>
+          <div className="flex flex-wrap gap-3">
+            {partyMembers.map((member) => {
+              const profile = Array.isArray(member.profiles)
+                ? member.profiles[0]
+                : member.profiles;
+              return (
+                <Link
+                  key={member.user_id}
+                  href={`/profile/${member.user_id}`}
+                  className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                >
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-semibold">
+                    {profile?.display_name?.charAt(0).toUpperCase() ?? "?"}
+                  </div>
+                  <span className="text-sm font-medium">
+                    {profile?.display_name ?? "Anonymous"}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Actions: claim / complete / validate */}
       <QuestActions
         questId={quest.id}
         questStatus={quest.status}
         isAuthor={isAuthor}
-        isClaimer={isClaimer}
+        isPartyMember={isPartyMember}
         hasValidated={hasValidated}
         validationMethod={quest.validation_method}
         validationCount={quest.validation_count}
         validationThreshold={quest.validation_threshold}
+        maxPartySize={quest.max_party_size}
+        currentPartySize={currentPartySize}
       />
 
       {/* Validations */}

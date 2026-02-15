@@ -34,8 +34,9 @@ const QuestSchema = z.object({
     )
     .min(1)
     .max(3),
-  max_party_size: z.number().int().min(1).max(10).default(1),
+  max_party_size: z.number().int().min(1).max(30).default(1),
   is_emergency: z.boolean().default(false),
+  scheduled_for: z.string().datetime({ offset: true }).nullable().optional(),
 });
 
 export async function createQuest(data: {
@@ -45,6 +46,7 @@ export async function createQuest(data: {
   skill_domains: string[];
   max_party_size?: number;
   is_emergency?: boolean;
+  scheduled_for?: string | null;
   post_id?: string;
 }) {
   const supabase = await createClient();
@@ -133,6 +135,7 @@ export async function createQuest(data: {
     is_emergency: parsed.data.is_emergency,
     requested_by_other: safePostId !== null,
     validation_threshold: diffConfig.validationThreshold,
+    scheduled_for: parsed.data.scheduled_for ?? null,
     // Game Designer FKs
     game_design_id: gameConfig.isClassicFallback ? null : gameConfig.gameDesignId,
     quest_type_id: questType && !gameConfig.isClassicFallback ? questType.id : null,
@@ -317,6 +320,89 @@ export async function claimQuest(questId: string) {
       .eq("id", questId)
       .eq("status", newStatus);
     return { success: false as const, error: "Failed to claim quest" };
+  }
+
+  return { success: true as const };
+}
+
+export async function joinParty(questId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false as const, error: "You must be logged in" };
+  }
+
+  const admin = createServiceClient();
+
+  const { data: userProfile } = await admin
+    .from("profiles")
+    .select("community_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!userProfile?.community_id) {
+    return { success: false as const, error: "Profile not found" };
+  }
+
+  const { data: quest } = await admin
+    .from("quests")
+    .select("id, status, max_party_size, created_by, community_id")
+    .eq("id", questId)
+    .single();
+
+  if (!quest) {
+    return { success: false as const, error: "Quest not found" };
+  }
+
+  if (quest.community_id !== userProfile.community_id) {
+    return { success: false as const, error: "Quest is not in your community" };
+  }
+
+  if (quest.status !== "claimed") {
+    return { success: false as const, error: "This quest is not accepting party members" };
+  }
+
+  if (quest.created_by === user.id) {
+    return { success: false as const, error: "Cannot join your own quest" };
+  }
+
+  // Find the party for this quest
+  const { data: party } = await admin
+    .from("parties")
+    .select("id")
+    .eq("quest_id", questId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (!party) {
+    return { success: false as const, error: "No party found for this quest" };
+  }
+
+  // Check party capacity
+  const { count } = await admin
+    .from("party_members")
+    .select("id", { count: "exact", head: true })
+    .eq("party_id", party.id);
+
+  if ((count ?? 0) >= quest.max_party_size) {
+    return { success: false as const, error: "This quest's party is full" };
+  }
+
+  // Insert party member (unique index prevents double-joining)
+  const { error: memberError } = await admin.from("party_members").insert({
+    party_id: party.id,
+    user_id: user.id,
+  });
+
+  if (memberError) {
+    if (memberError.code === "23505") {
+      return { success: false as const, error: "You have already joined this quest" };
+    }
+    return { success: false as const, error: "Failed to join quest" };
   }
 
   return { success: true as const };
@@ -658,7 +744,7 @@ export async function getCommunityQuests(communityId: string) {
     .from("quests")
     .select(`
       id, title, description, difficulty, status, skill_domains,
-      xp_reward, max_party_size, is_emergency, created_at,
+      xp_reward, max_party_size, is_emergency, scheduled_for, created_at,
       created_by, profiles!quests_created_by_fkey(display_name, avatar_url, renown_tier)
     `)
     .eq("community_id", communityId)

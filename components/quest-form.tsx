@@ -22,6 +22,7 @@ export function QuestForm() {
   const [difficulty, setDifficulty] = useState<QuestDifficulty>("spark");
   const [selectedDomains, setSelectedDomains] = useState<SkillDomain[]>([]);
   const [maxPartySize, setMaxPartySize] = useState(1);
+  const [scheduledFor, setScheduledFor] = useState("");
   const [isEmergency, setIsEmergency] = useState(false);
 
   function toggleDomain(domain: SkillDomain) {
@@ -51,6 +52,9 @@ export function QuestForm() {
       skill_domains: selectedDomains,
       max_party_size: maxPartySize,
       is_emergency: isEmergency,
+      scheduled_for: scheduledFor
+        ? new Date(scheduledFor).toISOString()
+        : null,
     });
 
     if (result.success) {
@@ -173,9 +177,9 @@ export function QuestForm() {
             id="partySize"
             type="number"
             min={1}
-            max={10}
+            max={30}
             value={maxPartySize}
-            onChange={(e) => setMaxPartySize(Math.min(10, Math.max(1, Number(e.target.value))))}
+            onChange={(e) => setMaxPartySize(Math.min(30, Math.max(1, Number(e.target.value))))}
             className="w-20"
           />
           <span className="text-sm text-muted-foreground">
@@ -183,6 +187,25 @@ export function QuestForm() {
           </span>
         </div>
       </div>
+
+      {/* Scheduled date (only for party quests) */}
+      {maxPartySize > 1 && (
+        <div>
+          <label htmlFor="scheduledFor" className="block text-sm font-medium mb-1.5">
+            When <span className="text-muted-foreground font-normal">(optional)</span>
+          </label>
+          <Input
+            id="scheduledFor"
+            type="datetime-local"
+            value={scheduledFor}
+            onChange={(e) => setScheduledFor(e.target.value)}
+            className="w-auto"
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            Leave blank for ongoing quests.
+          </p>
+        </div>
+      )}
 
       {/* Emergency */}
       <label className="flex items-center gap-2 cursor-pointer">

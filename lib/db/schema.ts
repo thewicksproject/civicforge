@@ -423,6 +423,8 @@ export const invitations = pgTable(
     usedBy: uuid("used_by").references(() => profiles.id, {
       onDelete: "set null",
     }),
+    maxUses: integer("max_uses").notNull().default(1),
+    useCount: integer("use_count").notNull().default(0),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -638,6 +640,7 @@ export const quests = pgTable(
     // Game Designer FKs (nullable for backward compat — actual FK in migration)
     gameDesignId: uuid("game_design_id"),
     questTypeId: uuid("quest_type_id"),
+    scheduledFor: timestamp("scheduled_for", { withTimezone: true }),
     completedAt: timestamp("completed_at", { withTimezone: true }),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })

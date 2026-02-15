@@ -1,16 +1,26 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { EmailSentIllustration } from "@/components/illustrations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect");
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Build callback URL, forwarding ?redirect as ?next for the auth callback
+  const callbackBase = `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/api/auth/callback`;
+  const callbackUrl =
+    redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")
+      ? `${callbackBase}?next=${encodeURIComponent(redirectTo)}`
+      : callbackBase;
 
   async function handleMagicLink(e: React.FormEvent) {
     e.preventDefault();
@@ -21,7 +31,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/api/auth/callback`,
+        emailRedirectTo: callbackUrl,
       },
     });
 
@@ -38,7 +48,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/api/auth/callback`,
+        redirectTo: callbackUrl,
       },
     });
     if (error) setError(error.message);

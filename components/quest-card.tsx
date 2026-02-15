@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, Zap, TriangleAlert } from "lucide-react";
+import { Users, Zap, TriangleAlert, Calendar } from "lucide-react";
 import { cn, formatRelativeTime, truncate } from "@/lib/utils";
 import { QUEST_DIFFICULTY_TIERS, type QuestDifficulty } from "@/lib/types";
 import { SkillDomainBadge, DifficultyBadge } from "./skill-domain-badge";
@@ -16,6 +16,7 @@ interface QuestCardProps {
   xpReward: number;
   maxPartySize: number;
   isEmergency: boolean;
+  scheduledFor?: string | null;
   createdAt: string;
   authorName: string;
   authorRenownTier: number;
@@ -31,6 +32,7 @@ export function QuestCard({
   xpReward,
   maxPartySize,
   isEmergency,
+  scheduledFor,
   createdAt,
   authorName,
   authorRenownTier,
@@ -67,6 +69,20 @@ export function QuestCard({
           <h3 className="text-base font-semibold leading-snug mb-1">
             {title}
           </h3>
+
+          {/* Scheduled date */}
+          {scheduledFor && (
+            <p className="inline-flex items-center gap-1 text-sm text-primary mb-1">
+              <Calendar className="h-3.5 w-3.5" />
+              {new Intl.DateTimeFormat("en-US", {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+              }).format(new Date(scheduledFor))}
+            </p>
+          )}
 
           {/* Description preview */}
           <p className="text-sm text-muted-foreground leading-relaxed">

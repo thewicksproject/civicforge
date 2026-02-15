@@ -4,7 +4,14 @@ import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { generateInviteCode, UUID_FORMAT } from "@/lib/utils";
 
-export async function createInvitation(communityId: string) {
+const InvitationOptionsSchema = z.object({
+  maxUses: z.number().int().min(1).max(50).default(1),
+});
+
+export async function createInvitation(
+  communityId: string,
+  options?: { maxUses?: number },
+) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -46,19 +53,25 @@ export async function createInvitation(communityId: string) {
     };
   }
 
-  // Generate code and set expiry 7 days from now
+  const parsed = InvitationOptionsSchema.safeParse(options ?? {});
+  const maxUses = parsed.success ? parsed.data.maxUses : 1;
+
+  // Generate code and set expiry (30 days for multi-use, 7 days for single-use)
   const code = generateInviteCode();
   const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7);
+  expiresAt.setDate(expiresAt.getDate() + (maxUses > 1 ? 30 : 7));
+
+  const insertData = {
+    code,
+    community_id: communityId,
+    created_by: user.id,
+    max_uses: maxUses,
+    expires_at: expiresAt.toISOString(),
+  };
 
   const { data: invitation, error: insertError } = await admin
     .from("invitations")
-    .insert({
-      code,
-      community_id: communityId,
-      created_by: user.id,
-      expires_at: expiresAt.toISOString(),
-    })
+    .insert(insertData)
     .select()
     .single();
 
@@ -68,12 +81,7 @@ export async function createInvitation(communityId: string) {
       const retryCode = generateInviteCode();
       const { data: retryInvitation, error: retryError } = await admin
         .from("invitations")
-        .insert({
-          code: retryCode,
-          community_id: communityId,
-          created_by: user.id,
-          expires_at: expiresAt.toISOString(),
-        })
+        .insert({ ...insertData, code: retryCode })
         .select()
         .single();
 
@@ -123,11 +131,11 @@ export async function redeemInvitation(code: string) {
     return { success: false as const, error: "Invitation not found" };
   }
 
-  // Check if already used
-  if (invitation.used_by) {
+  // Check if usage limit reached
+  if (invitation.use_count >= (invitation.max_uses ?? 1)) {
     return {
       success: false as const,
-      error: "This invitation has already been used",
+      error: "This invitation has reached its usage limit",
     };
   }
 
@@ -157,12 +165,15 @@ export async function redeemInvitation(code: string) {
     };
   }
 
-  // Mark invitation as used atomically (prevents concurrent double-redeem).
+  // Atomically claim invitation (optimistic lock on use_count < max_uses).
   const { data: claimedInvitation, error: updateInvError } = await admin
     .from("invitations")
-    .update({ used_by: user.id })
+    .update({
+      used_by: user.id,
+      use_count: invitation.use_count + 1,
+    })
     .eq("id", invitation.id)
-    .is("used_by", null)
+    .lt("use_count", invitation.max_uses ?? 1)
     .gt("expires_at", new Date().toISOString())
     .select("id, community_id")
     .single();
@@ -201,9 +212,8 @@ export async function redeemInvitation(code: string) {
     // Best-effort rollback so a failed profile update doesn't permanently consume the code.
     await admin
       .from("invitations")
-      .update({ used_by: null })
-      .eq("id", claimedInvitation.id)
-      .eq("used_by", user.id);
+      .update({ use_count: Math.max(0, invitation.use_count) })
+      .eq("id", claimedInvitation.id);
 
     return {
       success: false as const,

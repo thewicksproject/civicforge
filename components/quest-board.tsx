@@ -18,6 +18,7 @@ interface QuestData {
   xp_reward: number;
   max_party_size: number;
   is_emergency: boolean;
+  scheduled_for?: string | null;
   created_at: string;
   created_by: string;
   profiles: AuthorData | AuthorData[] | null;
@@ -81,6 +82,7 @@ export function QuestBoard({ quests }: { quests: QuestData[] }) {
                 xpReward={quest.xp_reward}
                 maxPartySize={quest.max_party_size}
                 isEmergency={quest.is_emergency}
+                scheduledFor={quest.scheduled_for}
                 createdAt={quest.created_at}
                 authorName={author?.display_name ?? "Anonymous"}
                 authorRenownTier={author?.renown_tier ?? 1}

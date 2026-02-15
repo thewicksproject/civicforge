@@ -2,11 +2,12 @@
 
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { UUID_FORMAT } from "@/lib/utils";
 
 const MONTHLY_VOUCH_LIMIT = 10;
 
 const VouchSchema = z.object({
-  to_user: z.string().uuid(),
+  to_user: z.string().regex(UUID_FORMAT),
   message: z.string().max(500).optional(),
 });
 

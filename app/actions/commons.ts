@@ -8,6 +8,7 @@ import {
   suppressCount,
 } from "@/lib/commons/privacy";
 import type { SkillDomain } from "@/lib/types";
+import { resolveGameConfig } from "@/lib/game-config/resolver";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -134,7 +135,8 @@ const DIFFICULTY_COLORS: Record<string, string> = {
   inferno: "var(--destructive)",
 };
 
-const TIER_NAMES: Record<number, string> = {
+// Default tier names (overridden by community game config when available)
+const DEFAULT_TIER_NAMES: Record<number, string> = {
   1: "Newcomer",
   2: "Neighbor",
   3: "Pillar",
@@ -231,6 +233,19 @@ export async function getCommonsData(
   const { smallGroupSuppressed, growthHidden } =
     getCommonsPrivacyFlags(rawCommunityMemberCount);
 
+  // Resolve community game config for dynamic labels/colors
+  let tierNames = DEFAULT_TIER_NAMES;
+  try {
+    const gameConfig = await resolveGameConfig(viewerCommunityId);
+    if (gameConfig.recognitionTiers.length > 0) {
+      tierNames = Object.fromEntries(
+        gameConfig.recognitionTiers.map((t) => [t.tierNumber, t.name]),
+      );
+    }
+  } catch {
+    // Fall back to defaults
+  }
+
   // Fetch all data in parallel
   const [
     domainDistribution,
@@ -243,7 +258,7 @@ export async function getCommonsData(
     communityGrowth,
   ] = await Promise.all([
     fetchDomainDistribution(admin, communityFilter),
-    fetchRenownPyramid(admin, communityFilter),
+    fetchRenownPyramid(admin, communityFilter, tierNames),
     fetchQuestActivity(admin, communityFilter),
     fetchQuestDifficultyBreakdown(admin, communityFilter),
     fetchGuildEcosystem(admin, communityFilter),
@@ -423,7 +438,8 @@ async function fetchDomainDistribution(
 
 async function fetchRenownPyramid(
   admin: AdminClient,
-  filter: Filter
+  filter: Filter,
+  tierNames: Record<number, string> = DEFAULT_TIER_NAMES,
 ): Promise<TierCount[]> {
   let q = admin.from("profiles").select("renown_tier");
   if (filter) q = q.eq(filter.column, filter.value);
@@ -439,7 +455,7 @@ async function fetchRenownPyramid(
 
   return Object.entries(counts).map(([tier, count]) => ({
     tier: Number(tier),
-    name: TIER_NAMES[Number(tier)] ?? `Tier ${tier}`,
+    name: tierNames[Number(tier)] ?? `Tier ${tier}`,
     count: suppress(count),
   }));
 }

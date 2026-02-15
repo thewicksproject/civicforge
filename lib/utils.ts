@@ -1,6 +1,13 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+/**
+ * Permissive UUID format regex — validates hex shape without enforcing
+ * version/variant bits. Zod v4's z.string().uuid() rejects synthetic
+ * UUIDs (e.g. seeded migration IDs), so use this instead.
+ */
+export const UUID_FORMAT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }

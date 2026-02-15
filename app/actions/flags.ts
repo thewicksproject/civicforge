@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { FLAG_THRESHOLD_HIDE } from "@/lib/types";
+import { UUID_FORMAT } from "@/lib/utils";
 import {
   canModerateCommunityResource,
   isSameCommunity,
@@ -18,7 +19,7 @@ export async function flagPost(postId: string, reason?: string) {
     return { success: false as const, error: "You must be logged in" };
   }
 
-  const idParsed = z.string().uuid().safeParse(postId);
+  const idParsed = z.string().regex(UUID_FORMAT).safeParse(postId);
   if (!idParsed.success) {
     return { success: false as const, error: "Invalid post ID" };
   }
@@ -109,7 +110,7 @@ export async function unflagPost(postId: string) {
     return { success: false as const, error: "You must be logged in" };
   }
 
-  const idParsed = z.string().uuid().safeParse(postId);
+  const idParsed = z.string().regex(UUID_FORMAT).safeParse(postId);
   if (!idParsed.success) {
     return { success: false as const, error: "Invalid post ID" };
   }

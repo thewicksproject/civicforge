@@ -6,12 +6,7 @@
 -- 3) Enforce one open request per subject user
 -- 4) Persist failure reasons and attempt metadata
 
-DO $$
-BEGIN
-  ALTER TYPE deletion_status ADD VALUE IF NOT EXISTS 'failed';
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
+ALTER TYPE deletion_status ADD VALUE IF NOT EXISTS 'failed';
 
 ALTER TABLE deletion_requests
   ADD COLUMN IF NOT EXISTS subject_user_id uuid,
@@ -39,7 +34,9 @@ ALTER TABLE deletion_requests
   FOREIGN KEY (user_id) REFERENCES profiles (id) ON DELETE SET NULL;
 
 -- If duplicate open requests exist for a user, keep the newest open request
--- and mark older ones as failed before applying the unique partial index.
+-- and delete older ones before applying the unique partial index.
+-- (Cannot use the new 'failed' enum value in DML within the same transaction
+--  that added it — PG blocks new enum values in same-transaction DML.)
 WITH ranked AS (
   SELECT
     id,
@@ -50,12 +47,8 @@ WITH ranked AS (
   FROM deletion_requests
   WHERE status IN ('pending', 'processing')
 )
-UPDATE deletion_requests d
-SET
-  status = 'failed',
-  failure_reason = COALESCE(d.failure_reason, 'superseded_by_open_request_dedup'),
-  updated_at = now()
-FROM ranked r
+DELETE FROM deletion_requests d
+USING ranked r
 WHERE d.id = r.id
   AND r.rn > 1;
 

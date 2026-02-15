@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS vouch_usage (
 ALTER TABLE vouches ENABLE ROW LEVEL SECURITY;
 
 -- Anyone in the same community can see vouches
+DROP POLICY IF EXISTS vouches_select ON vouches;
 CREATE POLICY vouches_select ON vouches
   FOR SELECT
   USING (
@@ -50,6 +51,7 @@ CREATE POLICY vouches_select ON vouches
   );
 
 -- Insert: must be the from_user, must be Tier 3+, same community as target
+DROP POLICY IF EXISTS vouches_insert ON vouches;
 CREATE POLICY vouches_insert ON vouches
   FOR INSERT
   WITH CHECK (
@@ -71,12 +73,15 @@ CREATE POLICY vouches_insert ON vouches
 ALTER TABLE vouch_usage ENABLE ROW LEVEL SECURITY;
 
 -- Users can only see/modify their own usage
+DROP POLICY IF EXISTS vouch_usage_select ON vouch_usage;
 CREATE POLICY vouch_usage_select ON vouch_usage
   FOR SELECT USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS vouch_usage_insert ON vouch_usage;
 CREATE POLICY vouch_usage_insert ON vouch_usage
   FOR INSERT WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS vouch_usage_update ON vouch_usage;
 CREATE POLICY vouch_usage_update ON vouch_usage
   FOR UPDATE USING (user_id = auth.uid());
 

@@ -7,6 +7,7 @@ import {
   NEW_ACCOUNT_REVIEW_POST_COUNT,
   MAX_PHOTOS_PER_POST,
 } from "@/lib/types";
+import { UUID_FORMAT } from "@/lib/utils";
 import { moderateContent } from "@/lib/ai/client";
 import {
   resolveAppEnv,
@@ -255,7 +256,7 @@ export async function updatePost(postId: string, formData: FormData) {
     return { success: false as const, error: "You must be logged in" };
   }
 
-  const idParsed = z.string().uuid().safeParse(postId);
+  const idParsed = z.string().regex(UUID_FORMAT).safeParse(postId);
   if (!idParsed.success) {
     return { success: false as const, error: "Invalid post ID" };
   }
@@ -360,7 +361,7 @@ export async function deletePost(postId: string) {
     return { success: false as const, error: "You must be logged in" };
   }
 
-  const idParsed = z.string().uuid().safeParse(postId);
+  const idParsed = z.string().regex(UUID_FORMAT).safeParse(postId);
   if (!idParsed.success) {
     return { success: false as const, error: "Invalid post ID" };
   }
@@ -407,7 +408,7 @@ export async function getCommunityPosts(communityId: string) {
     return { success: false as const, error: "You must be logged in" };
   }
 
-  const idParsed = z.string().uuid().safeParse(communityId);
+  const idParsed = z.string().regex(UUID_FORMAT).safeParse(communityId);
   if (!idParsed.success) {
     return { success: false as const, error: "Invalid community ID" };
   }

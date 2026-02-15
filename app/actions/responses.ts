@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { moderateContent } from "@/lib/ai/client";
+import { UUID_FORMAT } from "@/lib/utils";
 import { isSameCommunity } from "@/lib/security/authorization";
 
 const MessageSchema = z
@@ -22,7 +23,7 @@ export async function createResponse(postId: string, message: string) {
     return { success: false as const, error: "You must be logged in" };
   }
 
-  const idParsed = z.string().uuid().safeParse(postId);
+  const idParsed = z.string().regex(UUID_FORMAT).safeParse(postId);
   if (!idParsed.success) {
     return { success: false as const, error: "Invalid post ID" };
   }
@@ -136,7 +137,7 @@ export async function updateResponseStatus(
     return { success: false as const, error: "You must be logged in" };
   }
 
-  const idParsed = z.string().uuid().safeParse(responseId);
+  const idParsed = z.string().regex(UUID_FORMAT).safeParse(responseId);
   if (!idParsed.success) {
     return { success: false as const, error: "Invalid response ID" };
   }

@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { UUID_FORMAT } from "@/lib/utils";
 
 const ProposalSchema = z.object({
   title: z
@@ -19,11 +20,12 @@ const ProposalSchema = z.object({
     "seasonal_quest",
     "rule_change",
     "guild_charter",
+    "game_design",
     "federation",
     "other",
   ] as const),
   vote_type: z.enum(["quadratic", "approval", "liquid_delegate"] as const).default("quadratic"),
-  guild_id: z.string().uuid().optional(),
+  guild_id: z.string().regex(UUID_FORMAT).optional(),
   deliberation_days: z.number().int().min(3).max(30).default(7),
   voting_days: z.number().int().min(3).max(14).default(7),
 });
@@ -139,7 +141,7 @@ export async function castVote(data: {
 
   if (
     !data.proposal_id ||
-    !z.string().uuid().safeParse(data.proposal_id).success
+    !z.string().regex(UUID_FORMAT).safeParse(data.proposal_id).success
   ) {
     return { success: false as const, error: "Valid proposal ID required" };
   }

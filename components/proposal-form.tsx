@@ -15,6 +15,7 @@ const CATEGORIES = [
   { value: "threshold_change", label: "Threshold Change" },
   { value: "seasonal_quest", label: "Seasonal Quest" },
   { value: "guild_charter", label: "Guild Charter" },
+  { value: "game_design", label: "Game Design" },
   { value: "other", label: "Other" },
 ];
 

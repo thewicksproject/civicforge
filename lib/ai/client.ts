@@ -24,6 +24,7 @@ import {
   QUEST_MATCHING_PROMPT,
   ADVOCATE_PROMPT,
   GOVERNANCE_ANALYSIS_PROMPT,
+  buildGameAwareAdvocatePrompt,
 } from "./prompts";
 
 const anthropic = createAnthropic({
@@ -201,6 +202,12 @@ export async function advocateChat(
     };
     recentActivity: string;
     activeQuests: string;
+    gameConfig?: {
+      name: string;
+      valueStatement: string;
+      questTypes: Array<{ slug: string; label: string; recognitionType: string; baseRecognition: number }>;
+      recognitionSources: Array<{ sourceType: string; amount: number }>;
+    };
   }
 ): Promise<string> {
   const contextBlock = `
@@ -216,11 +223,29 @@ ${context.recentActivity || "No recent activity"}
 ACTIVE QUESTS:
 ${context.activeQuests || "No active quests"}`;
 
+  // Use game-aware prompt if game config is available
+  let systemPrompt = ADVOCATE_PROMPT;
+  if (context.gameConfig) {
+    systemPrompt = buildGameAwareAdvocatePrompt({
+      name: context.gameConfig.name,
+      valueStatement: context.gameConfig.valueStatement,
+      designRationale: "",
+      questTypes: context.gameConfig.questTypes.map((qt) => ({
+        ...qt,
+        description: null,
+      })),
+      skillDomains: [],
+      recognitionTiers: [],
+      recognitionSources: context.gameConfig.recognitionSources,
+      sunsetAt: new Date(Date.now() + 2 * 365 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+  }
+
   const markedMessage = datamark(userMessage);
 
   const { text } = await generateText({
     model: anthropic(MODEL),
-    system: ADVOCATE_PROMPT + "\n\n" + contextBlock,
+    system: systemPrompt + "\n\n" + contextBlock,
     prompt: `User says: ${markedMessage}`,
   });
 

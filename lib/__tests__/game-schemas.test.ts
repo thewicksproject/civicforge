@@ -187,3 +187,26 @@ describe("GameDesignDraftSchema", () => {
     expect(GameDesignDraftSchema.safeParse({ ...valid, sunsetAt: "not-a-date" }).success).toBe(false);
   });
 });
+
+describe("UUID_FORMAT regex", () => {
+  const UUID_FORMAT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  it("accepts valid lowercase UUID", () => {
+    expect(UUID_FORMAT.test("550e8400-e29b-41d4-a716-446655440000")).toBe(true);
+  });
+  it("accepts valid uppercase UUID", () => {
+    expect(UUID_FORMAT.test("550E8400-E29B-41D4-A716-446655440000")).toBe(true);
+  });
+  it("rejects missing hyphen", () => {
+    expect(UUID_FORMAT.test("550e8400e29b-41d4-a716-446655440000")).toBe(false);
+  });
+  it("rejects truncated UUID", () => {
+    expect(UUID_FORMAT.test("550e8400-e29b-41d4")).toBe(false);
+  });
+  it("rejects empty string", () => {
+    expect(UUID_FORMAT.test("")).toBe(false);
+  });
+  it("rejects injection attempt", () => {
+    expect(UUID_FORMAT.test("'; DROP TABLE game_designs; --")).toBe(false);
+  });
+});

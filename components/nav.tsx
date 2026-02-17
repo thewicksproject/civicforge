@@ -2,25 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import { useTheme } from "next-themes";
-import { LayoutGrid, CirclePlus, CircleUser, Settings, ShieldCheck, Sun, Moon, Shield, Vote, Globe, Dices } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { LayoutGrid, CirclePlus, CircleUser, Settings, Sun, Moon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/board", label: "Board", icon: LayoutGrid },
-  { href: "/commons", label: "Commons", icon: Globe },
-  { href: "/game", label: "Game", icon: Dices },
-  { href: "/guilds", label: "Guilds", icon: Shield },
   { href: "/post/new", label: "Post", icon: CirclePlus },
   { href: "/profile", label: "Profile", icon: CircleUser },
-  { href: "/settings/privacy", label: "Settings", icon: Settings },
+  { href: "/settings/privacy", label: "Account", icon: Settings },
 ];
 
 export function Nav() {
   const pathname = usePathname();
-  const [renownTier, setRenownTier] = useState<number>(1);
   const { theme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(
     () => () => {},
@@ -28,32 +23,7 @@ export function Nav() {
     () => false
   );
 
-  useEffect(() => {
-    async function loadTier() {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase
-        .from("profiles")
-        .select("renown_tier")
-        .eq("id", user.id)
-        .single();
-      if (data) {
-        setRenownTier(data.renown_tier ?? 1);
-      }
-    }
-    loadTier();
-  }, []);
-
-  let items = [...NAV_ITEMS];
-  if (renownTier >= 4) {
-    items = [...items, { href: "/governance", label: "Govern", icon: Vote }];
-  }
-  if (renownTier >= 3) {
-    items = [...items, { href: "/admin/review", label: "Admin", icon: ShieldCheck }];
-  }
+  const items = NAV_ITEMS;
 
   return (
     <>

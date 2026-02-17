@@ -1,10 +1,7 @@
 import Link from "next/link";
-import { Image as ImageIcon, TriangleAlert } from "lucide-react";
+import { Eye, Heart, Image as ImageIcon, TriangleAlert } from "lucide-react";
 import { cn, formatRelativeTime, truncate } from "@/lib/utils";
-import type { RenownTier } from "@/lib/types";
 import { CATEGORY_ICON_MAP } from "./category-icons";
-import { RenownTierBadge } from "./trust-tier-badge";
-import { ReputationBadge } from "./reputation-badge";
 import { AiBadge } from "./ai-badge";
 
 interface PostCardProps {
@@ -14,13 +11,14 @@ interface PostCardProps {
   description: string;
   category: string;
   authorName: string;
-  authorReputation: number;
-  authorRenownTier: RenownTier;
   responseCount: number;
   photoCount: number;
+  thumbnailUrl?: string;
   createdAt: string;
   urgency?: "low" | "medium" | "high" | null;
   aiAssisted?: boolean;
+  viewCount?: number;
+  interestCount?: number;
 }
 
 export function PostCard({
@@ -30,13 +28,14 @@ export function PostCard({
   description,
   category,
   authorName,
-  authorReputation,
-  authorRenownTier,
   responseCount,
   photoCount,
+  thumbnailUrl,
   createdAt,
   urgency,
   aiAssisted,
+  viewCount,
+  interestCount,
 }: PostCardProps) {
   const isNeed = type === "need";
 
@@ -90,14 +89,33 @@ export function PostCard({
           </div>
         </div>
 
-        {/* Photo indicator */}
+        {/* Photo thumbnail or indicator */}
         {photoCount > 0 && (
-          <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
-            <ImageIcon className="h-5 w-5 text-muted-foreground" />
-            {photoCount > 1 && (
-              <span className="text-[10px] text-muted-foreground ml-0.5">
-                {photoCount}
-              </span>
+          <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-muted flex items-center justify-center overflow-hidden relative">
+            {thumbnailUrl ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={thumbnailUrl}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+                {photoCount > 1 && (
+                  <span className="absolute bottom-0.5 right-0.5 text-[10px] font-medium text-white bg-black/50 rounded px-1">
+                    +{photoCount - 1}
+                  </span>
+                )}
+              </>
+            ) : (
+              <>
+                <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                {photoCount > 1 && (
+                  <span className="text-[10px] text-muted-foreground ml-0.5">
+                    {photoCount}
+                  </span>
+                )}
+              </>
             )}
           </div>
         )}
@@ -105,12 +123,22 @@ export function PostCard({
 
       {/* Footer */}
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">{authorName}</span>
-          <RenownTierBadge tier={authorRenownTier} />
-          <ReputationBadge score={authorReputation} size="sm" />
+        <span className="text-sm font-medium text-foreground">{authorName}</span>
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          {viewCount != null && viewCount > 0 && (
+            <span className="inline-flex items-center gap-1">
+              <Eye className="h-3 w-3" />
+              {viewCount}
+            </span>
+          )}
+          {interestCount != null && interestCount > 0 && (
+            <span className="inline-flex items-center gap-1">
+              <Heart className="h-3 w-3" />
+              {interestCount}
+            </span>
+          )}
+          <span>{formatRelativeTime(new Date(createdAt))}</span>
         </div>
-        <span className="text-xs text-muted-foreground">{formatRelativeTime(new Date(createdAt))}</span>
       </div>
     </Link>
   );

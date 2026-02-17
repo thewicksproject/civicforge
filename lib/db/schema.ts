@@ -272,6 +272,7 @@ export const posts = pgTable(
     locationHint: text("location_hint"),
     availableTimes: text("available_times"),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
+    viewCount: integer("view_count").notNull().default(0),
     flagCount: integer("flag_count").notNull().default(0),
     hidden: boolean("hidden").notNull().default(false),
     aiAssisted: boolean("ai_assisted").notNull().default(false),
@@ -316,6 +317,57 @@ export const postFlags = pgTable(
     uniqueIndex("post_flags_post_user_uniq").on(table.postId, table.userId),
     index("post_flags_post_idx").on(table.postId),
     index("post_flags_user_idx").on(table.userId),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// 3c. Post Interests (momentum signals — "I'm interested")
+// ---------------------------------------------------------------------------
+
+export const postInterests = pgTable(
+  "post_interests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    postId: uuid("post_id")
+      .notNull()
+      .references(() => posts.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("post_interests_post_user_uniq").on(table.postId, table.userId),
+    index("post_interests_post_idx").on(table.postId),
+    index("post_interests_user_idx").on(table.userId),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// 3d. Completion Stories (narrative over numbers)
+// ---------------------------------------------------------------------------
+
+export const completionStories = pgTable(
+  "completion_stories",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    postId: uuid("post_id")
+      .notNull()
+      .references(() => posts.id, { onDelete: "cascade" }),
+    authorId: uuid("author_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    story: text("story").notNull(),
+    photoUrl: text("photo_url"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("completion_stories_post_uniq").on(table.postId),
+    index("completion_stories_author_idx").on(table.authorId),
   ],
 );
 
@@ -1420,3 +1472,11 @@ export type NewGameRecognitionSource = typeof gameRecognitionSources.$inferInser
 
 export type QuestNarrative = typeof questNarratives.$inferSelect;
 export type NewQuestNarrative = typeof questNarratives.$inferInsert;
+
+// Simplification types (momentum signals + stories)
+
+export type PostInterest = typeof postInterests.$inferSelect;
+export type NewPostInterest = typeof postInterests.$inferInsert;
+
+export type CompletionStory = typeof completionStories.$inferSelect;
+export type NewCompletionStory = typeof completionStories.$inferInsert;

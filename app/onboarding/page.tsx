@@ -9,6 +9,7 @@ import { redeemInvitation } from "@/app/actions/invitations";
 import { requestMembership } from "@/app/actions/membership";
 import { OnboardingWelcomeIllustration } from "@/components/illustrations";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 
 type Step = "name" | "community" | "invite" | "pending" | "done";
@@ -17,6 +18,8 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("name");
   const [displayName, setDisplayName] = useState("");
+  const [bio, setBio] = useState("");
+  const [skills, setSkills] = useState("");
   const [communityId, setCommunityId] = useState<string | undefined>();
   const [inviteCode, setInviteCode] = useState("");
   const [error, setError] = useState("");
@@ -47,9 +50,11 @@ export default function OnboardingPage() {
     setLoading(true);
     setError("");
 
-    // Always save display name first.
+    // Always save profile first.
     const profileFormData = new FormData();
     profileFormData.set("display_name", displayName);
+    if (bio.trim()) profileFormData.set("bio", bio.trim());
+    if (skills.trim()) profileFormData.set("skills", skills.trim());
     const profileResult = await updateProfile(profileFormData);
     if (!profileResult.success) {
       setError(profileResult.error ?? "Failed to save profile name");
@@ -179,6 +184,34 @@ export default function OnboardingPage() {
               className="text-center text-lg"
               autoFocus
             />
+            <div>
+              <label htmlFor="bio" className="block text-sm font-medium mb-1.5">
+                A little about you <span className="text-muted-foreground font-normal">(optional)</span>
+              </label>
+              <Textarea
+                id="bio"
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder="e.g., Retired teacher, love gardening and baking"
+                maxLength={500}
+                rows={2}
+                className="resize-y"
+              />
+            </div>
+            <div>
+              <label htmlFor="skills" className="block text-sm font-medium mb-1.5">
+                Skills you can share <span className="text-muted-foreground font-normal">(optional)</span>
+              </label>
+              <Input
+                id="skills"
+                type="text"
+                value={skills}
+                onChange={(e) => setSkills(e.target.value)}
+                placeholder="e.g., plumbing, tutoring, cooking"
+                maxLength={1000}
+              />
+              <p className="text-xs text-muted-foreground mt-1">Comma-separated</p>
+            </div>
             <Button type="submit" className="w-full" size="lg">
               Continue
             </Button>
@@ -324,7 +357,7 @@ export default function OnboardingPage() {
                 Membership Request Sent
               </h1>
               <p className="text-sm text-muted-foreground">
-                A community steward will review your request. You can return
+                A community member will review your request. You can return
                 here later with an invite code for immediate access.
               </p>
             </div>

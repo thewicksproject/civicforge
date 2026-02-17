@@ -2,20 +2,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { BoardContent } from "@/components/board-content";
-import { QuestBoard } from "@/components/quest-board";
-import { BoardTabs } from "@/components/board-tabs";
+import { ActivityFeed } from "@/components/activity-feed";
 import { EmptyBoardIllustration } from "@/components/illustrations";
+import { getCommunityActivity } from "@/app/actions/activity";
 
-export const metadata = { title: "Hearthboard" };
+export const metadata = { title: "Community Board" };
 
-export default async function BoardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ tab?: string }>;
-}) {
-  const { tab } = await searchParams;
-  const activeTab = tab === "quests" ? "quests" : "posts";
-
+export default async function BoardPage() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -26,10 +19,10 @@ export default async function BoardPage({
   // Use service client to bypass self-referencing RLS policy on profiles
   const admin = createServiceClient();
 
-  // Get user's profile to know their community
+  // Get user's profile and community name
   const { data: profile } = await admin
     .from("profiles")
-    .select("community_id, renown_tier")
+    .select("community_id, renown_tier, community:communities!community_id(name)")
     .eq("id", user.id)
     .single();
 
@@ -40,7 +33,7 @@ export default async function BoardPage({
           Welcome to CivicForge
         </h2>
         <p className="text-muted-foreground mb-6">
-          Join a community to see the needs board.
+          Join a community to see the board.
         </p>
         <Link
           href="/onboarding"
@@ -57,10 +50,11 @@ export default async function BoardPage({
     .from("posts")
     .select(
       `
-      id, type, title, description, category, urgency, status, created_at, flag_count, hidden, ai_assisted,
-      author:profiles!author_id (display_name, reputation_score, renown_tier),
-      post_photos (id),
-      responses (id)
+      id, type, title, description, category, urgency, status, created_at, flag_count, hidden, ai_assisted, view_count,
+      author:profiles!author_id (display_name),
+      post_photos (id, thumbnail_url),
+      responses (id),
+      post_interests (id)
     `
     )
     .eq("community_id", profile.community_id)
@@ -69,106 +63,92 @@ export default async function BoardPage({
     .order("created_at", { ascending: false })
     .limit(50);
 
-  // Fetch quests for user's community
-  const { data: quests } = await admin
-    .from("quests")
-    .select(`
-      id, title, description, difficulty, status, skill_domains,
-      xp_reward, max_party_size, is_emergency, created_at,
-      created_by, profiles!quests_created_by_fkey(display_name, avatar_url, renown_tier)
-    `)
-    .eq("community_id", profile.community_id)
-    .in("status", ["open", "claimed", "in_progress", "pending_validation"])
-    .order("created_at", { ascending: false })
-    .limit(50);
-
   const canPost = (profile.renown_tier ?? 1) >= 2;
-  const canCreateQuest = (profile.renown_tier ?? 1) >= 2;
+
+  // Fetch community activity feed
+  const activity = await getCommunityActivity(profile.community_id);
+
+  const communityRaw = profile.community as { name: string } | { name: string }[] | null;
+  const communityName = Array.isArray(communityRaw)
+    ? communityRaw[0]?.name
+    : communityRaw?.name;
+
+  // Sign first thumbnail URL for each post that has photos (private bucket)
+  const postsWithSignedThumbs = posts
+    ? await Promise.all(
+        posts.map(async (post) => {
+          const firstPhoto = post.post_photos?.[0];
+          if (!firstPhoto?.thumbnail_url || firstPhoto.thumbnail_url.startsWith("http")) {
+            return post;
+          }
+          const { data } = await supabase.storage
+            .from("post-photos")
+            .createSignedUrl(firstPhoto.thumbnail_url, 3600);
+          return {
+            ...post,
+            post_photos: data?.signedUrl
+              ? [{ ...firstPhoto, thumbnail_url: data.signedUrl }, ...post.post_photos.slice(1)]
+              : post.post_photos,
+          };
+        })
+      )
+    : null;
 
   return (
     <div>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold">Hearthboard</h1>
+          <h1 className="text-2xl font-semibold">{communityName ?? "Community Board"}</h1>
           <p className="text-sm text-muted-foreground">
-            What&apos;s happening in your community
+            What&apos;s happening in {communityName ?? "your community"}
           </p>
         </div>
-        <div className="flex gap-2">
-          {canPost && activeTab === "posts" && (
-            <Link
-              href="/post/new"
-              className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
-            >
-              New Post
-            </Link>
-          )}
-          {canCreateQuest && activeTab === "quests" && (
-            <Link
-              href="/board/quest/new"
-              className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
-            >
-              New Quest
-            </Link>
-          )}
-        </div>
+        {canPost && (
+          <Link
+            href="/post/new"
+            className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
+          >
+            New Post
+          </Link>
+        )}
       </div>
 
-      {/* Tab navigation */}
-      <BoardTabs
-        activeTab={activeTab}
-        postCount={posts?.length ?? 0}
-        questCount={quests?.length ?? 0}
-      />
-
-      {/* Tab content */}
-      {activeTab === "posts" ? (
-        posts && posts.length > 0 ? (
-          <BoardContent posts={posts} />
-        ) : (
-          <div className="text-center py-16 rounded-xl border border-dashed border-border">
-            <EmptyBoardIllustration className="h-32 w-auto mx-auto mb-3" />
-            <h3 className="text-lg font-semibold mb-1">
-              Your board is quiet — for now
-            </h3>
-            <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
-              Be the first to post a need or offer. Every community starts with
-              one spark.
-            </p>
-            {canPost && (
-              <Link
-                href="/post/new"
-                className="inline-flex rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
-              >
-                Create First Post
-              </Link>
-            )}
-            {!canPost && (
-              <p className="text-xs text-muted-foreground">
-                Get an invitation code from a neighbor to start posting.
-              </p>
-            )}
+      {/* Activity feed — above posts so Sarah sees common-knowledge signals first */}
+      {activity.length > 0 && (
+        <section className="mb-6">
+          <h2 className="text-lg font-semibold mb-3">Recent Activity</h2>
+          <div className="rounded-xl border border-border bg-card px-4">
+            <ActivityFeed items={activity.slice(0, 5)} />
           </div>
-        )
-      ) : quests && quests.length > 0 ? (
-        <QuestBoard quests={quests} />
+        </section>
+      )}
+
+      {/* Posts */}
+      {postsWithSignedThumbs && postsWithSignedThumbs.length > 0 ? (
+        <BoardContent posts={postsWithSignedThumbs} />
       ) : (
-        <div className="text-center py-16 rounded-xl border border-dashed border-border">
+        <div className="text-center py-12 rounded-xl border border-dashed border-border">
+          <EmptyBoardIllustration className="h-32 w-auto mx-auto mb-3" />
           <h3 className="text-lg font-semibold mb-1">
-            No quests yet
+            Your board is quiet — for now
           </h3>
           <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
-            Quests are structured tasks with clear completion criteria and XP rewards.
-            Create the first one for your community.
+            Be the first to post a need or offer. Every community starts with
+            one spark.
           </p>
-          {canCreateQuest && (
+          {canPost && (
             <Link
-              href="/board/quest/new"
+              href="/post/new"
               className="inline-flex rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
             >
-              Create First Quest
+              Create First Post
             </Link>
+          )}
+          {!canPost && (
+            <p className="text-xs text-muted-foreground">
+              Get an invitation code from a neighbor to start posting.
+            </p>
           )}
         </div>
       )}

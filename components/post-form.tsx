@@ -105,6 +105,23 @@ export function PostForm() {
         />
       </div>
 
+      {/* Location hint */}
+      <div>
+        <label
+          htmlFor="location_hint"
+          className="block text-sm font-medium mb-1.5"
+        >
+          Near where? (optional)
+        </label>
+        <Input
+          id="location_hint"
+          name="location_hint"
+          type="text"
+          maxLength={200}
+          placeholder="e.g., Elm Park, corner of 5th and Main"
+        />
+      </div>
+
       {/* Category */}
       <div>
         <label htmlFor="category" className="block text-sm font-medium mb-1.5">

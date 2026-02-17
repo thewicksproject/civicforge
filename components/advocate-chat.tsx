@@ -79,7 +79,7 @@ export function AdvocateChat() {
         <button
           onClick={() => setOpen(true)}
           className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:opacity-90 transition-opacity"
-          aria-label="Open AI Advocate"
+          aria-label="Open Community Guide"
         >
           <MessageCircle className="h-5 w-5" />
         </button>
@@ -91,9 +91,9 @@ export function AdvocateChat() {
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <div>
-              <h3 className="text-sm font-semibold">Your Advocate</h3>
+              <h3 className="text-sm font-semibold">Community Guide</h3>
               <p className="text-xs text-muted-foreground">
-                AI assistant — serves you, not the system
+                AI assistant — here to help you navigate
               </p>
             </div>
             <Button
@@ -115,8 +115,8 @@ export function AdvocateChat() {
               <div className="text-center py-8">
                 <MessageCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">
-                  Ask about quests, skills, your community, or what you can do
-                  to help.
+                  Ask about your community, find ways to help, or get guidance
+                  on how things work.
                 </p>
               </div>
             )}
@@ -151,7 +151,7 @@ export function AdvocateChat() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask your advocate..."
+                placeholder="Ask your guide..."
                 maxLength={1000}
                 className="min-h-9 max-h-24 resize-none text-sm"
                 disabled={loading}

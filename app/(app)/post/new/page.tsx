@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { PostForm } from "@/components/post-form";
@@ -29,14 +30,17 @@ export default async function NewPostPage() {
       <div className="max-w-xl mx-auto text-center py-16">
         <PostingLockedIllustration className="h-28 w-auto mx-auto mb-3" />
         <h2 className="text-xl font-semibold mb-2">
-          Posting requires Confirmed status
+          You&apos;re almost there!
         </h2>
         <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
-          To post on the board, you need an invitation code from a neighbor or
-          admin approval. This helps keep our community trusted.
+          Once you have an invitation code from a neighbor or admin approval,
+          you can post on the board. This helps keep our community trusted.
         </p>
         <p className="text-xs text-muted-foreground">
-          Have a code? Enter it in your profile settings.
+          Have a code? Enter it in your{" "}
+          <Link href="/settings/privacy" className="underline underline-offset-4 hover:text-foreground transition-colors">
+            account settings
+          </Link>.
         </p>
       </div>
     );

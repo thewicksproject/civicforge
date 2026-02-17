@@ -1,9 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { getRenownTierName, toRenownTier } from "@/lib/types";
-import { ReputationBadge } from "@/components/reputation-badge";
-import { RenownTierBadge } from "@/components/trust-tier-badge";
-import { SkillProgressCard } from "@/components/skill-progress-card";
+import { StoryCard } from "@/components/story-card";
+import { getStoriesForUser } from "@/app/actions/stories";
 import Link from "next/link";
 
 export const metadata = { title: "My Profile" };
@@ -40,11 +38,8 @@ export default async function ProfilePage() {
     .order("created_at", { ascending: false })
     .limit(10);
 
-  // Get endorsements received count
-  const { count: endorsementCount } = await admin
-    .from("endorsements")
-    .select("id", { count: "exact", head: true })
-    .eq("to_user", user.id);
+  // Get completion stories
+  const stories = await getStoriesForUser(user.id);
 
   if (!profile) {
     return (
@@ -71,22 +66,14 @@ export default async function ProfilePage() {
             {profile.display_name?.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-semibold">{profile.display_name}</h1>
-            <div className="flex items-center gap-3 mt-1 flex-wrap">
-              <RenownTierBadge tier={toRenownTier(profile.renown_tier)} />
-              <span className="text-xs text-muted-foreground">
-                {getRenownTierName(profile.renown_tier)}
-              </span>
-              <ReputationBadge
-                score={profile.reputation_score ?? 0}
-                size="md"
-                showLabel
-              />
-              {(endorsementCount ?? 0) > 0 && (
-                <span className="text-xs text-muted-foreground">
-                  {endorsementCount} endorsement{endorsementCount === 1 ? "" : "s"}
-                </span>
-              )}
+            <div className="flex items-start justify-between gap-3">
+              <h1 className="text-xl font-semibold">{profile.display_name}</h1>
+              <Link
+                href="/settings/privacy"
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity flex-shrink-0"
+              >
+                Edit Profile
+              </Link>
             </div>
             {profile.bio && (
               <p className="text-sm text-muted-foreground mt-2">
@@ -107,21 +94,6 @@ export default async function ProfilePage() {
             )}
           </div>
         </div>
-      </div>
-
-      {/* Edit profile link */}
-      <div className="flex gap-3 mb-6">
-        <Link
-          href="/settings/privacy"
-          className="rounded-lg border border-border px-4 py-2 text-sm hover:bg-muted transition-colors"
-        >
-          Edit Profile & Settings
-        </Link>
-      </div>
-
-      {/* Skill Progress */}
-      <div className="mb-6">
-        <SkillProgressCard />
       </div>
 
       {/* Posts */}
@@ -159,6 +131,27 @@ export default async function ProfilePage() {
           </p>
         )}
       </section>
+
+      {/* Completion stories */}
+      {stories.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-lg font-semibold mb-3">Your Stories</h2>
+          <div className="space-y-3">
+            {stories.map((s) => {
+              const post = Array.isArray(s.post) ? s.post[0] : s.post;
+              return (
+                <StoryCard
+                  key={s.id}
+                  story={s.story}
+                  authorName={profile.display_name}
+                  createdAt={s.created_at}
+                  postTitle={post?.title}
+                />
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Thanks received */}
       <section>

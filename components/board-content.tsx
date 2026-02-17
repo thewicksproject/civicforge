@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { PostCard } from "@/components/post-card";
-import { toRenownTier } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type PostType = "need" | "offer";
@@ -17,9 +16,11 @@ interface BoardPost {
   urgency: string | null;
   created_at: string;
   ai_assisted: boolean;
-  author: { display_name: string; reputation_score: number; renown_tier: number }[] | { display_name: string; reputation_score: number; renown_tier: number } | null;
-  post_photos: { id: string }[];
+  view_count?: number;
+  author: { display_name: string }[] | { display_name: string } | null;
+  post_photos: { id: string; thumbnail_url?: string }[];
   responses: { id: string }[];
+  post_interests?: { id: string }[];
 }
 
 const FILTERS: { label: string; value: Filter }[] = [
@@ -71,21 +72,22 @@ export function BoardContent({ posts }: { posts: BoardPost[] }) {
                 description={post.description}
                 category={post.category}
                 authorName={author?.display_name ?? "Anonymous"}
-                authorReputation={author?.reputation_score ?? 0}
-                authorRenownTier={toRenownTier(author?.renown_tier)}
                 responseCount={post.responses?.length ?? 0}
                 photoCount={post.post_photos?.length ?? 0}
+                thumbnailUrl={post.post_photos?.[0]?.thumbnail_url}
                 createdAt={post.created_at}
                 urgency={post.urgency as "low" | "medium" | "high" | null}
                 aiAssisted={post.ai_assisted}
+                viewCount={post.view_count ?? 0}
+                interestCount={post.post_interests?.length ?? 0}
               />
             );
           })}
         </div>
       ) : (
-        <div className="text-center py-16 rounded-xl border border-dashed border-border">
+        <div className="text-center py-12 rounded-xl border border-dashed border-border">
           <p className="text-sm text-muted-foreground">
-            No {filter === "need" ? "needs" : "offers"} posted yet.
+            No {filter === "need" ? "needs" : "offers"} posted yet. Check back soon or try a different filter.
           </p>
         </div>
       )}

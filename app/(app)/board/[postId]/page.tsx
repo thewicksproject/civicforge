@@ -1,24 +1,33 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Clock, MapPin, TriangleAlert } from "lucide-react";
+import { ChevronLeft, Clock, Eye, MapPin, TriangleAlert } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { cn, formatRelativeTime } from "@/lib/utils";
-import { toRenownTier } from "@/lib/types";
 import { CATEGORY_ICON_MAP } from "@/components/category-icons";
-import { RenownTierBadge } from "@/components/trust-tier-badge";
-import { ReputationBadge } from "@/components/reputation-badge";
 import { ResponseList } from "@/components/response-list";
 import { ThanksButton } from "@/components/thanks-button";
 import { FlagButton } from "@/components/flag-button";
 import { AiBadge } from "@/components/ai-badge";
+import { InterestButton } from "@/components/interest-button";
+import { CompletionStoryForm } from "@/components/completion-story-form";
+import { StoryCard } from "@/components/story-card";
+import { incrementViewCount } from "@/app/actions/posts";
+import { getInterestData } from "@/app/actions/interests";
+import { getStoryForPost } from "@/app/actions/stories";
 
 export async function generateMetadata({
-  params: _params,
+  params,
 }: {
   params: Promise<{ postId: string }>;
 }) {
-  void _params;
-  return { title: "Post" };
+  const { postId } = await params;
+  const admin = createServiceClient();
+  const { data: post } = await admin
+    .from("posts")
+    .select("title")
+    .eq("id", postId)
+    .single();
+  return { title: post?.title ?? "Post" };
 }
 
 export default async function PostDetailPage({
@@ -52,11 +61,11 @@ export default async function PostDetailPage({
     .select(
       `
       *,
-      author:profiles!author_id (id, display_name, reputation_score, renown_tier, bio, skills),
+      author:profiles!author_id (id, display_name, bio, skills),
       post_photos (id, url, thumbnail_url),
       responses (
         id, message, status, created_at,
-        responder:profiles!responder_id (id, display_name, reputation_score)
+        responder:profiles!responder_id (id, display_name)
       )
     `
     )
@@ -99,6 +108,17 @@ export default async function PostDetailPage({
   );
 
   const canRespond = (viewerProfile.renown_tier ?? 1) >= 2;
+
+  // Momentum signals — don't count author's own views
+  if (!isAuthor) await incrementViewCount(postId);
+  const interestData = await getInterestData(postId);
+
+  // Completion story
+  const completionStory = await getStoryForPost(postId);
+  const hasAcceptedResponse = post.responses?.some(
+    (r: { status: string }) => r.status === "accepted"
+  );
+  const showStoryForm = isAuthor && hasAcceptedResponse && !completionStory;
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -176,6 +196,21 @@ export default async function PostDetailPage({
         )}
       </div>
 
+      {/* Momentum signals */}
+      <div className="mb-6 flex items-center gap-4">
+        <InterestButton
+          postId={postId}
+          initialCount={interestData.count}
+          initialInterested={interestData.isInterested}
+        />
+        {(post.view_count ?? 0) > 0 && (
+          <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+            <Eye className="h-4 w-4" />
+            {post.view_count} {post.view_count === 1 ? "neighbor has" : "neighbors have"} seen this
+          </span>
+        )}
+      </div>
+
       {/* Photos */}
       {resolvedPhotos.length > 0 && (
         <div className="mb-6 grid grid-cols-2 gap-2 rounded-xl overflow-hidden">
@@ -205,19 +240,11 @@ export default async function PostDetailPage({
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
               {author?.display_name?.charAt(0).toUpperCase() ?? "?"}
             </div>
-            <div>
-              <span className="font-medium text-sm block">
-                {author?.display_name}
-              </span>
-              <RenownTierBadge tier={toRenownTier(author?.renown_tier)} />
-            </div>
+            <span className="font-medium text-sm">
+              {author?.display_name}
+            </span>
           </Link>
           <div className="flex items-center gap-3">
-            <ReputationBadge
-              score={author?.reputation_score ?? 0}
-              size="md"
-              showLabel
-            />
             {!isAuthor && (
               <>
                 <ThanksButton toUserId={author?.id ?? ""} postId={post.id} />
@@ -227,6 +254,30 @@ export default async function PostDetailPage({
           </div>
         </div>
       </div>
+
+      {/* Completion story */}
+      {completionStory && (
+        <div className="mb-6">
+          <StoryCard
+            story={completionStory.story}
+            authorName={
+              (() => {
+                const a = completionStory.author as { display_name: string } | { display_name: string }[] | null;
+                if (Array.isArray(a)) return a[0]?.display_name ?? "Someone";
+                return a?.display_name ?? "Someone";
+              })()
+            }
+            createdAt={completionStory.created_at}
+          />
+        </div>
+      )}
+
+      {/* Story form (shown to author when a response is accepted but no story yet) */}
+      {showStoryForm && (
+        <div className="mb-6">
+          <CompletionStoryForm postId={postId} />
+        </div>
+      )}
 
       {/* Responses */}
       <ResponseList
@@ -240,7 +291,6 @@ export default async function PostDetailPage({
             responder: {
               id: string;
               display_name: string;
-              reputation_score: number;
             };
           }) => ({
             id: r.id,
@@ -249,7 +299,6 @@ export default async function PostDetailPage({
             responder: {
               id: r.responder.id,
               display_name: r.responder.display_name,
-              reputation_score: r.responder.reputation_score,
             },
             created_at: r.created_at,
           })

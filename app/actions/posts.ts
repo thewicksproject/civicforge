@@ -398,6 +398,14 @@ export async function deletePost(postId: string) {
   return { success: true as const, data: null };
 }
 
+export async function incrementViewCount(postId: string) {
+  const idParsed = z.string().regex(UUID_FORMAT).safeParse(postId);
+  if (!idParsed.success) return;
+
+  const admin = createServiceClient();
+  await admin.rpc("increment_view_count", { post_id: postId });
+}
+
 export async function getCommunityPosts(communityId: string) {
   const supabase = await createClient();
   const {

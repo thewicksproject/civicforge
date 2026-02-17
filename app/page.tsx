@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Lock, Shield, Users, Globe } from "lucide-react";
+import { Lock, Shield, Users } from "lucide-react";
 import {
   HeroIllustration,
   HowItWorksPostIllustration,
@@ -11,7 +11,7 @@ import {
 export const metadata: Metadata = {
   title: "CivicForge — Your community, connected",
   description:
-    "A community needs board where people post needs, offer help, get AI-matched, and build reputation. No ads, no data selling — just neighbors helping neighbors.",
+    "A community board where neighbors post needs, offer help, and coordinate together. No ads, no data selling — just people helping people.",
   openGraph: {
     title: "CivicForge — Your community, connected",
     description:
@@ -40,7 +40,7 @@ function HeroSection() {
       </h1>
 
       <p className="mt-6 max-w-xl text-lg text-muted-foreground sm:text-xl">
-        A single spark can spread warmth.
+        Post what your neighborhood needs. See who else cares. Get it done together.
       </p>
 
       <div className="mt-10 flex flex-col gap-4 sm:flex-row">
@@ -77,9 +77,9 @@ function HowItWorksSection() {
     },
     {
       icon: <HowItWorksTrustIllustration className="h-8 w-8" />,
-      title: "Help each other, build trust",
+      title: "Help each other, share the story",
       description:
-        "Every act of help strengthens the community. Build a reputation that reflects who you are in your community.",
+        "Every act of help strengthens the community. When a need is met, the story of what happened becomes part of your neighborhood.",
     },
   ];
 
@@ -165,31 +165,6 @@ function ValuesSection() {
   );
 }
 
-function CommonsSection() {
-  return (
-    <section className="border-t border-border px-6 py-24 text-center">
-      <div className="mx-auto max-w-2xl">
-        <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-offer-light text-offer">
-          <Globe className="h-7 w-7" aria-hidden="true" />
-        </div>
-        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          See The Commons
-        </h2>
-        <p className="mt-4 text-lg text-muted-foreground">
-          Explore the living relationships between skill domains, guilds, and
-          civic coordination — all in the open, privacy-respecting, and free.
-        </p>
-        <Link
-          href="/commons"
-          className="mt-8 inline-flex h-12 items-center justify-center rounded-full bg-golden-hour px-10 text-base font-medium text-accent-foreground shadow-sm transition-colors hover:bg-golden-hour/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-golden-hour"
-        >
-          Explore The Commons
-        </Link>
-      </div>
-    </section>
-  );
-}
-
 function CTASection() {
   return (
     <section className="px-6 py-24 text-center">
@@ -263,7 +238,6 @@ export default function Home() {
         <HeroSection />
         <HowItWorksSection />
         <ValuesSection />
-        <CommonsSection />
         <CTASection />
       </main>
       <Footer />

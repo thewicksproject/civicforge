@@ -1,14 +1,22 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { ThanksButton } from "@/components/thanks-button";
+import { StoryCard } from "@/components/story-card";
+import { getStoriesForUser } from "@/app/actions/stories";
 
 export async function generateMetadata({
-  params: _params,
+  params,
 }: {
   params: Promise<{ userId: string }>;
 }) {
-  void _params;
-  return { title: "Profile" };
+  const { userId } = await params;
+  const admin = createServiceClient();
+  const { data } = await admin
+    .from("profiles")
+    .select("display_name")
+    .eq("id", userId)
+    .single();
+  return { title: data?.display_name ?? "Profile" };
 }
 
 export default async function UserProfilePage({
@@ -61,6 +69,10 @@ export default async function UserProfilePage({
     .eq("hidden", false)
     .order("created_at", { ascending: false })
     .limit(5);
+
+  // Get their stories (only if privacy allows)
+  const showStories = isOwnProfile || privacyTier === "open" || privacyTier === "mentor";
+  const userStories = showStories ? await getStoriesForUser(userId, 5) : [];
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -130,6 +142,30 @@ export default async function UserProfilePage({
                 <span className="text-sm font-medium">{post.title}</span>
               </a>
             ))}
+          </div>
+        </section>
+      )}
+
+      {/* Their stories */}
+      {userStories.length > 0 && (
+        <section className="mt-6">
+          <h2 className="text-lg font-semibold mb-3">
+            {isOwnProfile ? "Your Stories" : "Their Stories"}
+          </h2>
+          <div className="space-y-3">
+            {userStories.map((s) => {
+              const post = Array.isArray(s.post) ? s.post[0] : s.post;
+              return (
+                <StoryCard
+                  key={s.id}
+                  story={s.story}
+                  authorName={profile.display_name ?? "Someone"}
+                  createdAt={s.created_at}
+                  postTitle={post?.title}
+                  postId={post?.id}
+                />
+              );
+            })}
           </div>
         </section>
       )}

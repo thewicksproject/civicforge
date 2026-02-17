@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { HandHelping, Handshake } from "lucide-react";
 import { createPost } from "@/app/actions/posts";
 import { POST_CATEGORIES } from "@/lib/types";
@@ -9,20 +10,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-type ActionState = { success: boolean; error: string };
-const initialState: ActionState = { success: false, error: "" };
+type ActionState = { success: boolean; error: string; postId: string | undefined };
+const initialState: ActionState = { success: false, error: "", postId: undefined };
 
 export function PostForm() {
   const aiAssisted = false;
+  const router = useRouter();
 
   const boundAction = async (_prev: ActionState, formData: FormData) => {
     const result = await createPost(formData);
-    return { success: result.success, error: result.error ?? "" };
+    return { success: result.success, error: result.error ?? "", postId: result.data?.id };
   };
   const [state, formAction, isPending] = useActionState(
     boundAction,
     initialState
   );
+
+  useEffect(() => {
+    if (state.success && state.postId) {
+      router.push(`/board/${state.postId}`);
+    }
+  }, [state.success, state.postId, router]);
 
   return (
     <form action={formAction} className="space-y-6">

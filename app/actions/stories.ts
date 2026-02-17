@@ -117,16 +117,11 @@ export async function getStoriesForCommunity(communityId: string, limit = 20) {
     .select(`
       id, story, photo_url, created_at,
       author:profiles!author_id(display_name),
-      post:posts!post_id(id, title, type, community_id)
+      post:posts!post_id!inner(id, title, type, community_id)
     `)
+    .eq("post.community_id", communityId)
     .order("created_at", { ascending: false })
     .limit(limit);
 
-  // Filter to community (join filter not available for this shape)
-  const filtered = (data ?? []).filter((s) => {
-    const post = Array.isArray(s.post) ? s.post[0] : s.post;
-    return post?.community_id === communityId;
-  });
-
-  return filtered;
+  return data ?? [];
 }

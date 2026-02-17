@@ -38,20 +38,20 @@ export async function getCommunityActivity(
     });
   }
 
-  // Fetch recent responses (join to get post info)
+  // Fetch recent responses (scoped to community via join filter)
   const { data: responses } = await admin
     .from("responses")
     .select(`
       id, created_at,
       responder:profiles!responder_id(display_name),
-      post:posts!post_id(id, title, community_id)
+      post:posts!post_id!inner(id, title, community_id)
     `)
+    .eq("post.community_id", communityId)
     .order("created_at", { ascending: false })
-    .limit(limit * 2); // Fetch more since we filter by community
+    .limit(limit);
 
   for (const r of responses ?? []) {
     const post = Array.isArray(r.post) ? r.post[0] : r.post;
-    if (post?.community_id !== communityId) continue;
     const responder = Array.isArray(r.responder) ? r.responder[0] : r.responder;
     items.push({
       type: "response",
@@ -63,20 +63,20 @@ export async function getCommunityActivity(
     });
   }
 
-  // Fetch recent completion stories
+  // Fetch recent completion stories (scoped to community via join filter)
   const { data: stories } = await admin
     .from("completion_stories")
     .select(`
       id, story, created_at,
       author:profiles!author_id(display_name),
-      post:posts!post_id(id, title, community_id)
+      post:posts!post_id!inner(id, title, community_id)
     `)
+    .eq("post.community_id", communityId)
     .order("created_at", { ascending: false })
     .limit(limit);
 
   for (const s of stories ?? []) {
     const post = Array.isArray(s.post) ? s.post[0] : s.post;
-    if (post?.community_id !== communityId) continue;
     const author = Array.isArray(s.author) ? s.author[0] : s.author;
     items.push({
       type: "story",
@@ -89,20 +89,20 @@ export async function getCommunityActivity(
     });
   }
 
-  // Fetch recent thanks
+  // Fetch recent thanks (scoped to community via receiver's profile)
   const { data: thanksData } = await admin
     .from("thanks")
     .select(`
       id, message, created_at,
       sender:profiles!from_user(display_name),
-      receiver:profiles!to_user(display_name, community_id)
+      receiver:profiles!to_user!inner(display_name, community_id)
     `)
+    .eq("receiver.community_id", communityId)
     .order("created_at", { ascending: false })
-    .limit(limit * 2);
+    .limit(limit);
 
   for (const t of thanksData ?? []) {
     const receiver = Array.isArray(t.receiver) ? t.receiver[0] : t.receiver;
-    if (receiver?.community_id !== communityId) continue;
     const sender = Array.isArray(t.sender) ? t.sender[0] : t.sender;
     items.push({
       type: "thanks",

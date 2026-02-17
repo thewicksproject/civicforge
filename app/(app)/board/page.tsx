@@ -3,8 +3,10 @@ import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { BoardContent } from "@/components/board-content";
 import { ActivityFeed } from "@/components/activity-feed";
+import { StoryCard } from "@/components/story-card";
 import { EmptyBoardIllustration } from "@/components/illustrations";
 import { getCommunityActivity } from "@/app/actions/activity";
+import { getStoriesForCommunity } from "@/app/actions/stories";
 
 export const metadata = { title: "Community Board" };
 
@@ -65,8 +67,11 @@ export default async function BoardPage() {
 
   const canPost = (profile.renown_tier ?? 1) >= 2;
 
-  // Fetch community activity feed
-  const activity = await getCommunityActivity(profile.community_id);
+  // Fetch community activity feed + stories in parallel
+  const [activity, stories] = await Promise.all([
+    getCommunityActivity(profile.community_id),
+    getStoriesForCommunity(profile.community_id, 3),
+  ]);
 
   const communityRaw = profile.community as { name: string } | { name: string }[] | null;
   const communityName = Array.isArray(communityRaw)
@@ -120,6 +125,29 @@ export default async function BoardPage() {
           <h2 className="text-lg font-semibold mb-3">Recent Activity</h2>
           <div className="rounded-xl border border-border bg-card px-4">
             <ActivityFeed items={activity.slice(0, 5)} />
+          </div>
+        </section>
+      )}
+
+      {/* Community Stories — narrative reward for completed quests */}
+      {stories.length > 0 && (
+        <section className="mb-6">
+          <h2 className="text-lg font-semibold mb-3">Community Stories</h2>
+          <div className="space-y-3">
+            {stories.map((s) => {
+              const post = Array.isArray(s.post) ? s.post[0] : s.post;
+              const author = Array.isArray(s.author) ? s.author[0] : s.author;
+              return (
+                <StoryCard
+                  key={s.id}
+                  story={s.story}
+                  authorName={author?.display_name ?? "Someone"}
+                  createdAt={s.created_at}
+                  postTitle={post?.title}
+                  postId={post?.id}
+                />
+              );
+            })}
           </div>
         </section>
       )}

@@ -46,3 +46,4 @@ supabase/.temp/
 
 # Security assessments — remove this entry once all findings are remediated
 SECURITY_ASSESSMENT_*
+.env*.local

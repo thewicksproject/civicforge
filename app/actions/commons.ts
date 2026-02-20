@@ -177,26 +177,38 @@ function buildEmptyCommonsData(generatedAt: string): CommonsData {
 }
 
 export async function getCommonsData(
-  viewerUserId: string,
+  viewerUserId: string | null,
   communityId?: string
 ): Promise<CommonsData> {
   const admin = createServiceClient();
 
   const generatedAt = new Date().toISOString();
-  const { data: viewerProfile } = await admin
-    .from("profiles")
-    .select("community_id")
-    .eq("id", viewerUserId)
-    .single();
 
-  const viewerCommunityId = viewerProfile?.community_id ?? null;
-  if (!viewerCommunityId) {
-    return buildEmptyCommonsData(generatedAt);
+  // Resolve which community to show
+  let targetCommunityId: string | null = null;
+
+  if (communityId) {
+    // Explicit community requested (the [communityId] route) — use directly
+    targetCommunityId = communityId;
+  } else if (viewerUserId) {
+    // Logged-in user on /commons — use their community
+    const { data: viewerProfile } = await admin
+      .from("profiles")
+      .select("community_id")
+      .eq("id", viewerUserId)
+      .single();
+    targetCommunityId = viewerProfile?.community_id ?? null;
   }
 
-  // Community scope is always limited to the viewer's own community.
-  if (communityId && communityId !== viewerCommunityId) {
-    return buildEmptyCommonsData(generatedAt);
+  // No community resolved — return empty data with community list for picker
+  if (!targetCommunityId) {
+    const { data: allCommunities } = await admin
+      .from("communities")
+      .select("id, name")
+      .order("name");
+    const empty = buildEmptyCommonsData(generatedAt);
+    empty.communities = allCommunities ?? [];
+    return empty;
   }
 
   const communities: { id: string; name: string }[] = [];
@@ -207,14 +219,14 @@ export async function getCommonsData(
   const { data: comm } = await admin
     .from("communities")
     .select("id, name, city, state")
-    .eq("id", viewerCommunityId)
+    .eq("id", targetCommunityId)
     .single();
 
   if (comm) {
     const { count: memberCount } = await admin
       .from("profiles")
       .select("id", { count: "exact", head: true })
-      .eq("community_id", viewerCommunityId);
+      .eq("community_id", targetCommunityId);
 
     community = {
       id: comm.id,
@@ -224,7 +236,7 @@ export async function getCommonsData(
       memberCount: memberCount ?? 0,
     };
     communities.push({ id: comm.id, name: comm.name });
-    communityFilter = { column: "community_id", value: viewerCommunityId };
+    communityFilter = { column: "community_id", value: targetCommunityId };
   } else {
     return buildEmptyCommonsData(generatedAt);
   }
@@ -236,7 +248,7 @@ export async function getCommonsData(
   // Resolve community game config for dynamic labels/colors
   let tierNames = DEFAULT_TIER_NAMES;
   try {
-    const gameConfig = await resolveGameConfig(viewerCommunityId);
+    const gameConfig = await resolveGameConfig(targetCommunityId);
     if (gameConfig.recognitionTiers.length > 0) {
       tierNames = Object.fromEntries(
         gameConfig.recognitionTiers.map((t) => [t.tierNumber, t.name]),

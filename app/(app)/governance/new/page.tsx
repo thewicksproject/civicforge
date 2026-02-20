@@ -21,10 +21,12 @@ export default async function NewProposalPage() {
     .single();
 
   if (!profile?.community_id) {
+    console.warn("Governance new: no community for user", user.id);
     redirect("/onboarding");
   }
 
   if ((profile.renown_tier ?? 1) < 4) {
+    console.warn("Governance new: tier gate", { userId: user.id, tier: profile.renown_tier });
     return (
       <div className="max-w-xl mx-auto text-center py-16">
         <h2 className="text-xl font-semibold mb-2">

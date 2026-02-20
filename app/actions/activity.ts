@@ -22,6 +22,7 @@ export async function getCommunityActivity(
     .select("id, title, type, created_at, author:profiles!author_id(display_name)")
     .eq("community_id", communityId)
     .eq("hidden", false)
+    .eq("status", "active")
     .order("created_at", { ascending: false })
     .limit(limit);
 

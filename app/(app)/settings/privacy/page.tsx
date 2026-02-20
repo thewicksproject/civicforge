@@ -21,6 +21,7 @@ export default function SettingsPage() {
     skills: string[];
     phone_verified: boolean;
   } | null>(null);
+  const [formKey, setFormKey] = useState(0);
   const [inviteCode, setInviteCode] = useState("");
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteResult, setInviteResult] = useState("");
@@ -50,6 +51,22 @@ export default function SettingsPage() {
     }
     load();
   }, []);
+
+  useEffect(() => {
+    if (state.success) {
+      getMyProfile().then((result) => {
+        if (result.success && result.data) {
+          setProfile({
+            display_name: result.data.display_name,
+            bio: result.data.bio ?? "",
+            skills: result.data.skills ?? [],
+            phone_verified: result.data.phone_verified ?? false,
+          });
+          setFormKey((k) => k + 1);
+        }
+      });
+    }
+  }, [state.success]);
 
   async function handleExport() {
     setExportLoading(true);
@@ -120,7 +137,7 @@ export default function SettingsPage() {
         {state.error && (
           <p className="text-sm text-destructive mb-3">{state.error}</p>
         )}
-        <form action={formAction} className="space-y-4">
+        <form key={formKey} action={formAction} className="space-y-4">
           <div>
             <label htmlFor="display_name" className="block text-sm font-medium mb-1">
               Display Name

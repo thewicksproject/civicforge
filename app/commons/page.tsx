@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { getCommonsData } from "@/app/actions/commons";
 import { createClient } from "@/lib/supabase/server";
 import { CommonsDashboard } from "./commons-dashboard";
@@ -9,11 +8,7 @@ export default async function CommonsPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect("/login");
-  }
-
-  const data = await getCommonsData(user.id);
+  const data = await getCommonsData(user?.id ?? null);
 
   return <CommonsDashboard data={data} />;
 }

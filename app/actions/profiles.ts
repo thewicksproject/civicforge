@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { revalidatePath } from "next/cache";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { UUID_FORMAT } from "@/lib/utils";
 
@@ -81,6 +82,9 @@ export async function updateProfile(formData: FormData) {
   if (updateError) {
     return { success: false as const, error: "Failed to update profile" };
   }
+
+  revalidatePath("/settings/privacy");
+  revalidatePath("/profile");
 
   return { success: true as const, data: profile };
 }

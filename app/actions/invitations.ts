@@ -47,6 +47,11 @@ export async function createInvitation(
   }
 
   if (profile.community_id !== communityId) {
+    console.warn("Invite create: community mismatch", {
+      userId: user.id,
+      profileCommunityId: profile.community_id,
+      requestedCommunityId: communityId,
+    });
     return {
       success: false as const,
       error: "You can only create invitations for your own community",

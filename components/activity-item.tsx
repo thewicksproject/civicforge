@@ -14,7 +14,7 @@ export function ActivityItemCard({ item }: { item: ActivityItem }) {
           <div className="flex-1 min-w-0">
             <p className="text-sm">
               <span className="font-medium">{item.authorName}</span>{" "}
-              posted a {item.postType}:{" "}
+              posted {item.postType === "offer" ? "an" : "a"} {item.postType}:{" "}
               <Link href={`/board/${item.postId}`} className="font-medium text-primary hover:underline">
                 {item.postTitle}
               </Link>

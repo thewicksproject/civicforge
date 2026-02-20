@@ -38,6 +38,11 @@ export default async function MembersPage({
     .single();
 
   if (!profile?.community_id || profile.community_id !== id) {
+    console.warn("Members page: community mismatch", {
+      userId: user.id,
+      profileCommunityId: profile?.community_id,
+      requestedCommunityId: id,
+    });
     notFound();
   }
 

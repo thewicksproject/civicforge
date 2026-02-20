@@ -72,10 +72,12 @@ export async function createQuest(data: {
     .single();
 
   if (!profile || !profile.community_id) {
+    console.warn("Quest create: no profile/community for user", user.id);
     return { success: false as const, error: "Profile not found" };
   }
 
   if (profile.renown_tier < 2) {
+    console.warn("Quest create: tier gate failed", { userId: user.id, tier: profile.renown_tier });
     return {
       success: false as const,
       error: "You must be a Neighbor (Renown Tier 2) or higher to create quests",
@@ -142,6 +144,7 @@ export async function createQuest(data: {
   }).select("id").single();
 
   if (error) {
+    console.error("Quest creation failed:", error.message, "code:", error.code, "details:", error.details);
     return { success: false as const, error: "Failed to create quest" };
   }
 

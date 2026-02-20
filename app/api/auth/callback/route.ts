@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { sendPushover } from "@/lib/notify/pushover";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -31,9 +32,20 @@ export async function GET(request: Request) {
         const admin = createServiceClient();
         const { data: profile } = await admin
           .from("profiles")
-          .select("id")
+          .select("id, community_id")
           .eq("id", user.id)
           .single();
+
+        if (profile && !profile.community_id) {
+          const provider = user.app_metadata?.provider || "unknown";
+          sendPushover({
+            title: "New CivicForge Signup",
+            message: `${user.email} (${provider})`,
+            url: "https://civicforge.org/board",
+          }).catch((err) =>
+            console.error("[pushover] notification failed:", err)
+          );
+        }
 
         if (!profile) {
           return NextResponse.redirect(`${origin}/onboarding`);

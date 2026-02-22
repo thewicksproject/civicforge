@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { isSameCommunity } from "@/lib/security/authorization";
+import { notify } from "@/lib/notify/dispatcher";
 
 const ThanksSchema = z.object({
   toUserId: z.string().uuid("Invalid recipient user ID"),
@@ -106,6 +107,17 @@ export async function createThanks(
   if (insertError) {
     return { success: false as const, error: "Failed to create thanks" };
   }
+
+  // Notify the recipient
+  notify({
+    recipientId: parsed.data.toUserId,
+    type: "thanks_received",
+    title: "Someone sent you thanks!",
+    body: parsed.data.message ?? undefined,
+    resourceType: parsed.data.postId ? "post" : undefined,
+    resourceId: parsed.data.postId ?? undefined,
+    actorId: user.id,
+  });
 
   // Increment recipient's reputation_score atomically.
   const { error: updateError } = await admin.rpc("increment_reputation", {

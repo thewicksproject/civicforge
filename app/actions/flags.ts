@@ -8,8 +8,18 @@ import {
   canModerateCommunityResource,
   isSameCommunity,
 } from "@/lib/security/authorization";
+import { notify } from "@/lib/notify/dispatcher";
 
-export async function flagPost(postId: string, reason?: string) {
+const FlagTypeSchema = z.enum(["report", "suggest_move"]);
+
+export async function flagPost(
+  postId: string,
+  options?: {
+    reason?: string;
+    flagType?: "report" | "suggest_move";
+    suggestedCategory?: string;
+  },
+) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -24,6 +34,10 @@ export async function flagPost(postId: string, reason?: string) {
     return { success: false as const, error: "Invalid post ID" };
   }
 
+  const reason = options?.reason;
+  const flagType = FlagTypeSchema.safeParse(options?.flagType ?? "report").data ?? "report";
+  const suggestedCategory = options?.suggestedCategory;
+
   // Validate reason if provided
   if (reason && reason.length > 500) {
     return { success: false as const, error: "Reason too long" };
@@ -33,7 +47,7 @@ export async function flagPost(postId: string, reason?: string) {
 
   const { data: actorProfile, error: actorProfileError } = await admin
     .from("profiles")
-    .select("community_id")
+    .select("community_id, display_name")
     .eq("id", user.id)
     .single();
 
@@ -77,29 +91,126 @@ export async function flagPost(postId: string, reason?: string) {
     post_id: postId,
     user_id: user.id,
     reason: reason ?? null,
+    flag_type: flagType,
+    suggested_category: suggestedCategory ?? null,
   });
 
   if (flagError) {
     return { success: false as const, error: "Failed to flag post" };
   }
 
-  // Increment flag count and auto-hide at threshold atomically.
-  const { data: rpcResult, error: rpcError } = await admin.rpc("increment_post_flag", {
-    p_post_id: postId,
-    p_threshold: FLAG_THRESHOLD_HIDE,
-  });
+  if (flagType === "report") {
+    // Report: increment flag count and auto-hide at threshold
+    const { data: rpcResult, error: rpcError } = await admin.rpc("increment_post_flag", {
+      p_post_id: postId,
+      p_threshold: FLAG_THRESHOLD_HIDE,
+    });
 
-  if (rpcError) {
-    return { success: false as const, error: "Failed to flag post" };
+    if (rpcError) {
+      return { success: false as const, error: "Failed to flag post" };
+    }
+
+    const row = Array.isArray(rpcResult) ? rpcResult[0] : rpcResult;
+    const newFlagCount = Number((row as { new_flag_count?: number } | null)?.new_flag_count ?? post.flag_count + 1);
+    const hidden = Boolean((row as { is_hidden?: boolean } | null)?.is_hidden ?? false);
+
+    // Notify the post author about the report
+    notify({
+      recipientId: post.author_id,
+      type: "post_flagged",
+      title: "Your post was flagged for review",
+      body: "A neighbor flagged your post. You can add context or edit it.",
+      resourceType: "post",
+      resourceId: postId,
+      actorId: user.id,
+    });
+
+    return { success: true as const, data: { flagCount: newFlagCount, hidden } };
   }
 
-  const row = Array.isArray(rpcResult) ? rpcResult[0] : rpcResult;
-  const newFlagCount = Number((row as { new_flag_count?: number } | null)?.new_flag_count ?? post.flag_count + 1);
-  const hidden = Boolean((row as { is_hidden?: boolean } | null)?.is_hidden ?? false);
+  // Suggest move: does NOT increment flag count. Sends a gentle notification.
+  let notifBody = "A neighbor thinks this might fit better";
+  if (suggestedCategory === "__quest") {
+    notifBody = "A neighbor thinks this could work well as a quest.";
+  } else if (suggestedCategory) {
+    notifBody = `A neighbor thinks this might fit better as "${suggestedCategory}".`;
+  }
+  if (reason) {
+    notifBody += ` "${reason}"`;
+  }
 
-  return { success: true as const, data: { flagCount: newFlagCount, hidden } };
+  notify({
+    recipientId: post.author_id,
+    type: "post_suggestion",
+    title: "A neighbor has a suggestion for your post",
+    body: notifBody,
+    resourceType: "post",
+    resourceId: postId,
+    actorId: user.id,
+  });
+
+  return { success: true as const, data: { flagCount: post.flag_count, hidden: false } };
 }
 
+/**
+ * Allow a user to undo their own flag.
+ * Only decrements the counter if the original flag was a "report" type.
+ */
+export async function unflagByUser(postId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false as const, error: "You must be logged in" };
+  }
+
+  const idParsed = z.string().regex(UUID_FORMAT).safeParse(postId);
+  if (!idParsed.success) {
+    return { success: false as const, error: "Invalid post ID" };
+  }
+
+  const admin = createServiceClient();
+
+  // Find user's flag
+  const { data: flag } = await admin
+    .from("post_flags")
+    .select("id, flag_type")
+    .eq("post_id", postId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!flag) {
+    return { success: false as const, error: "You haven't flagged this post" };
+  }
+
+  // Delete the flag
+  await admin.from("post_flags").delete().eq("id", flag.id);
+
+  // Only decrement counter if it was a report
+  if (flag.flag_type === "report") {
+    const { data: post } = await admin
+      .from("posts")
+      .select("flag_count")
+      .eq("id", postId)
+      .single();
+
+    if (post) {
+      const newCount = Math.max(0, post.flag_count - 1);
+      await admin
+        .from("posts")
+        .update({ flag_count: newCount, hidden: newCount >= FLAG_THRESHOLD_HIDE })
+        .eq("id", postId);
+    }
+  }
+
+  return { success: true as const };
+}
+
+/**
+ * Moderator unflag — clears all flags and unhides (Tier 3+).
+ */
 export async function unflagPost(postId: string) {
   const supabase = await createClient();
   const {

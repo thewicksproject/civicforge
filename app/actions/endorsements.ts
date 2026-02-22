@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { resolveGameConfig } from "@/lib/game-config/resolver";
 import { UUID_FORMAT } from "@/lib/utils";
+import { notify } from "@/lib/notify/dispatcher";
 
 const EndorsementSchema = z.object({
   to_user: z.string().regex(UUID_FORMAT),
@@ -99,6 +100,17 @@ export async function createEndorsement(data: {
     }
     return { success: false as const, error: "Failed to create endorsement" };
   }
+
+  // Notify the endorsee
+  notify({
+    recipientId: parsed.data.to_user,
+    type: "endorsement_received",
+    title: `You received an endorsement in ${parsed.data.domain}`,
+    body: parsed.data.message ?? undefined,
+    resourceType: "profile",
+    resourceId: parsed.data.to_user,
+    actorId: user.id,
+  });
 
   // Endorsements earn renown (amounts from community game config)
   let giveAmount = 0.5;

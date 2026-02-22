@@ -7,6 +7,8 @@ import { StoryCard } from "@/components/story-card";
 import { EmptyBoardIllustration } from "@/components/illustrations";
 import { getCommunityActivity } from "@/app/actions/activity";
 import { getStoriesForCommunity } from "@/app/actions/stories";
+import { getWelcomeContext } from "@/app/actions/onboarding-guide";
+import { WelcomeBanner } from "@/components/welcome-banner";
 
 export const metadata = { title: "Community Board" };
 
@@ -67,10 +69,11 @@ export default async function BoardPage() {
 
   const canPost = (profile.renown_tier ?? 1) >= 2;
 
-  // Fetch community activity feed + stories in parallel
-  const [activity, stories] = await Promise.all([
+  // Fetch community activity feed + stories + welcome context in parallel
+  const [activity, stories, welcomeCtx] = await Promise.all([
     getCommunityActivity(profile.community_id),
     getStoriesForCommunity(profile.community_id, 3),
+    getWelcomeContext(user.id),
   ]);
 
   const communityRaw = profile.community as { name: string } | { name: string }[] | null;
@@ -101,6 +104,15 @@ export default async function BoardPage() {
 
   return (
     <div>
+      {/* Welcome banner for new users */}
+      {welcomeCtx.shouldShow && (
+        <WelcomeBanner
+          inviterName={welcomeCtx.inviterName}
+          communityName={welcomeCtx.communityName}
+          suggestedPosts={welcomeCtx.suggestedPosts}
+        />
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>

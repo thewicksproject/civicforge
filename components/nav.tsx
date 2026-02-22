@@ -6,6 +6,7 @@ import { useSyncExternalStore } from "react";
 import { useTheme } from "next-themes";
 import { LayoutGrid, CirclePlus, CircleUser, Settings, Sun, Moon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NotificationBell } from "@/components/notification-bell";
 
 const NAV_ITEMS = [
   { href: "/board", label: "Board", icon: LayoutGrid },
@@ -54,6 +55,7 @@ export function Nav() {
                 {label}
               </Link>
             ))}
+            <NotificationBell />
             {mounted && (
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -85,6 +87,9 @@ export function Nav() {
               {label}
             </Link>
           ))}
+          <div className="flex flex-col items-center gap-1 px-3 py-3 text-xs min-w-[48px] min-h-[48px] justify-center">
+            <NotificationBell />
+          </div>
         </div>
       </nav>
     </>

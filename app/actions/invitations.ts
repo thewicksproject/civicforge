@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { generateInviteCode, UUID_FORMAT } from "@/lib/utils";
+import { notify } from "@/lib/notify/dispatcher";
 
 const InvitationOptionsSchema = z.object({
   maxUses: z.number().int().min(1).max(50).default(1),
@@ -225,6 +226,26 @@ export async function redeemInvitation(code: string) {
       error: "Failed to update profile with invitation upgrade. Please try again.",
     };
   }
+
+  // Track individual usage
+  await admin.from("invitation_usages").insert({
+    invitation_id: claimedInvitation.id,
+    user_id: user.id,
+  }).then(() => {}, () => {
+    // Ignore duplicate — non-critical
+  });
+
+  // Notify inviter that someone joined
+  const displayName = (updatedProfile as { display_name?: string }).display_name ?? "Someone";
+  notify({
+    recipientId: invitation.created_by,
+    type: "invite_redeemed",
+    title: `${displayName} joined using your invite!`,
+    body: "Your invitation helped grow the community.",
+    resourceType: "profile",
+    resourceId: user.id,
+    actorId: user.id,
+  });
 
   return { success: true as const, data: updatedProfile };
 }

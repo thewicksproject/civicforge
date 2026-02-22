@@ -9,6 +9,7 @@ import {
 } from "@/lib/types";
 import { resolveGameConfig } from "@/lib/game-config/resolver";
 import { UUID_FORMAT } from "@/lib/utils";
+import { notify } from "@/lib/notify/dispatcher";
 
 const QuestSchema = z.object({
   title: z
@@ -48,6 +49,7 @@ export async function createQuest(data: {
   is_emergency?: boolean;
   scheduled_for?: string | null;
   post_id?: string;
+  guild_id?: string;
 }) {
   const supabase = await createClient();
   const {
@@ -108,6 +110,40 @@ export async function createQuest(data: {
     safePostId = post.id;
   }
 
+  // Validate guild membership if guild_id is provided
+  let safeGuildId: string | null = null;
+  if (data.guild_id) {
+    const guildIdParsed = z.string().regex(UUID_FORMAT).safeParse(data.guild_id);
+    if (!guildIdParsed.success) {
+      return { success: false as const, error: "Invalid guild ID" };
+    }
+
+    const { data: guild } = await admin
+      .from("guilds")
+      .select("id, community_id")
+      .eq("id", guildIdParsed.data)
+      .eq("active", true)
+      .single();
+
+    if (!guild || guild.community_id !== profile.community_id) {
+      return { success: false as const, error: "Guild not found" };
+    }
+
+    // Verify user is a guild member
+    const { data: membership } = await admin
+      .from("guild_members")
+      .select("id")
+      .eq("guild_id", guild.id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!membership) {
+      return { success: false as const, error: "You must be a guild member to create guild quests" };
+    }
+
+    safeGuildId = guild.id;
+  }
+
   const difficulty = parsed.data.difficulty as QuestDifficulty;
 
   // Resolve game config for this community (dynamic quest types)
@@ -138,6 +174,7 @@ export async function createQuest(data: {
     requested_by_other: safePostId !== null,
     validation_threshold: diffConfig.validationThreshold,
     scheduled_for: parsed.data.scheduled_for ?? null,
+    guild_id: safeGuildId,
     // Game Designer FKs
     game_design_id: gameConfig.isClassicFallback ? null : gameConfig.gameDesignId,
     quest_type_id: questType && !gameConfig.isClassicFallback ? questType.id : null,
@@ -156,6 +193,31 @@ export async function createQuest(data: {
     resource_id: quest.id,
     metadata: { difficulty, skill_domains: parsed.data.skill_domains },
   });
+
+  // Notify guild stewards if guild-scoped quest
+  if (safeGuildId) {
+    const { data: stewards } = await admin
+      .from("guild_members")
+      .select("user_id")
+      .eq("guild_id", safeGuildId)
+      .eq("role", "steward");
+
+    if (stewards) {
+      for (const s of stewards) {
+        if (s.user_id !== user.id) {
+          notify({
+            recipientId: s.user_id,
+            type: "guild_quest_created",
+            title: "New quest posted in your guild",
+            body: parsed.data.title,
+            resourceType: "quest",
+            resourceId: quest.id,
+            actorId: user.id,
+          });
+        }
+      }
+    }
+  }
 
   return { success: true as const, questId: quest.id };
 }
@@ -325,6 +387,16 @@ export async function claimQuest(questId: string) {
     return { success: false as const, error: "Failed to claim quest" };
   }
 
+  // Notify quest creator
+  notify({
+    recipientId: quest.created_by,
+    type: "quest_claimed",
+    title: "Someone claimed your quest",
+    resourceType: "quest",
+    resourceId: questId,
+    actorId: user.id,
+  });
+
   return { success: true as const };
 }
 
@@ -482,6 +554,23 @@ export async function completeQuest(questId: string) {
 
     await awardQuestXpToParticipants(admin, questId, quest);
 
+    // Notify quest creator about completion
+    const { data: completedQuest } = await admin
+      .from("quests")
+      .select("created_by")
+      .eq("id", questId)
+      .single();
+    if (completedQuest && completedQuest.created_by !== user.id) {
+      notify({
+        recipientId: completedQuest.created_by,
+        type: "quest_completed",
+        title: "Your quest has been completed!",
+        resourceType: "quest",
+        resourceId: questId,
+        actorId: user.id,
+      });
+    }
+
     return { success: true as const, status: "completed" };
   }
 
@@ -591,6 +680,19 @@ export async function validateQuest(
 
       if (completed) {
         await awardQuestXpToParticipants(admin, questId, quest);
+
+        // Notify all quest participants about validation completion
+        const participantIds = await getQuestParticipantIds(admin, questId);
+        for (const pid of participantIds) {
+          notify({
+            recipientId: pid,
+            type: "quest_validated",
+            title: "Your quest has been validated!",
+            resourceType: "quest",
+            resourceId: questId,
+            actorId: user.id,
+          });
+        }
       }
     }
   }

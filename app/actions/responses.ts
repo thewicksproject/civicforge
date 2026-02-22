@@ -5,6 +5,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { moderateContent } from "@/lib/ai/client";
 import { UUID_FORMAT } from "@/lib/utils";
 import { isSameCommunity } from "@/lib/security/authorization";
+import { notify } from "@/lib/notify/dispatcher";
 
 const MessageSchema = z
   .string()
@@ -121,6 +122,17 @@ export async function createResponse(postId: string, message: string) {
     return { success: false as const, error: "Failed to create response" };
   }
 
+  // Notify the post author
+  notify({
+    recipientId: post.author_id,
+    type: "response_received",
+    title: "Someone responded to your post",
+    body: msgParsed.data.slice(0, 120),
+    resourceType: "post",
+    resourceId: postId,
+    actorId: user.id,
+  });
+
   return { success: true as const, data: response };
 }
 
@@ -208,6 +220,25 @@ export async function updateResponseStatus(
         updated_at: new Date().toISOString(),
       })
       .eq("id", response.post_id);
+  }
+
+  // Notify the responder about acceptance/decline
+  // Need responder_id from the original response
+  const { data: fullResponse } = await admin
+    .from("responses")
+    .select("responder_id")
+    .eq("id", responseId)
+    .single();
+
+  if (fullResponse) {
+    notify({
+      recipientId: fullResponse.responder_id,
+      type: `response_${statusParsed.data}`,
+      title: `Your response was ${statusParsed.data}`,
+      resourceType: "post",
+      resourceId: response.post_id,
+      actorId: user.id,
+    });
   }
 
   return { success: true as const, data: updated };

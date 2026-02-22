@@ -229,6 +229,7 @@ export const profiles = pgTable(
     // Ascendant fields
     renownScore: integer("renown_score").notNull().default(0),
     privacyTier: privacyTierEnum("privacy_tier").notNull().default("quiet"),
+    preferences: jsonb("preferences").notNull().default({}),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -309,6 +310,8 @@ export const postFlags = pgTable(
       .notNull()
       .references(() => profiles.id, { onDelete: "cascade" }),
     reason: text("reason"),
+    flagType: text("flag_type").notNull().default("report"),
+    suggestedCategory: text("suggested_category"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -489,6 +492,33 @@ export const invitations = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// 7b. Invitation Usages (tracks individual redemptions for multi-use codes)
+// ---------------------------------------------------------------------------
+
+export const invitationUsages = pgTable(
+  "invitation_usages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    invitationId: uuid("invitation_id")
+      .notNull()
+      .references(() => invitations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("invitation_usages_inv_user_uniq").on(
+      table.invitationId,
+      table.userId,
+    ),
+    index("invitation_usages_user_idx").on(table.userId),
+  ],
+);
+
+// ---------------------------------------------------------------------------
 // 8. Membership Requests
 // ---------------------------------------------------------------------------
 
@@ -620,6 +650,36 @@ export const auditLog = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// 12b. Notifications
+// ---------------------------------------------------------------------------
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    recipientId: uuid("recipient_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    title: text("title").notNull(),
+    body: text("body"),
+    resourceType: text("resource_type"),
+    resourceId: uuid("resource_id"),
+    actorId: uuid("actor_id").references(() => profiles.id, {
+      onDelete: "set null",
+    }),
+    read: boolean("read").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("notifications_recipient_idx").on(table.recipientId),
+    index("notifications_created_at_idx").on(table.createdAt),
+  ],
+);
+
+// ---------------------------------------------------------------------------
 // 13. Deletion Requests
 // ---------------------------------------------------------------------------
 
@@ -689,6 +749,9 @@ export const quests = pgTable(
     isEmergency: boolean("is_emergency").notNull().default(false),
     isSeasonal: boolean("is_seasonal").notNull().default(false),
     seasonalTemplateId: uuid("seasonal_template_id"),
+    guildId: uuid("guild_id").references(() => guilds.id, {
+      onDelete: "set null",
+    }),
     // Game Designer FKs (nullable for backward compat — actual FK in migration)
     gameDesignId: uuid("game_design_id"),
     questTypeId: uuid("quest_type_id"),
@@ -709,6 +772,7 @@ export const quests = pgTable(
     index("quests_created_by_idx").on(table.createdBy),
     index("quests_status_idx").on(table.status),
     index("quests_difficulty_idx").on(table.difficulty),
+    index("quests_guild_idx").on(table.guildId),
     index("quests_created_at_idx").on(table.createdAt),
   ],
 );
@@ -741,6 +805,31 @@ export const questValidations = pgTable(
     ),
     index("quest_validations_quest_idx").on(table.questId),
     index("quest_validations_validator_idx").on(table.validatorId),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// 15b. Quest Comments (coordination threads for participants)
+// ---------------------------------------------------------------------------
+
+export const questComments = pgTable(
+  "quest_comments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    questId: uuid("quest_id")
+      .notNull()
+      .references(() => quests.id, { onDelete: "cascade" }),
+    authorId: uuid("author_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("quest_comments_quest_idx").on(table.questId),
+    index("quest_comments_author_idx").on(table.authorId),
   ],
 );
 
@@ -1405,6 +1494,15 @@ export type NewDeletionRequest = typeof deletionRequests.$inferInsert;
 
 export type PostFlag = typeof postFlags.$inferSelect;
 export type NewPostFlag = typeof postFlags.$inferInsert;
+
+export type Notification = typeof notifications.$inferSelect;
+export type NewNotification = typeof notifications.$inferInsert;
+
+export type InvitationUsage = typeof invitationUsages.$inferSelect;
+export type NewInvitationUsage = typeof invitationUsages.$inferInsert;
+
+export type QuestComment = typeof questComments.$inferSelect;
+export type NewQuestComment = typeof questComments.$inferInsert;
 
 // Ascendant types
 

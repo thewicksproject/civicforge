@@ -1,11 +1,13 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Users, Clock } from "lucide-react";
+import { ChevronLeft, Users, Clock, Sword, Activity } from "lucide-react";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { formatRelativeTime } from "@/lib/utils";
 import { SkillDomainBadge } from "@/components/skill-domain-badge";
 import { RenownTierBadge } from "@/components/trust-tier-badge";
 import { GuildActions } from "@/components/guild-actions";
+import { GuildQuestList } from "@/components/guild-quest-list";
+import { getGuildQuests, getGuildActivity } from "@/app/actions/guilds";
 import type { SkillDomain, RenownTier } from "@/lib/types";
 
 export async function generateMetadata({
@@ -75,6 +77,15 @@ export default async function GuildDetailPage({
   const isMember = !!userMembership;
   const isSteward = userMembership?.role === "steward";
 
+  // Fetch guild quests and activity in parallel
+  const [questsResult, activityResult] = await Promise.all([
+    getGuildQuests(guildId),
+    getGuildActivity(guildId),
+  ]);
+
+  const guildQuests = questsResult.success ? questsResult.quests : [];
+  const guildActivity = activityResult.success ? activityResult.activity : [];
+
   return (
     <div className="max-w-2xl mx-auto">
       <Link
@@ -119,6 +130,45 @@ export default async function GuildDetailPage({
             {guild.charter}
           </p>
         </div>
+      )}
+
+      {/* Guild Quests */}
+      <section className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Sword className="h-5 w-5 text-golden-hour" />
+            Guild Quests
+          </h2>
+          {isSteward && (
+            <Link
+              href={`/quests/new?guild=${guildId}&domain=${guild.domain}`}
+              className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90 transition-opacity"
+            >
+              Create Guild Quest
+            </Link>
+          )}
+        </div>
+        <GuildQuestList quests={guildQuests} currentUserId={user.id} />
+      </section>
+
+      {/* Recent Activity */}
+      {guildActivity.length > 0 && (
+        <section className="mb-6">
+          <h2 className="text-lg font-semibold flex items-center gap-2 mb-3">
+            <Activity className="h-5 w-5 text-horizon" />
+            Recent Activity
+          </h2>
+          <div className="rounded-xl border border-border bg-card divide-y divide-border">
+            {guildActivity.map((item, i) => (
+              <div key={i} className="px-4 py-3">
+                <p className="text-sm">{item.description}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {formatRelativeTime(new Date(item.timestamp))}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
       {/* Actions */}

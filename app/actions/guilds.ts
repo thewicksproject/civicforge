@@ -273,3 +273,166 @@ export async function getCommunityGuilds(communityId: string) {
 
   return { success: true as const, guilds: guilds ?? [] };
 }
+
+export async function getGuildQuests(guildId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false as const, error: "Unauthorized" };
+  }
+
+  const admin = createServiceClient();
+
+  // Community scoping
+  const { data: userProfile } = await admin
+    .from("profiles")
+    .select("community_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!userProfile?.community_id) {
+    return { success: false as const, error: "Profile not found" };
+  }
+
+  const { data: guild } = await admin
+    .from("guilds")
+    .select("id, community_id")
+    .eq("id", guildId)
+    .single();
+
+  if (!guild || guild.community_id !== userProfile.community_id) {
+    return { success: false as const, error: "Guild not found" };
+  }
+
+  const { data: quests, error } = await admin
+    .from("quests")
+    .select(`
+      id, title, description, difficulty, status, skill_domains,
+      xp_reward, max_party_size, is_emergency, created_at,
+      created_by, profiles!quests_created_by_fkey(display_name, avatar_url)
+    `)
+    .eq("guild_id", guildId)
+    .in("status", ["open", "claimed", "in_progress", "pending_validation"])
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (error) {
+    return { success: false as const, error: "Failed to load guild quests" };
+  }
+
+  return { success: true as const, quests: quests ?? [] };
+}
+
+export async function getGuildActivity(guildId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false as const, error: "Unauthorized" };
+  }
+
+  const admin = createServiceClient();
+
+  // Community scoping
+  const { data: userProfile } = await admin
+    .from("profiles")
+    .select("community_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!userProfile?.community_id) {
+    return { success: false as const, error: "Profile not found" };
+  }
+
+  const { data: guild } = await admin
+    .from("guilds")
+    .select("id, community_id, domain")
+    .eq("id", guildId)
+    .single();
+
+  if (!guild || guild.community_id !== userProfile.community_id) {
+    return { success: false as const, error: "Guild not found" };
+  }
+
+  // Get guild member IDs
+  const { data: members } = await admin
+    .from("guild_members")
+    .select("user_id")
+    .eq("guild_id", guildId);
+
+  const memberIds = (members ?? []).map((m) => m.user_id);
+  if (memberIds.length === 0) {
+    return { success: true as const, activity: [] };
+  }
+
+  // Aggregate recent activity: guild-scoped quest completions
+  const { data: completedQuests } = await admin
+    .from("quests")
+    .select("id, title, completed_at, created_by, profiles!quests_created_by_fkey(display_name)")
+    .eq("guild_id", guildId)
+    .eq("status", "completed")
+    .order("completed_at", { ascending: false })
+    .limit(10);
+
+  // Recent endorsements in guild domain among members
+  const { data: endorsements } = await admin
+    .from("endorsements")
+    .select("id, domain, created_at, from_user, to_user, profiles!endorsements_to_user_fkey(display_name)")
+    .eq("domain", guild.domain)
+    .in("to_user", memberIds)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  // Recent membership changes
+  const { data: recentMembers } = await admin
+    .from("guild_members")
+    .select("user_id, joined_at, member:profiles!guild_members_user_id_fkey(display_name)")
+    .eq("guild_id", guildId)
+    .order("joined_at", { ascending: false })
+    .limit(5);
+
+  type ActivityItem = {
+    type: string;
+    description: string;
+    timestamp: string;
+  };
+
+  const activity: ActivityItem[] = [];
+
+  for (const q of completedQuests ?? []) {
+    const creator = Array.isArray(q.profiles) ? q.profiles[0] : q.profiles;
+    activity.push({
+      type: "quest_completed",
+      description: `${(creator as { display_name: string } | null)?.display_name ?? "Someone"} completed "${q.title}"`,
+      timestamp: q.completed_at ?? q.id,
+    });
+  }
+
+  for (const e of endorsements ?? []) {
+    const endorsed = Array.isArray(e.profiles) ? e.profiles[0] : e.profiles;
+    activity.push({
+      type: "endorsement",
+      description: `${(endorsed as { display_name: string } | null)?.display_name ?? "Someone"} was endorsed in ${e.domain}`,
+      timestamp: e.created_at,
+    });
+  }
+
+  for (const m of recentMembers ?? []) {
+    const member = Array.isArray(m.member) ? m.member[0] : m.member;
+    activity.push({
+      type: "member_joined",
+      description: `${(member as { display_name: string } | null)?.display_name ?? "Someone"} joined the guild`,
+      timestamp: m.joined_at,
+    });
+  }
+
+  // Sort by timestamp descending
+  activity.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  return { success: true as const, activity: activity.slice(0, 15) };
+}

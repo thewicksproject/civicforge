@@ -41,7 +41,7 @@ export function QuestCard({
 
   return (
     <Link
-      href={`/board/quest/${id}`}
+      href={`/quests/${id}`}
       className={cn(
         "block rounded-xl bg-card border border-border p-5 card-hover",
         isEmergency && "border-l-[3px] border-l-destructive",

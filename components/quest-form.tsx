@@ -58,7 +58,7 @@ export function QuestForm() {
     });
 
     if (result.success) {
-      router.push(`/board/quest/${result.questId}`);
+      router.push(`/quests/${result.questId}`);
     } else {
       setError(result.error);
       setLoading(false);

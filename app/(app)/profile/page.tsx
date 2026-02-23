@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { StoryCard } from "@/components/story-card";
+import { EndorsementSection } from "@/components/endorsement-section";
 import { getStoriesForUser } from "@/app/actions/stories";
 import Link from "next/link";
 
@@ -152,6 +153,11 @@ export default async function ProfilePage() {
           </div>
         </section>
       )}
+
+      {/* Endorsements */}
+      <section className="mb-8">
+        <EndorsementSection userId={user.id} isOwnProfile={true} />
+      </section>
 
       {/* Thanks received */}
       <section>

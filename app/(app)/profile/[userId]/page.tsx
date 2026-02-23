@@ -1,6 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { ThanksButton } from "@/components/thanks-button";
+import { VouchButton } from "@/components/vouch-button";
+import { VouchSection } from "@/components/vouch-section";
+import { EndorsementSection } from "@/components/endorsement-section";
 import { StoryCard } from "@/components/story-card";
 import { getStoriesForUser } from "@/app/actions/stories";
 
@@ -114,10 +117,17 @@ export default async function UserProfilePage({
           {!isOwnProfile && (
             <div className="flex flex-col gap-2 items-end flex-shrink-0">
               <ThanksButton toUserId={profile.id} postId={null} />
+              <VouchButton toUserId={profile.id} />
             </div>
           )}
         </div>
       </div>
+
+      {/* Vouches */}
+      <VouchSection userId={userId} />
+
+      {/* Endorsements */}
+      <EndorsementSection userId={userId} isOwnProfile={isOwnProfile} />
 
       {/* Recent posts */}
       {posts && posts.length > 0 && (

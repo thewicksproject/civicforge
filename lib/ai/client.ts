@@ -9,12 +9,14 @@ import {
   QuestExtractionSchema,
   QuestMatchResultSchema,
   GovernanceAnalysisSchema,
+  IssueDecompositionSchema,
   type PostExtraction,
   type MatchResult,
   type ModerationResult,
   type QuestExtraction,
   type QuestMatchResult,
   type GovernanceAnalysis,
+  type IssueDecomposition,
 } from "./schemas";
 import {
   POST_EXTRACTION_PROMPT,
@@ -24,6 +26,7 @@ import {
   QUEST_MATCHING_PROMPT,
   ADVOCATE_PROMPT,
   GOVERNANCE_ANALYSIS_PROMPT,
+  ISSUE_DECOMPOSITION_PROMPT,
   buildGameAwareAdvocatePrompt,
 } from "./prompts";
 
@@ -31,7 +34,7 @@ const anthropic = createAnthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-const MODEL = "claude-sonnet-4-5-20250929";
+const MODEL = "claude-sonnet-4-6";
 
 async function generate<T>(
   systemPrompt: string,
@@ -250,6 +253,48 @@ ${context.activeQuests || "No active quests"}`;
   });
 
   return sanitizeOutput(text);
+}
+
+/**
+ * Decompose a community problem into multiple actionable quests.
+ * Input is datamarked to prevent prompt injection.
+ * All text fields in output are sanitized.
+ */
+export async function decomposeIssue(
+  rawText: string,
+  guidance?: string
+): Promise<IssueDecomposition> {
+  const markedText = datamark(rawText);
+  const guidancePart = guidance
+    ? `\n\nThe user provided additional guidance: ${datamark(guidance)}`
+    : "";
+
+  const result = await generate(
+    ISSUE_DECOMPOSITION_PROMPT,
+    `Break down this community problem into actionable quests:\n\n${markedText}${guidancePart}`,
+    IssueDecompositionSchema
+  );
+
+  return {
+    ...result,
+    quests: result.quests.map((q) => ({
+      ...q,
+      title: sanitizeOutput(q.title),
+      description: sanitizeOutput(q.description),
+      rationale: sanitizeOutput(q.rationale),
+      regulatory_notes: q.regulatory_notes
+        ? sanitizeOutput(q.regulatory_notes)
+        : null,
+    })),
+    regulatory_awareness: {
+      general_notes: sanitizeOutput(result.regulatory_awareness.general_notes),
+      disclaimer: sanitizeOutput(result.regulatory_awareness.disclaimer),
+      suggested_contacts: result.regulatory_awareness.suggested_contacts.map(
+        sanitizeOutput
+      ),
+    },
+    decomposition_rationale: sanitizeOutput(result.decomposition_rationale),
+  };
 }
 
 /**

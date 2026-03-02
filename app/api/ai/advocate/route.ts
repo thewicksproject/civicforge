@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { advocateChat } from "@/lib/ai/client";
+import { datamark } from "@/lib/ai/sanitize";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { AI_RATE_LIMIT_PER_MINUTE } from "@/lib/types";
@@ -190,10 +191,14 @@ export async function POST(request: Request) {
     }
 
     // W12: Build conversation context string from history
+    // Datamark user messages to prevent injection via chat history
     const historyContext = history && history.length > 0
       ? "\n\nCONVERSATION HISTORY:\n" +
         history
-          .map((m) => `${m.role === "assistant" ? "Advocate" : "User"}: ${m.content}`)
+          .map((m) => {
+            const content = m.role === "user" ? datamark(m.content) : m.content;
+            return `${m.role === "assistant" ? "Advocate" : "User"}: ${content}`;
+          })
           .join("\n")
       : "";
 
@@ -233,7 +238,11 @@ export async function POST(request: Request) {
       data: { message: response },
       meta: { ai_assisted: true },
     });
-  } catch {
+  } catch (err) {
+    console.error(
+      "Advocate chat failed:",
+      err instanceof Error ? err.message : err
+    );
     return NextResponse.json(
       { error: "Advocate unavailable. Please try again." },
       { status: 500 }

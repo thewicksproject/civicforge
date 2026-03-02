@@ -195,3 +195,74 @@ export const GovernanceAnalysisSchema = z.object({
 });
 
 export type GovernanceAnalysis = z.infer<typeof GovernanceAnalysisSchema>;
+
+// ---------------------------------------------------------------------------
+// Ascendant: Issue Decomposition Schema
+// ---------------------------------------------------------------------------
+
+/** Schema for a single suggested quest from issue decomposition */
+const DecomposedQuestSchema = z.object({
+  title: z
+    .string()
+    .min(5)
+    .max(100)
+    .describe("Clear, concise quest title"),
+  description: z
+    .string()
+    .min(10)
+    .max(2000)
+    .describe("What needs to be done"),
+  difficulty: z
+    .enum(["spark", "ember", "flame", "blaze", "inferno"])
+    .describe("Quest difficulty tier"),
+  skill_domains: z
+    .array(z.enum(["craft", "green", "care", "bridge", "signal", "hearth", "weave"]))
+    .min(1)
+    .max(3)
+    .describe("Relevant skill domains"),
+  max_party_size: z
+    .number()
+    .int()
+    .min(1)
+    .max(10)
+    .describe("How many people could work on this"),
+  rationale: z
+    .string()
+    .max(500)
+    .describe("Why this quest helps address the overall problem"),
+  regulatory_notes: z
+    .string()
+    .max(500)
+    .nullable()
+    .describe("Quest-specific regulatory or best-practice awareness, null if none"),
+});
+
+/** Schema for AI issue decomposition result */
+export const IssueDecompositionSchema = z.object({
+  quests: z
+    .array(DecomposedQuestSchema)
+    .min(2)
+    .max(8)
+    .describe("Suggested quests decomposed from the problem"),
+  regulatory_awareness: z.object({
+    general_notes: z
+      .string()
+      .max(1000)
+      .describe("General regulatory or best-practice notes for the overall situation"),
+    disclaimer: z
+      .string()
+      .max(200)
+      .describe("Must be: This is general awareness, not legal advice. Consult local authorities for specific requirements."),
+    suggested_contacts: z
+      .array(z.string().max(100))
+      .max(5)
+      .describe("Suggested local authorities or departments to consult"),
+  }),
+  decomposition_rationale: z
+    .string()
+    .max(500)
+    .describe("Brief explanation of how the problem was broken down"),
+});
+
+export type IssueDecomposition = z.infer<typeof IssueDecompositionSchema>;
+export type DecomposedQuest = z.infer<typeof DecomposedQuestSchema>;

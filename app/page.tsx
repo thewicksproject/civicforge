@@ -7,6 +7,9 @@ import {
   HowItWorksMatchIllustration,
   HowItWorksTrustIllustration,
 } from "@/components/illustrations";
+import { AlphaInterestForm } from "@/components/alpha-interest-form";
+
+const ALPHA_MODE = process.env.NEXT_PUBLIC_ALPHA_MODE === "true";
 
 export const metadata: Metadata = {
   title: "CivicForge — Your community, connected",
@@ -57,6 +60,12 @@ function HeroSection() {
           Learn More
         </a>
       </div>
+
+      {ALPHA_MODE && (
+        <p className="mt-6 text-sm text-muted-foreground">
+          Early access — join by invitation from an existing member.
+        </p>
+      )}
     </section>
   );
 }
@@ -172,16 +181,36 @@ function CTASection() {
         <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
           Ready to connect?
         </h2>
-        <p className="mt-4 text-lg text-muted-foreground">
-          Join neighbors who are already helping each other. It only takes a
-          moment to get started.
-        </p>
-        <Link
-          href="/login"
-          className="mt-8 inline-flex h-12 items-center justify-center rounded-full bg-golden-hour px-10 text-base font-medium text-accent-foreground shadow-sm transition-colors hover:bg-golden-hour/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-golden-hour"
-        >
-          Sign Up Free
-        </Link>
+        {ALPHA_MODE ? (
+          <>
+            <p className="mt-4 text-lg text-muted-foreground">
+              CivicForge is in early access. Have an invitation? Sign in to get started.
+              Otherwise, leave your email and we&apos;ll reach out when your community is ready.
+            </p>
+            <div className="mt-8 flex flex-col items-center gap-4">
+              <Link
+                href="/login"
+                className="inline-flex h-12 items-center justify-center rounded-full border border-border bg-card px-10 text-base font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                I Have an Invitation
+              </Link>
+              <AlphaInterestForm />
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="mt-4 text-lg text-muted-foreground">
+              Join neighbors who are already helping each other. It only takes a
+              moment to get started.
+            </p>
+            <Link
+              href="/login"
+              className="mt-8 inline-flex h-12 items-center justify-center rounded-full bg-golden-hour px-10 text-base font-medium text-accent-foreground shadow-sm transition-colors hover:bg-golden-hour/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-golden-hour"
+            >
+              Sign Up Free
+            </Link>
+          </>
+        )}
       </div>
     </section>
   );

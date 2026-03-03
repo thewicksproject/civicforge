@@ -236,15 +236,21 @@ export default function OnboardingPage() {
                   onSelect={setCommunityId}
                   selectedId={communityId}
                 />
-                <div className="text-center">
-                  <Button
-                    type="button"
-                    variant="link"
-                    onClick={() => setShowCreateCommunity(true)}
-                  >
-                    Or create a new community
-                  </Button>
-                </div>
+                {process.env.NEXT_PUBLIC_ALPHA_MODE === "true" ? (
+                  <p className="text-center text-sm text-muted-foreground">
+                    During early access, communities are seeded by the CivicForge team. Join one with an invitation code.
+                  </p>
+                ) : (
+                  <div className="text-center">
+                    <Button
+                      type="button"
+                      variant="link"
+                      onClick={() => setShowCreateCommunity(true)}
+                    >
+                      Or create a new community
+                    </Button>
+                  </div>
+                )}
               </>
             ) : (
               <div className="space-y-3">

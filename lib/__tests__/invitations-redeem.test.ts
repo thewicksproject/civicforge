@@ -21,13 +21,16 @@ type InvitationRow = {
   community_id: string;
   used_by: string | null;
   expires_at: string;
+  use_count: number;
+  max_uses: number;
 };
 
 type TableName = "profiles" | "invitations";
 type Filter =
   | { kind: "eq"; column: string; value: unknown }
   | { kind: "is"; column: string; value: unknown }
-  | { kind: "gt"; column: string; value: unknown };
+  | { kind: "gt"; column: string; value: unknown }
+  | { kind: "lt"; column: string; value: unknown };
 
 type FakeDb = {
   profiles: ProfileRow[];
@@ -78,6 +81,11 @@ class FakeQueryBuilder {
     return this;
   }
 
+  lt(column: string, value: unknown) {
+    this.filters.push({ kind: "lt", column, value });
+    return this;
+  }
+
   single() {
     return Promise.resolve(this.execute(true));
   }
@@ -122,9 +130,8 @@ class FakeQueryBuilder {
       this.updatePatch.used_by != null &&
       this.filters.some(
         (filter) =>
-          filter.kind === "is" &&
-          filter.column === "used_by" &&
-          filter.value === null
+          filter.kind === "lt" &&
+          filter.column === "use_count"
       );
 
     if (isInvitationClaim && this.db.beforeInvitationClaim) {
@@ -169,13 +176,21 @@ class FakeQueryBuilder {
         return rowValue === filter.value;
       }
 
-      if (rowValue == null || typeof filter.value !== "string") {
+      if (rowValue == null) {
+        return false;
+      }
+
+      if (typeof rowValue === "number" && typeof filter.value === "number") {
+        return filter.kind === "gt" ? rowValue > filter.value : rowValue < filter.value;
+      }
+
+      if (typeof filter.value !== "string") {
         return false;
       }
 
       const rowTime = new Date(String(rowValue)).getTime();
       const filterTime = new Date(filter.value).getTime();
-      return rowTime > filterTime;
+      return filter.kind === "gt" ? rowTime > filterTime : rowTime < filterTime;
     });
   }
 
@@ -196,12 +211,26 @@ class FakeQueryBuilder {
   }
 }
 
+class FakeNoOpBuilder {
+  insert() { return Promise.resolve({ data: null, error: null }); }
+  select() { return this; }
+  update() { return this; }
+  eq() { return this; }
+  is() { return this; }
+  gt() { return this; }
+  lt() { return this; }
+  single() { return Promise.resolve({ data: null, error: null }); }
+  then<T>(onFulfilled?: ((v: unknown) => T) | null) {
+    return Promise.resolve({ data: null, error: null }).then(onFulfilled);
+  }
+}
+
 class FakeAdminClient {
   constructor(private readonly db: FakeDb) {}
 
   from(table: string) {
     if (table !== "profiles" && table !== "invitations") {
-      throw new Error(`Unsupported table in test client: ${table}`);
+      return new FakeNoOpBuilder() as never;
     }
     return new FakeQueryBuilder(this.db, table);
   }
@@ -269,6 +298,8 @@ describe("redeemInvitation", () => {
           community_id: "community-a",
           used_by: null,
           expires_at: futureIso(),
+          use_count: 0,
+          max_uses: 1,
         },
       ],
     });
@@ -292,6 +323,8 @@ describe("redeemInvitation", () => {
           community_id: "community-a",
           used_by: null,
           expires_at: futureIso(),
+          use_count: 0,
+          max_uses: 1,
         },
       ],
     });
@@ -317,6 +350,8 @@ describe("redeemInvitation", () => {
           community_id: "community-a",
           used_by: null,
           expires_at: futureIso(),
+          use_count: 0,
+          max_uses: 1,
         },
       ],
     });
@@ -341,6 +376,8 @@ describe("redeemInvitation", () => {
           community_id: "community-a",
           used_by: "another-user",
           expires_at: futureIso(),
+          use_count: 1,
+          max_uses: 1,
         },
       ],
     });
@@ -348,7 +385,7 @@ describe("redeemInvitation", () => {
     const result = await redeemInvitation("ABCDEFGH");
 
     expect(result.success).toBe(false);
-    expect(result.error).toBe("This invitation has already been used");
+    expect(result.error).toBe("This invitation has reached its usage limit");
     expect(db.invitations[0].used_by).toBe("another-user");
   });
 
@@ -363,6 +400,8 @@ describe("redeemInvitation", () => {
           community_id: "community-a",
           used_by: null,
           expires_at: pastIso(),
+          use_count: 0,
+          max_uses: 1,
         },
       ],
     });
@@ -385,10 +424,13 @@ describe("redeemInvitation", () => {
           community_id: "community-a",
           used_by: null,
           expires_at: futureIso(),
+          use_count: 0,
+          max_uses: 1,
         },
       ],
       beforeInvitationClaim: (state) => {
         state.invitations[0].used_by = "race-winner";
+        state.invitations[0].use_count = 1;
       },
     });
 
@@ -412,6 +454,8 @@ describe("redeemInvitation", () => {
           community_id: "community-a",
           used_by: null,
           expires_at: futureIso(),
+          use_count: 0,
+          max_uses: 1,
         },
       ],
       failProfileUpdate: true,
@@ -421,7 +465,7 @@ describe("redeemInvitation", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("Failed to update profile");
-    expect(db.invitations[0].used_by).toBeNull();
+    expect(db.invitations[0].use_count).toBe(0);
     expect(db.profiles[0].community_id).toBeNull();
     expect(db.profiles[0].renown_tier).toBe(1);
   });

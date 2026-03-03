@@ -1,7 +1,7 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { generateObject, generateText } from "ai";
 import { type ZodType } from "zod";
-import { datamark, sanitizeOutput } from "./sanitize";
+import { datamark, datamarkArray, sanitizeOutput } from "./sanitize";
 import {
   PostExtractionSchema,
   MatchResultSchema,
@@ -81,7 +81,8 @@ export async function extractPost(
 
 /**
  * Find matching profiles for a post.
- * SECURITY: Only structured data enters this context — never raw user text.
+ * SECURITY: User-authored fields (titles, skills, availability) are datamarked
+ * before interpolation. Enums and numbers pass through as-is.
  */
 export async function findMatches(
   post: {
@@ -99,14 +100,14 @@ export async function findMatches(
   }>
 ): Promise<MatchResult> {
   const userMessage = `Post to match:
-Title: ${post.title}
+Title: ${datamark(post.title)}
 Category: ${post.category}
-Skills needed: ${post.skills_relevant.join(", ")}
+Skills needed: ${datamarkArray(post.skills_relevant).join(", ")}
 Urgency: ${post.urgency ?? "not specified"}
-Availability: ${post.available_times ?? "not specified"}
+Availability: ${post.available_times ? datamark(post.available_times) : "not specified"}
 
 Available profiles:
-${profiles.map((p) => `- ID: ${p.user_id}, Skills: ${p.skills.join(", ")}, Reputation: ${p.reputation_score}`).join("\n")}`;
+${profiles.map((p) => `- ID: ${p.user_id}, Skills: ${datamarkArray(p.skills).join(", ")}, Reputation: ${p.reputation_score}`).join("\n")}`;
 
   return generate(MATCHING_PROMPT, userMessage, MatchResultSchema);
 }
@@ -159,7 +160,8 @@ export async function extractQuest(
 
 /**
  * Match open quests to a user based on their skills, availability, and interests.
- * SECURITY: Only structured data enters this context — never raw user text.
+ * SECURITY: User-authored fields (skills, quest titles, display names) are datamarked
+ * before interpolation. Enums, UUIDs, and numbers pass through as-is.
  */
 export async function matchQuests(
   userProfile: {
@@ -179,12 +181,12 @@ export async function matchQuests(
   }>
 ): Promise<QuestMatchResult> {
   const userMessage = `User profile:
-Skills: ${userProfile.skills.join(", ")}
+Skills: ${datamarkArray(userProfile.skills).join(", ")}
 Skill domains: ${userProfile.skill_domains.map((d) => `${d.domain} (level ${d.level})`).join(", ")}
 Availability: ${userProfile.availability ?? "not specified"}
 
 Open quests:
-${openQuests.map((q) => `- ID: ${q.quest_id}, Title: ${q.title}, Difficulty: ${q.difficulty}, Domains: ${q.skill_domains.join(", ")}, Posted by: ${q.posted_by}, Urgency: ${q.urgency ?? "normal"}`).join("\n")}`;
+${openQuests.map((q) => `- ID: ${q.quest_id}, Title: ${datamark(q.title)}, Difficulty: ${q.difficulty}, Domains: ${q.skill_domains.join(", ")}, Posted by: ${datamark(q.posted_by)}, Urgency: ${q.urgency ?? "normal"}`).join("\n")}`;
 
   return generate(QUEST_MATCHING_PROMPT, userMessage, QuestMatchResultSchema);
 }
@@ -215,10 +217,10 @@ export async function advocateChat(
 ): Promise<string> {
   const contextBlock = `
 USER CONTEXT (private — do not share):
-Name: ${context.profile.display_name}
+Name: ${datamark(context.profile.display_name)}
 Renown tier: ${context.profile.renown_tier}
 Skills: ${context.profile.skill_domains.map((d) => `${d.domain} (level ${d.level})`).join(", ") || "none yet"}
-Guilds: ${context.profile.guild_memberships.join(", ") || "none yet"}
+Guilds: ${context.profile.guild_memberships.length > 0 ? datamarkArray(context.profile.guild_memberships).join(", ") : "none yet"}
 
 RECENT COMMUNITY ACTIVITY:
 ${context.recentActivity || "No recent activity"}
@@ -299,7 +301,8 @@ export async function decomposeIssue(
 
 /**
  * Analyze a governance proposal for a specific user.
- * SECURITY: Proposal text is datamarked; analysis is structured.
+ * SECURITY: User-authored fields (title, description, guild names) are datamarked
+ * before interpolation. Enums and numbers pass through as-is.
  */
 export async function analyzeProposal(
   proposal: {
@@ -319,7 +322,7 @@ export async function analyzeProposal(
   const markedDescription = datamark(proposal.description);
 
   const userMessage = `Proposal to analyze:
-Title: ${proposal.title}
+Title: ${datamark(proposal.title)}
 Description: ${markedDescription}
 Category: ${proposal.category}
 Vote type: ${proposal.vote_type}
@@ -327,7 +330,7 @@ Current votes: ${proposal.votes_for} for, ${proposal.votes_against} against
 
 User context:
 Renown tier: ${userContext.renown_tier}
-Guilds: ${userContext.guild_memberships.join(", ") || "none"}
+Guilds: ${userContext.guild_memberships.length > 0 ? datamarkArray(userContext.guild_memberships).join(", ") : "none"}
 Skill domains: ${userContext.skill_domains.map((d) => `${d.domain} (level ${d.level})`).join(", ") || "none"}`;
 
   return generate(

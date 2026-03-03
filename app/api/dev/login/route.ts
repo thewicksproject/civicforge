@@ -6,7 +6,10 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
-  // Safety: only allow on localhost
+  // Safety: only allow on localhost + non-production
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "Dev-only endpoint" }, { status: 403 });
+  }
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
   if (!appUrl.includes("localhost")) {
     return NextResponse.json({ error: "Dev-only endpoint" }, { status: 403 });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { extractQuest } from "@/lib/ai/client";
+import { checkDailyBudget } from "@/lib/ai/budget";
 import { parseJsonBody } from "@/lib/http/json";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
@@ -65,6 +66,18 @@ export async function POST(request: Request) {
     );
   }
 
+  // Enforce daily token budget
+  const { allowed, used } = await checkDailyBudget(supabase, user.id);
+  if (!allowed) {
+    return NextResponse.json(
+      {
+        error: "Daily AI budget reached. Try again tomorrow.",
+        meta: { tokens_used: used },
+      },
+      { status: 429 }
+    );
+  }
+
   try {
     const extracted = await extractQuest(text);
 
@@ -81,7 +94,11 @@ export async function POST(request: Request) {
       data: extracted,
       meta: { ai_assisted: true },
     });
-  } catch {
+  } catch (err) {
+    console.error(
+      "Quest extraction failed:",
+      err instanceof Error ? err.message : err
+    );
     return NextResponse.json(
       { error: "Failed to process text. Please try the manual form." },
       { status: 500 }

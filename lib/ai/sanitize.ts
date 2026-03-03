@@ -23,6 +23,15 @@ export function datamark(text: string): string {
 }
 
 /**
+ * Datamark each string in an array.
+ * Convenience wrapper for datamarking lists of user-authored strings
+ * (skills, guild names, etc.) before interpolation into LLM prompts.
+ */
+export function datamarkArray(items: string[]): string[] {
+  return items.map(datamark);
+}
+
+/**
  * Sanitize text output from LLM before rendering.
  * Strips potential XSS vectors from AI-generated content.
  *

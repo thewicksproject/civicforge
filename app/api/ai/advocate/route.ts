@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { advocateChat } from "@/lib/ai/client";
+import { datamark } from "@/lib/ai/sanitize";
+import { checkDailyBudget } from "@/lib/ai/budget";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { AI_RATE_LIMIT_PER_MINUTE } from "@/lib/types";
@@ -94,6 +96,18 @@ export async function POST(request: Request) {
     );
   }
 
+  // Enforce daily token budget
+  const { allowed, used } = await checkDailyBudget(supabase, user.id);
+  if (!allowed) {
+    return NextResponse.json(
+      {
+        error: "Daily AI budget reached. Try again tomorrow.",
+        meta: { tokens_used: used },
+      },
+      { status: 429 }
+    );
+  }
+
   // Build the current user message (last message in history, or single message)
   const currentMessage =
     messages.length > 0
@@ -151,11 +165,11 @@ export async function POST(request: Request) {
     .limit(10);
 
   const recentActivitySummary = (recentQuests ?? [])
-    .map((q) => `"${q.title}" (${q.difficulty}) completed`)
+    .map((q) => `"${datamark(q.title)}" (${q.difficulty}) completed`)
     .join("; ") || "No recent completions";
 
   const activeQuestsSummary = (activeQuests ?? [])
-    .map((q) => `"${q.title}" (${q.difficulty}, ${q.status})`)
+    .map((q) => `"${datamark(q.title)}" (${q.difficulty}, ${q.status})`)
     .join("; ") || "No active quests";
 
   try {
@@ -190,10 +204,14 @@ export async function POST(request: Request) {
     }
 
     // W12: Build conversation context string from history
+    // Datamark user messages to prevent injection via chat history
     const historyContext = history && history.length > 0
       ? "\n\nCONVERSATION HISTORY:\n" +
         history
-          .map((m) => `${m.role === "assistant" ? "Advocate" : "User"}: ${m.content}`)
+          .map((m) => {
+            const content = m.role === "user" ? datamark(m.content) : m.content;
+            return `${m.role === "assistant" ? "Advocate" : "User"}: ${content}`;
+          })
           .join("\n")
       : "";
 
@@ -233,7 +251,11 @@ export async function POST(request: Request) {
       data: { message: response },
       meta: { ai_assisted: true },
     });
-  } catch {
+  } catch (err) {
+    console.error(
+      "Advocate chat failed:",
+      err instanceof Error ? err.message : err
+    );
     return NextResponse.json(
       { error: "Advocate unavailable. Please try again." },
       { status: 500 }

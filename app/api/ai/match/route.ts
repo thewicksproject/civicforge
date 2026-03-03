@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { findMatches } from "@/lib/ai/client";
+import { checkDailyBudget } from "@/lib/ai/budget";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { AI_RATE_LIMIT_PER_MINUTE } from "@/lib/types";
@@ -96,6 +97,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  // Enforce daily token budget
+  const { allowed, used } = await checkDailyBudget(supabase, user.id);
+  if (!allowed) {
+    return NextResponse.json(
+      {
+        error: "Daily AI budget reached. Try again tomorrow.",
+        meta: { tokens_used: used },
+      },
+      { status: 429 }
+    );
+  }
+
   // Fetch candidate profiles from the same community (excluding post author)
   const { data: profiles } = await admin
     .from("profiles")
@@ -141,7 +154,11 @@ export async function POST(request: Request) {
       data: result,
       meta: { ai_assisted: true },
     });
-  } catch {
+  } catch (err) {
+    console.error(
+      "Profile matching failed:",
+      err instanceof Error ? err.message : err
+    );
     return NextResponse.json(
       { error: "Matching failed. Please try again." },
       { status: 500 }

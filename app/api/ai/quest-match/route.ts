@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { matchQuests } from "@/lib/ai/client";
+import { datamark } from "@/lib/ai/sanitize";
+import { checkDailyBudget } from "@/lib/ai/budget";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { AI_RATE_LIMIT_PER_MINUTE } from "@/lib/types";
@@ -52,14 +54,37 @@ export async function POST(request: Request) {
     }
   }
 
+  // Enforce daily token budget
+  const { allowed, used } = await checkDailyBudget(supabase, user.id);
+  if (!allowed) {
+    return NextResponse.json(
+      {
+        error: "Daily AI budget reached. Try again tomorrow.",
+        meta: { tokens_used: used },
+      },
+      { status: 429 }
+    );
+  }
+
   const parsedBody = await parseJsonBody<{ availability?: unknown }>(request);
   if (!parsedBody.ok) {
     return NextResponse.json({ error: parsedBody.error }, { status: 400 });
   }
-  const availability =
+  const rawAvailability =
     typeof parsedBody.data.availability === "string"
       ? parsedBody.data.availability
       : null;
+
+  // L5: Cap availability length to prevent token abuse
+  if (rawAvailability && rawAvailability.length > 500) {
+    return NextResponse.json(
+      { error: "Availability text too long (max 500 characters)" },
+      { status: 400 }
+    );
+  }
+
+  // M1: Datamark user-supplied availability to prevent prompt injection
+  const availability = rawAvailability ? datamark(rawAvailability) : null;
 
   const admin = createServiceClient();
 
@@ -130,7 +155,11 @@ export async function POST(request: Request) {
       data: result,
       meta: { ai_assisted: true },
     });
-  } catch {
+  } catch (err) {
+    console.error(
+      "Quest match failed:",
+      err instanceof Error ? err.message : err
+    );
     return NextResponse.json(
       { error: "Quest matching failed. Please try again." },
       { status: 500 }

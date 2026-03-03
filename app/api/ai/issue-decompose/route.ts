@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { extractQuest } from "@/lib/ai/client";
+import { decomposeIssue } from "@/lib/ai/client";
 import { checkDailyBudget } from "@/lib/ai/budget";
 import { parseJsonBody } from "@/lib/http/json";
 import { Ratelimit } from "@upstash/ratelimit";
@@ -22,7 +22,7 @@ const ratelimit = redis
   ? new Ratelimit({
       redis,
       limiter: Ratelimit.slidingWindow(AI_RATE_LIMIT_PER_MINUTE, "1 m"),
-      prefix: "ai:quest-extract",
+      prefix: "ai:issue-decompose",
     })
   : null;
 
@@ -53,20 +53,27 @@ export async function POST(request: Request) {
     }
   }
 
-  const parsedBody = await parseJsonBody<{ text?: unknown }>(request);
+  const parsedBody = await parseJsonBody<{ text?: unknown; guidance?: unknown }>(request);
   if (!parsedBody.ok) {
     return NextResponse.json({ error: parsedBody.error }, { status: 400 });
   }
-  const text = parsedBody.data.text;
+  const { text, guidance } = parsedBody.data;
 
-  if (!text || typeof text !== "string" || text.length > 2000) {
+  if (!text || typeof text !== "string" || text.length > 5000) {
     return NextResponse.json(
-      { error: "Invalid input text" },
+      { error: "Invalid input text (max 5000 characters)" },
       { status: 400 }
     );
   }
 
-  // Enforce daily token budget
+  if (guidance !== undefined && (typeof guidance !== "string" || guidance.length > 500)) {
+    return NextResponse.json(
+      { error: "Invalid guidance text (max 500 characters)" },
+      { status: 400 }
+    );
+  }
+
+  // Enforce daily token budget before making the LLM call
   const { allowed, used } = await checkDailyBudget(supabase, user.id);
   if (!allowed) {
     return NextResponse.json(
@@ -79,28 +86,31 @@ export async function POST(request: Request) {
   }
 
   try {
-    const extracted = await extractQuest(text);
+    const decomposition = await decomposeIssue(
+      text,
+      typeof guidance === "string" ? guidance : undefined
+    );
 
-    // Log AI usage
+    // Log AI usage (decomposition uses more tokens than single extraction)
     const today = new Date().toISOString().split("T")[0];
     await supabase.rpc("increment_ai_usage", {
       p_user_id: user.id,
       p_date: today,
-      p_tokens: 600,
+      p_tokens: 1500,
       p_requests: 1,
     });
 
     return NextResponse.json({
-      data: extracted,
+      data: decomposition,
       meta: { ai_assisted: true },
     });
   } catch (err) {
     console.error(
-      "Quest extraction failed:",
+      "Issue decompose failed:",
       err instanceof Error ? err.message : err
     );
     return NextResponse.json(
-      { error: "Failed to process text. Please try the manual form." },
+      { error: "Failed to decompose issue. Please try again or use the manual form." },
       { status: 500 }
     );
   }

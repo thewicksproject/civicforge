@@ -43,6 +43,19 @@ export async function createCommunity(formData: FormData) {
     return { success: false as const, error: "You must be logged in" };
   }
 
+  // Alpha gate: restrict community creation to admin UUIDs
+  const ALPHA_ADMIN_IDS = process.env.ALPHA_ADMIN_IDS?.split(",") ?? [];
+  if (
+    process.env.ALPHA_RESTRICT_COMMUNITY_CREATION === "true" &&
+    !ALPHA_ADMIN_IDS.includes(user.id)
+  ) {
+    return {
+      success: false as const,
+      error:
+        "Community creation is currently by invitation only. Contact the CivicForge team to seed a new community.",
+    };
+  }
+
   const raw = {
     name: formData.get("name"),
     city: formData.get("city"),

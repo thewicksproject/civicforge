@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { QuestForm } from "@/components/quest-form";
+import { QuestCreationTabs } from "./quest-creation-tabs";
 
 export const metadata = { title: "Create Quest" };
 
@@ -40,11 +40,7 @@ export default async function NewQuestPage() {
 
   return (
     <div className="max-w-xl mx-auto">
-      <h1 className="text-2xl font-semibold mb-1">Create a Quest</h1>
-      <p className="text-sm text-muted-foreground mb-6">
-        Define a task for your community with clear completion criteria.
-      </p>
-      <QuestForm />
+      <QuestCreationTabs />
     </div>
   );
 }

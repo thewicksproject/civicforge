@@ -1450,6 +1450,22 @@ export const questNarratives = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// Alpha Interest (waitlist for early access)
+// ---------------------------------------------------------------------------
+
+export const alphaInterest = pgTable(
+  "alpha_interest",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: text("email").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [uniqueIndex("alpha_interest_email_uniq").on(table.email)],
+);
+
+// ---------------------------------------------------------------------------
 // Type Inference Helpers
 // ---------------------------------------------------------------------------
 
@@ -1578,3 +1594,7 @@ export type NewPostInterest = typeof postInterests.$inferInsert;
 
 export type CompletionStory = typeof completionStories.$inferSelect;
 export type NewCompletionStory = typeof completionStories.$inferInsert;
+
+// Alpha
+export type AlphaInterest = typeof alphaInterest.$inferSelect;
+export type NewAlphaInterest = typeof alphaInterest.$inferInsert;

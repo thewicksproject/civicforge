@@ -11,16 +11,26 @@ const mockedCreateServiceClient = vi.mocked(createServiceClient);
 
 function profileLookupClient(communityId: string | null) {
   const from = vi.fn((table: string) => {
-    if (table !== "profiles") {
-      throw new Error(`Unexpected table access in scoped test: ${table}`);
+    if (table === "profiles") {
+      const query = {
+        eq: vi.fn(() => query),
+        single: vi.fn(async () => ({ data: { community_id: communityId }, error: null })),
+      };
+      return {
+        select: vi.fn(() => query),
+      };
     }
-    const query = {
-      eq: vi.fn(() => query),
-      single: vi.fn(async () => ({ data: { community_id: communityId }, error: null })),
-    };
-    return {
-      select: vi.fn(() => query),
-    };
+    if (table === "communities") {
+      const query = {
+        eq: vi.fn(() => query),
+        order: vi.fn(async () => ({ data: [], error: null })),
+        single: vi.fn(async () => ({ data: null, error: { code: "PGRST116" } })),
+      };
+      return {
+        select: vi.fn(() => query),
+      };
+    }
+    throw new Error(`Unexpected table access in scoped test: ${table}`);
   });
   return { from };
 }

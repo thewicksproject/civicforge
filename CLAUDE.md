@@ -40,15 +40,35 @@ app/
   page.tsx                         # Landing page
   login/page.tsx                   # Auth (magic link + Google)
   onboarding/page.tsx              # Community + profile setup
+  join/[code]/page.tsx             # Join community via invite code
+  privacy/page.tsx                 # Privacy policy
+  terms/page.tsx                   # Terms of service
   (app)/                           # Auth-required routes with nav
     board/page.tsx                 # Needs Board (main screen)
     board/[postId]/page.tsx        # Post detail + responses
+    board/quest/new/page.tsx       # Create quest
+    board/quest/[questId]/page.tsx # View/edit quest
     post/new/page.tsx              # Create post
     profile/page.tsx               # Own profile
     profile/[userId]/page.tsx      # View others
     settings/privacy/page.tsx      # Settings, data export, deletion
     community/[id]/members/        # Member list + admin controls
     community/[id]/invite/         # Generate invite codes
+    admin/review/                  # Content review dashboard
+    game/                          # Game design system
+      page.tsx                     # Design list
+      design/new/page.tsx          # Create design
+      design/[draftId]/page.tsx    # View design
+      design/[draftId]/edit/page.tsx # Edit design
+    governance/                    # Proposals + voting
+      page.tsx                     # Proposal list
+      new/page.tsx                 # Create proposal
+      [proposalId]/page.tsx        # Proposal detail + voting
+    guilds/                        # Guild management
+      page.tsx                     # Guild list
+      new/page.tsx                 # Create guild
+      [guildId]/page.tsx           # Guild detail
+    quests/[questId]/page.tsx      # Quest detail
   commons/                         # The Commons — public visualization dashboard
     layout.tsx                     # Minimal layout, no auth required
     page.tsx                       # Platform-wide aggregate view
@@ -65,37 +85,84 @@ app/
       stat-card.tsx                # KPI card
       commons-header.tsx           # Title, community picker, timestamp
       privacy-notice.tsx           # Transparency notice
-  actions/                         # Server Actions (all CRUD)
+  actions/                         # Server Actions (24 files, all CRUD)
+    activity.ts                    # Activity feed queries
+    admin.ts                       # Admin operations
     commons.ts                     # Aggregate queries for Commons (no auth, privacy-guarded)
-    posts.ts, responses.ts, thanks.ts, profiles.ts, communities.ts
-    invitations.ts, membership.ts, flags.ts, admin.ts
-    quests.ts                      # Quest CRUD, XP awards, validation
-    skills.ts                      # Skill progress queries
-    guilds.ts                      # Guild CRUD, membership, steward mgmt
+    communities.ts                 # Community CRUD
     endorsements.ts                # Peer endorsements, renown
+    flags.ts                       # Content flagging
+    game-designs.ts                # Game design CRUD, forking, publishing
     governance.ts                  # Proposals, quadratic voting, delegation
+    guilds.ts                      # Guild CRUD, membership, steward mgmt
+    interests.ts                   # Post interest tracking
+    invitations.ts                 # Invite code generation + redemption
+    membership.ts                  # Membership requests + approval
+    notifications.ts               # Notification CRUD
+    onboarding-guide.ts            # Onboarding state machine
+    posts.ts                       # Post CRUD
+    profiles.ts                    # Profile CRUD
+    quest-comments.ts              # Quest comment threads
+    quests.ts                      # Quest CRUD, XP awards, validation
+    responses.ts                   # Response CRUD
+    skills.ts                      # Skill progress queries
+    stories.ts                     # Completion stories (narrative)
+    thanks.ts                      # Thank-you system
+    vouches.ts                     # Peer vouching for tier advancement
+    waitlist.ts                    # Alpha waitlist interest
   api/ai/                          # AI route handlers (rate-limited)
+    advocate/                      # Personal AI advocate chat
     extract/                       # Post extraction from text
+    issue-decompose/               # Break community issues into quests
     match/                         # Profile matching for posts
     quest-extract/                 # Natural language -> quest parameters
     quest-match/                   # Match quests to user skills/availability
-    advocate/                      # Personal AI advocate chat
   api/auth/callback/               # OAuth callback
+  api/dev/login/                   # Dev-only auth bypass
+  api/membership/[requestId]/      # Membership approval workflow
+    approve/                       # Approve membership request
+    deny/                          # Deny membership request
+  api/phone/                       # SMS verification (Twilio)
+    send/                          # Send verification code
+    verify/                        # Verify code
+  api/photos/upload/               # Photo upload + processing
   api/privacy/                     # Data export + deletion
+    delete/                        # Request data deletion
+    export/                        # Export user data
+    process-deletions/             # Cron: process pending deletions
 components/                        # React components
 lib/
-  supabase/ (client, server, middleware)
+  __tests__/                       # Vitest test files
   ai/
+    budget.ts                      # Daily token budget tracking
     client.ts                      # LLM calls: extractPost, findMatches, moderateContent,
                                    #   extractQuest, matchQuests, advocateChat, analyzeProposal
-    schemas.ts                     # Zod schemas: post, match, moderation, quest, advocate, governance
+    prompts.ts                     # System prompts with sandwich defense
     sanitize.ts                    # Datamarking + XSS output sanitization
-    prompts.ts                     # System prompts with sandwich defense:
-                                   #   POST_EXTRACTION, MATCHING, MODERATION,
-                                   #   QUEST_EXTRACTION, QUEST_MATCHING, ADVOCATE, GOVERNANCE_ANALYSIS
-  db/schema.ts                     # Drizzle schema (25 tables)
-  photos/process.ts                # Sharp image pipeline
+    schemas.ts                     # Zod schemas: post, match, moderation, quest, advocate,
+                                   #   governance, issue decomposition
+  commons/privacy.ts               # K-anonymity + privacy guards for Commons
+  db/schema.ts                     # Drizzle schema (41 tables)
+  env/server.ts                    # Environment variable loading
+  game-config/                     # Game design system
+    display-labels.ts              # UI labels for domains, tiers, etc.
+    guardrails.ts                  # Anti-Nosedive validations
+    resolver.ts                    # Game config lookup + caching
+    schemas.ts                     # Zod schemas for game config
+    template-seeder.ts             # Bootstrap quest/skill/tier templates
+  http/json.ts                     # JSON body parsing utility
+  notify/                          # Notification system
+    dispatcher.ts                  # Notification routing/queueing
+    pushover.ts                    # Pushover integration (admin alerts)
+  phone/twilio.ts                  # Twilio SMS integration
+  photos/
+    moderate.ts                    # Image moderation (NSFW detection)
+    process.ts                     # Sharp image pipeline (EXIF strip, resize)
   privacy/ (consent, deletion, export)
+  security/
+    authorization.ts               # Access control + policy checks
+    runtime-policy.ts              # Runtime moderation + anti-injection
+  supabase/ (client, server, middleware)
   types.ts                         # Constants, enums, Ascendant types
   utils.ts                         # Helpers
 middleware.ts                      # Auth + CSP + GPC detection
@@ -230,11 +297,11 @@ AI should DECENTRALIZE rather than concentrate power. The personal AI advocate (
 
 ## Implementation Versions
 
-- **V2 (current):** Needs board + AI matching + trust tiers 1-3 + thanks + privacy
-- **V2.5 (in progress):** Quest layer + skill domains + AI advocate MVP + endorsements
-- **V3 (next):** Guilds + parties + full skill progression + AI advocate v2
-- **V4 (future):** Governance + quadratic voting + sunset clauses + Collective Constitutional AI
-- **V5 (future):** Federation + ZK proofs + multi-provider AI advocates
+- **V2 (complete):** Needs board + AI matching + trust tiers 1-3 + thanks + privacy
+- **V2.5 (nearly complete):** Quest layer + skill domains + AI advocate MVP + endorsements + vouches + game design system + issue decomposition
+- **V3 (partially built):** Guilds + parties — schema, actions, and routes exist
+- **V4 (partially built):** Governance + quadratic voting + sunset rules — schema, actions, and routes exist
+- **V5 (future):** Federation + ZK proofs + multi-provider AI advocates + Collective Constitutional AI
 
 ## Key Principles
 
@@ -265,8 +332,9 @@ These are explicitly deferred:
 - ZK proofs / Semaphore (V5)
 - W3C DIDs / self-sovereign identity (V5)
 - Local/cloud hybrid AI inference split (V5)
-- Chat-first interface (V2.5 advocate is API-first)
+- Chat-first interface (advocate is API-first)
 - Docker / self-hosting
 - Native mobile app
-- Pol.is deliberation widget (V4)
+- Pol.is deliberation widget
 - Community currencies / time banking
+- Collective Constitutional AI

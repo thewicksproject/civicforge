@@ -316,28 +316,28 @@ export async function forkActiveDesign() {
 
   if (questTypes.data?.length) {
     const { error: e } = await admin.from("game_quest_types").insert(
-      questTypes.data.map(({ id, ...rest }) => ({ ...rest, game_design_id: draft.id })),
+      questTypes.data.map(({ id: _id, ...rest }) => ({ ...rest, game_design_id: draft.id })),
     );
     if (e) errors.push(`Quest types: ${e.message}`);
   }
 
   if (skillDomains.data?.length) {
     const { error: e } = await admin.from("game_skill_domains").insert(
-      skillDomains.data.map(({ id, ...rest }) => ({ ...rest, game_design_id: draft.id })),
+      skillDomains.data.map(({ id: _id, ...rest }) => ({ ...rest, game_design_id: draft.id })),
     );
     if (e) errors.push(`Skill domains: ${e.message}`);
   }
 
   if (tiers.data?.length) {
     const { error: e } = await admin.from("game_recognition_tiers").insert(
-      tiers.data.map(({ id, ...rest }) => ({ ...rest, game_design_id: draft.id })),
+      tiers.data.map(({ id: _id, ...rest }) => ({ ...rest, game_design_id: draft.id })),
     );
     if (e) errors.push(`Recognition tiers: ${e.message}`);
   }
 
   if (sources.data?.length) {
     const { error: e } = await admin.from("game_recognition_sources").insert(
-      sources.data.map(({ id, ...rest }) => ({ ...rest, game_design_id: draft.id })),
+      sources.data.map(({ id: _id, ...rest }) => ({ ...rest, game_design_id: draft.id })),
     );
     if (e) errors.push(`Recognition sources: ${e.message}`);
   }

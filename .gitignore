@@ -9,6 +9,9 @@
 
 # Claude
 .claude/
+!.claude/settings.json
+!.claude/hooks/
+!.claude/hooks/**
 
 # Dependencies
 node_modules/

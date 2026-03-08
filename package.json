@@ -21,7 +21,7 @@
     "test:teardown": "npx tsx scripts/setup-test-users.ts --teardown"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.38",
+    "@ai-sdk/anthropic": "^3.0.46",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.95.3",
     "@upstash/ratelimit": "^2.0.8",
